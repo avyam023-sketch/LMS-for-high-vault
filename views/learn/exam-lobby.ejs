@@ -1,0 +1,93 @@
+<%- include('../partials/head') %>
+<main id="main" class="page">
+  <div class="wrap maxw-720">
+    <div class="page-head">
+      <p class="eyebrow"><a href="/learn/<%= course.slug %>"><%= course.title %></a></p>
+      <h1>Final exam</h1>
+    </div>
+    <%- include('../partials/flash') %>
+
+    <% if (status.reason === 'certified') { %>
+      <div class="card">
+        <h2>You passed</h2>
+        <p>Your certificate <strong><%= status.certificate.code %></strong> is valid until <%= status.certificate.expires_at ? fmtDate(status.certificate.expires_at) : 'further notice' %>.</p>
+        <a class="btn btn-primary" href="/certificates/<%= status.certificate.code %>.pdf" target="_blank" rel="noopener">Download certificate (PDF)</a>
+      </div>
+    <% } else if (status.reason === 'in_progress') { %>
+      <div class="card">
+        <h2>Your exam is in progress</h2>
+        <p class="muted">The timer keeps running while you're away.</p>
+        <a class="btn btn-primary" href="/exam/<%= status.attemptId %>">Return to exam</a>
+      </div>
+    <% } else if (status.reason === 'lessons_incomplete') { %>
+      <div class="card">
+        <h2>Finish the lessons first</h2>
+        <p class="muted">The exam unlocks when every lesson is complete. You've finished <%= status.outline.completed %> of <%= status.outline.total %>.</p>
+        <progress class="bar mb-16" max="100" value="<%= status.outline.percent %>"></progress>
+        <a class="btn btn-primary" href="/learn/<%= course.slug %>">Back to lessons</a>
+      </div>
+    <% } else if (status.reason === 'no_attempts_left') { %>
+      <div class="card">
+        <h2>No attempts left</h2>
+        <p class="muted">You've used all <%= status.attemptsAllowed %> attempts. Contact <a href="mailto:<%= supportEmail %>"><%= supportEmail %></a> to arrange another attempt.</p>
+      </div>
+    <% } else if (status.reason === 'cooldown') { %>
+      <div class="card">
+        <h2>Take a short break</h2>
+        <p class="muted">Use the time to review the modules you found hardest. Your next attempt opens at <strong><%= fmtDateTime(status.availableAt) %></strong>.</p>
+        <a class="btn btn-ghost" href="/learn/<%= course.slug %>">Review lessons</a>
+      </div>
+    <% } else if (status.reason === 'no_questions') { %>
+      <div class="card"><h2>Exam not ready</h2><p class="muted">The exam for this course isn't available yet. Please check back soon.</p></div>
+    <% } else if (status.eligible) { %>
+      <div class="card">
+        <h2>Before you begin</h2>
+        <table class="spec mb-24">
+          <tr><th scope="row">Questions</th><td><%= status.questionCount %>, drawn at random</td></tr>
+          <tr><th scope="row">Time limit</th><td><%= course.exam_time_limit_minutes %> minutes. The exam submits itself when time runs out.</td></tr>
+          <tr><th scope="row">Pass mark</th><td><%= course.pass_mark %>%</td></tr>
+          <tr><th scope="row">Attempt</th><td><%= status.attemptsUsed + 1 %> of <%= status.attemptsAllowed %></td></tr>
+        </table>
+        <h3>Exam rules</h3>
+        <ul class="rule-list">
+          <li>Work alone. No notes, books, websites, AI tools or other people.</li>
+          <% if (course.require_fullscreen) { %><li>The exam runs in full screen. Leaving full screen is recorded.</li><% } %>
+          <li>Stay on the exam page. Switching tabs or windows is recorded<% if (course.max_focus_violations > 0) { %>, and after <%= course.max_focus_violations %> warnings your exam is submitted automatically<% } %>.</li>
+          <li>Copying, pasting, printing and right-clicking are disabled. Attempts are logged.</li>
+          <li>Your answers save as you go. If you lose your connection, sign back in — the timer keeps running.</li>
+          <li>Results show your score and the topics to review, not the answers.</li>
+        </ul>
+        <form method="post" action="/learn/<%= course.slug %>/exam/start" class="mt-24">
+          <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+          <label class="checkbox mb-16"><input type="checkbox" name="agree" required><span>I'm <strong><%= user.first_name %> <%= user.last_name %></strong>, I'm taking this exam myself, and I agree to the rules above.</span></label>
+          <button class="btn btn-primary btn-lg" type="submit">Start exam</button>
+        </form>
+      </div>
+    <% } %>
+
+    <% if (status.attempts && status.attempts.length) { %>
+      <h2 class="mt-32">Previous attempts</h2>
+      <div class="table-wrap">
+        <table class="data">
+          <thead><tr><th>Date</th><th class="num">Score</th><th>Result</th></tr></thead>
+          <tbody>
+            <% for (const a of status.attempts) { %>
+              <tr>
+                <td><%= fmtDateTime(a.started_at) %></td>
+                <td class="num"><%= a.score_percent ?? '—' %><%= a.score_percent != null ? '%' : '' %></td>
+                <td>
+                  <% if (a.status === 'voided') { %><span class="badge badge-bad">Voided</span>
+                  <% } else if (a.status === 'in_progress') { %><span class="badge">In progress</span>
+                  <% } else if (a.passed) { %><span class="badge badge-ok">Passed</span>
+                  <% } else { %><span class="badge badge-warn">Not passed</span><% } %>
+                  <% if (a.status !== 'in_progress') { %><a class="small" href="/exam/<%= a.id %>/result">Details</a><% } %>
+                </td>
+              </tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+</main>
+<%- include('../partials/foot') %>

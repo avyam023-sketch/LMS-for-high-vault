@@ -1,0 +1,49 @@
+<%- include('../partials/head', { scripts: ['/js/exam.js'] }) %>
+<div class="exam-bar">
+  <div class="wrap">
+    <div>
+      <strong><%= attempt.course_title %></strong>
+      <div class="save-state" data-save-state aria-live="polite"></div>
+    </div>
+    <div class="clock" data-clock role="timer" aria-live="off"><%- include('../partials/icon', { name: 'clock', cls: 'ring' }) %><span data-clock-text>--:--</span></div>
+    <button class="btn btn-primary btn-sm" type="button" data-open-submit>Finish exam</button>
+  </div>
+</div>
+<main id="main" class="exam-wrap" data-exam="<%= attempt.id %>" data-csrf="<%= csrfToken() %>">
+  <div class="watermark" aria-hidden="true" data-watermark="<%= watermark %>"></div>
+  <div class="wrap">
+    <div class="qcard" data-qcard>
+      <p class="muted center">Loading your exam…</p>
+    </div>
+    <nav class="palette" data-palette aria-label="Question navigator"></nav>
+  </div>
+</main>
+
+<div class="overlay" data-start-overlay hidden>
+  <div class="card">
+    <h2>Ready?</h2>
+    <p class="muted">The exam opens in full screen. Stay on this page until you submit.</p>
+    <button class="btn btn-primary btn-lg" type="button" data-begin>Enter full screen &amp; begin</button>
+  </div>
+</div>
+<div class="overlay" data-warning-overlay hidden role="alertdialog" aria-labelledby="warn-title">
+  <div class="card">
+    <h2 id="warn-title">Stay on the exam</h2>
+    <p data-warning-text>Leaving the exam page is recorded.</p>
+    <button class="btn btn-primary" type="button" data-resume>Return to exam</button>
+  </div>
+</div>
+<div class="overlay" data-submit-overlay hidden role="dialog" aria-labelledby="submit-title">
+  <div class="card">
+    <h2 id="submit-title">Submit your exam?</h2>
+    <p data-submit-summary class="muted"></p>
+    <form method="post" action="/exam/<%= attempt.id %>/submit" class="row justify-center">
+      <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+      <button class="btn btn-ghost" type="button" data-cancel-submit>Keep working</button>
+      <button class="btn btn-primary" type="submit" data-confirm-submit>Submit exam</button>
+    </form>
+  </div>
+</div>
+<noscript><div class="overlay"><div class="card"><h2>JavaScript required</h2><p>The exam needs JavaScript to save your answers and run the timer.</p></div></div></noscript>
+</body>
+</html>

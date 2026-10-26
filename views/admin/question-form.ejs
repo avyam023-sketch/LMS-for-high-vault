@@ -1,0 +1,43 @@
+<%- include('../partials/admin-start') %>
+<p class="small"><a href="/admin/courses/<%= course.id %>/questions">← Question bank</a></p>
+<div class="page-head"><h1><%= question ? 'Edit question' : 'New question' %></h1></div>
+<% if (error) { %><div class="alert alert-error"><%= error %></div><% } %>
+<form method="post" action="<%= question ? `/admin/questions/${question.id}` : `/admin/courses/${course.id}/questions` %>" class="card">
+  <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+  <div class="field"><label for="f-prompt">Question</label><textarea id="f-prompt" name="prompt" required><%= values.prompt %></textarea></div>
+  <div class="form-grid">
+    <div class="field"><label for="f-kind">Type</label>
+      <select id="f-kind" name="kind">
+        <option value="single" <%= values.kind === 'single' ? 'selected' : '' %>>Single answer</option>
+        <option value="multi" <%= values.kind === 'multi' ? 'selected' : '' %>>Multiple answers (select all that apply)</option>
+      </select></div>
+    <div class="field"><label for="f-module">Topic (module)</label>
+      <select id="f-module" name="module_id"><option value="">— None —</option>
+        <% for (const m of modules) { %><option value="<%= m.id %>" <%= values.module_id === m.id ? 'selected' : '' %>><%= m.title %></option><% } %>
+      </select><div class="hint">Used for the per-topic breakdown learners see after the exam.</div></div>
+  </div>
+  <p class="label">Answer options <span class="muted small">(tick the correct one<%= values.kind === 'multi' ? 's' : '' %>; the order is shuffled for every learner)</span></p>
+  <% options.forEach((o, i) => { %>
+    <div class="opt-row">
+      <input type="hidden" name="opt_id_<%= i %>" value="<%= o.id || '' %>">
+      <input name="opt_body_<%= i %>" value="<%= o.body %>" aria-label="Option <%= i + 1 %>" maxlength="500" placeholder="Option <%= i + 1 %>">
+      <label class="checkbox nowrap"><input type="checkbox" name="opt_correct_<%= i %>" <%= o.is_correct ? 'checked' : '' %>><span>Correct</span></label>
+    </div>
+  <% }) %>
+  <% for (let i = options.length; i < Math.min(options.length + 2, 8); i++) { %>
+    <div class="opt-row">
+      <input name="opt_body_<%= i %>" aria-label="Option <%= i + 1 %>" maxlength="500" placeholder="Option <%= i + 1 %> (optional)">
+      <label class="checkbox nowrap"><input type="checkbox" name="opt_correct_<%= i %>"><span>Correct</span></label>
+    </div>
+  <% } %>
+  <div class="field mt-16"><label for="f-expl">Explanation (admins only)</label><textarea id="f-expl" name="explanation"><%= values.explanation %></textarea><div class="hint">Never shown to learners, so answers can't leak.</div></div>
+  <label class="checkbox mb-16"><input type="checkbox" name="is_active" <%= values.is_active === true || values.is_active === 'on' ? 'checked' : '' %>><span>Active — can be drawn for new exams</span></label>
+  <div class="spread">
+    <div class="row">
+      <button class="btn btn-primary" type="submit" name="action" value="save">Save question</button>
+      <% if (!question) { %><button class="btn btn-ghost" type="submit" name="another" value="1">Save &amp; add another</button><% } %>
+    </div>
+    <% if (question) { %><button class="btn btn-danger btn-sm" type="submit" name="action" value="delete" data-confirm="Delete this question? To keep exam history intact, consider unticking Active instead.">Delete</button><% } %>
+  </div>
+</form>
+<%- include('../partials/admin-end') %>

@@ -1,0 +1,85 @@
+<%- include('../partials/admin-start') %>
+<% const v = values; const e = errors; const f = (name, label, type = 'text', opts = {}) => include('../partials/field', { name, label, type, value: v[name], error: e[name], required: opts.required ?? true, hint: opts.hint, extra: opts.extra }); %>
+<p class="small"><a href="/admin/courses">← Courses</a></p>
+<div class="page-head spread">
+  <h1><%= course ? course.title : 'New course' %></h1>
+  <% if (course) { %>
+  <div class="row">
+    <a class="btn btn-ghost btn-sm" href="/course/<%= course.slug %>" target="_blank" rel="noopener">Preview page</a>
+    <a class="btn btn-primary btn-sm" href="/admin/courses/<%= course.id %>/questions">Question bank</a>
+  </div>
+  <% } %>
+</div>
+<% if (Object.keys(errors).length) { %><div class="alert alert-error">Fix the highlighted fields and save again.</div><% } %>
+
+<form method="post" action="<%= course ? `/admin/courses/${course.id}` : '/admin/courses' %>">
+  <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+  <section class="card">
+    <h2>Course page</h2>
+    <div class="form-grid">
+      <%- f('title', 'Title') %>
+      <%- f('slug', 'URL slug', 'text', { hint: 'Used in links, e.g. food-handler-certification' }) %>
+    </div>
+    <%- f('subtitle', 'Subtitle', 'text', { required: false }) %>
+    <div class="form-grid-3">
+      <%- f('price', 'Price (0 = free)', 'number', { extra: 'step="0.01" min="0"' }) %>
+      <div class="field"><label for="f-currency">Currency</label><select id="f-currency" name="currency"><option value="cad" <%= v.currency === 'cad' ? 'selected' : '' %>>CAD</option><option value="usd" <%= v.currency === 'usd' ? 'selected' : '' %>>USD</option></select></div>
+      <%- f('language', 'Language') %>
+    </div>
+    <%- f('duration_minutes', 'Estimated study time (minutes)', 'number', { extra: 'min="1"' }) %>
+    <div class="field"><label for="f-highlights">Purchase-box highlights</label><textarea id="f-highlights" name="highlights"><%= v.highlights %></textarea><div class="hint">One per line. Keep each to a few words.</div></div>
+    <div class="field"><label for="f-outcomes">What you'll learn</label><textarea id="f-outcomes" name="outcomes"><%= v.outcomes %></textarea><div class="hint">One outcome per line.</div></div>
+    <div class="field"><label for="f-description">About this course (Markdown)</label><textarea id="f-description" class="code" name="description_md"><%= v.description_md %></textarea></div>
+    <div class="field"><label for="f-faqs">FAQ</label><textarea id="f-faqs" class="code" name="faqs"><%= v.faqs %></textarea><div class="hint">Question on the first line, answer on the next. Leave a blank line between questions.</div></div>
+    <label class="checkbox"><input type="checkbox" name="is_published" <%= v.is_published === true || v.is_published === 'on' ? 'checked' : '' %>><span>Published — visible on the website and open for enrolment</span></label>
+  </section>
+
+  <section class="card">
+    <h2>Exam &amp; certificate rules</h2>
+    <div class="form-grid-3">
+      <%- f('exam_question_count', 'Questions per exam', 'number', { extra: 'min="1"', hint: 'Drawn at random from the question bank.' }) %>
+      <%- f('exam_time_limit_minutes', 'Time limit (minutes)', 'number', { extra: 'min="1"' }) %>
+      <%- f('pass_mark', 'Pass mark (%)', 'number', { extra: 'min="1" max="100"' }) %>
+      <%- f('max_attempts', 'Attempts allowed', 'number', { extra: 'min="1"' }) %>
+      <%- f('attempt_cooldown_minutes', 'Wait between attempts (minutes)', 'number', { extra: 'min="0"' }) %>
+      <%- f('certificate_validity_months', 'Certificate validity (months, 0 = none)', 'number', { extra: 'min="0"' }) %>
+    </div>
+    <h3>Anti-cheating</h3>
+    <%- f('max_focus_violations', 'Warnings before auto-submit (0 = log only)', 'number', { extra: 'min="0"', hint: 'Leaving the tab, the window or full screen counts as one warning.' }) %>
+    <label class="checkbox"><input type="checkbox" name="require_fullscreen" <%= v.require_fullscreen === true || v.require_fullscreen === 'on' ? 'checked' : '' %>><span>Require full screen during the exam (where the device supports it)</span></label>
+  </section>
+  <div class="row mt-16"><button class="btn btn-primary btn-lg" type="submit"><%= course ? 'Save course' : 'Create course' %></button></div>
+</form>
+
+<% if (course) { %>
+<section class="mt-32" id="modules">
+  <div class="spread mb-16"><h2 class="mb-0">Modules &amp; lessons</h2></div>
+  <% for (const m of modules) { %>
+    <div class="module-block">
+      <header>
+        <form method="post" action="/admin/modules/<%= m.id %>">
+          <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+          <input name="position" type="number" value="<%= m.position %>" aria-label="Order" title="Order">
+          <input name="title" value="<%= m.title %>" aria-label="Module title" required>
+          <button class="btn btn-ghost btn-sm" type="submit" name="action" value="save">Save</button>
+          <button class="btn btn-ghost btn-sm" type="submit" name="action" value="delete" data-confirm="Delete this module and all its lessons?">Delete</button>
+        </form>
+        <a class="btn btn-primary btn-sm" href="/admin/lessons/new?module=<%= m.id %>">Add lesson</a>
+      </header>
+      <ul>
+        <% for (const l of m.lessons) { %>
+          <li><span><span class="muted small"><%= l.position %>.</span> <a href="/admin/lessons/<%= l.id %>"><%= l.title %></a> <% if (l.has_video) { %><span class="badge">video</span><% } %></span><span class="small muted nowrap">min <%= Math.round(l.min_seconds / 60 * 10) / 10 %> min</span></li>
+        <% } %>
+        <% if (!m.lessons.length) { %><li class="muted">No lessons yet.</li><% } %>
+      </ul>
+    </div>
+  <% } %>
+  <form method="post" action="/admin/courses/<%= course.id %>/modules" class="card row">
+    <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+    <input name="position" type="number" value="<%= modules.length + 1 %>" aria-label="Order" class="maxw-360">
+    <input name="title" placeholder="New module title" aria-label="New module title" required class="grow">
+    <button class="btn btn-primary" type="submit">Add module</button>
+  </form>
+</section>
+<% } %>
+<%- include('../partials/admin-end') %>

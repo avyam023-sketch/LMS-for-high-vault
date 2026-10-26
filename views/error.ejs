@@ -1,0 +1,12 @@
+<%- include('partials/head') %>
+<main id="main" class="auth">
+  <div class="card center">
+    <p class="eyebrow">Error <%= status %></p>
+    <h1><%= title %></h1>
+    <p class="muted"><%= message %></p>
+    <div class="row justify-center mt-24">
+      <a class="btn btn-primary" href="<%= user ? '/dashboard' : '/' %>"><%= user ? 'Back to my learning' : 'Back to home' %></a>
+    </div>
+  </div>
+</main>
+<%- include('partials/foot') %>

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en-CA">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title ? `${title} · The High Vault Security` : 'Food Handler Certification · The High Vault Security' %></title>
+  <meta name="description" content="<%= locals.description || 'Online food handler certification from The High Vault Security. Study at your own pace, pass the exam, and download a verifiable certificate.' %>">
+  <meta name="theme-color" content="#231F20">
+  <link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="/fonts/jost-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/css/app.css">
+  <script src="/js/site.js" defer></script>
+  <% if (locals.scripts) { for (const s of scripts) { %><script src="<%= s %>" defer></script>
+  <% } } %>
+</head>
+<body class="<%= locals.bodyClass || '' %>">
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="/" aria-label="The High Vault Security — home">
+      <img src="/img/logo-mark.svg" alt="" width="30" height="36">
+      <span class="brand-text"><strong>The High Vault</strong><span>Security · Academy</span></span>
+    </a>
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button>
+    <nav class="nav" id="site-nav" aria-label="Main">
+      <% if (user) { %>
+        <a href="/dashboard" <%- path.startsWith('/dashboard') || path.startsWith('/learn') ? 'aria-current="page"' : '' %>>My learning</a>
+        <% if (user.role === 'admin') { %><a href="/admin" <%- path.startsWith('/admin') ? 'aria-current="page"' : '' %>>Admin</a><% } %>
+        <a href="/verify" <%- path.startsWith('/verify') ? 'aria-current="page"' : '' %>>Verify</a>
+        <a href="/account" <%- path.startsWith('/account') ? 'aria-current="page"' : '' %>>Account</a>
+        <form method="post" action="/logout"><input type="hidden" name="_csrf" value="<%= csrfToken() %>"><button class="link" type="submit">Sign out</button></form>
+      <% } else { %>
+        <a href="/#outline">Course</a>
+        <a href="/#how">How it works</a>
+        <a href="/#faq">FAQ</a>
+        <a href="/verify" <%- path.startsWith('/verify') ? 'aria-current="page"' : '' %>>Verify a certificate</a>
+        <a href="/login" <%- path === '/login' ? 'aria-current="page"' : '' %>>Sign in</a>
+        <a class="btn btn-ice btn-sm" href="/register">Get started</a>
+      <% } %>
+    </nav>
+  </div>
+</header>

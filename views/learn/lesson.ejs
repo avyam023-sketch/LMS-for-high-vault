@@ -1,0 +1,35 @@
+<%- include('../partials/head', { scripts: ['/js/lesson.js'] }) %>
+<main id="main" class="page">
+  <div class="wrap">
+    <div class="page-head">
+      <p class="eyebrow"><a href="/learn/<%= course.slug %>"><%= course.title %></a></p>
+      <h1><%= lesson.title %></h1>
+    </div>
+    <%- include('../partials/flash') %>
+    <div class="lesson-layout">
+      <%- include('../partials/lesson-nav', { currentId: lesson.id }) %>
+      <article class="lesson-body">
+        <% if (video) { %><div class="video"><iframe src="<%= video %>" title="<%= lesson.title %> video" loading="lazy" allow="encrypted-media; picture-in-picture; fullscreen" referrerpolicy="strict-origin-when-cross-origin"></iframe></div><% } %>
+        <div class="prose"><%- html %></div>
+
+        <div class="lesson-foot">
+          <div>
+            <% if (prev) { %><a class="btn btn-ghost" href="/learn/<%= course.slug %>/lessons/<%= prev.id %>">← Previous</a><% } %>
+          </div>
+          <% if (entry.done) { %>
+            <% if (next) { %><a class="btn btn-primary" href="/learn/<%= course.slug %>/lessons/<%= next.id %>">Next lesson →</a>
+            <% } else { %><a class="btn btn-primary" href="/learn/<%= course.slug %>/exam">Go to final exam →</a><% } %>
+          <% } else { %>
+            <form method="post" action="/learn/lessons/<%= lesson.id %>/complete" class="row"
+                  data-lesson="<%= lesson.id %>" data-required="<%= lesson.min_seconds %>" data-spent="<%= entry.seconds_spent || 0 %>">
+              <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+              <span class="timer-note" data-timer-note aria-live="polite"></span>
+              <button class="btn btn-primary" type="submit" data-complete><%= next ? 'Complete & continue →' : 'Complete & go to exam →' %></button>
+            </form>
+          <% } %>
+        </div>
+      </article>
+    </div>
+  </div>
+</main>
+<%- include('../partials/foot') %>

@@ -1,0 +1,28 @@
+<%- include('../partials/admin-start') %>
+<div class="page-head"><h1>Exam attempts</h1></div>
+<nav class="tabs" aria-label="Filter">
+  <% for (const [key, label] of [['all', 'All'], ['flagged', 'Flagged'], ['live', 'In progress'], ['passed', 'Passed'], ['failed', 'Failed'], ['voided', 'Voided']]) { %>
+    <a href="/admin/attempts?filter=<%= key %>" <%- filter === key ? 'aria-current="page"' : '' %>><%= label %></a>
+  <% } %>
+</nav>
+<div class="table-wrap">
+  <table class="data">
+    <thead><tr><th>Learner</th><th>Course</th><th>Started</th><th class="num">Score</th><th>Status</th><th class="num">Events</th><th>IP</th></tr></thead>
+    <tbody>
+      <% for (const a of attempts) { %>
+      <tr>
+        <td><a href="/admin/attempts/<%= a.id %>"><%= a.first_name %> <%= a.last_name %></a><div class="small muted"><%= a.email %></div></td>
+        <td><%= a.course_title %></td>
+        <td><%= fmtDateTime(a.started_at) %></td>
+        <td class="num"><%= a.score_percent ?? '—' %></td>
+        <td><%- include('../partials/attempt-badge', { a }) %></td>
+        <td class="num"><%= a.events %></td>
+        <td><%= a.ip %></td>
+      </tr>
+      <% } %>
+      <% if (!attempts.length) { %><tr><td colspan="7" class="muted">Nothing here.</td></tr><% } %>
+    </tbody>
+  </table>
+</div>
+<%- include('../partials/pager', { params: { filter } }) %>
+<%- include('../partials/admin-end') %>

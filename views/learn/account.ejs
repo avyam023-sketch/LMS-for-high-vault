@@ -1,0 +1,48 @@
+<%- include('../partials/head') %>
+<main id="main" class="page">
+  <div class="wrap maxw-720">
+    <div class="page-head"><p class="eyebrow">Account</p><h1>Your account</h1></div>
+    <%- include('../partials/flash') %>
+
+    <section class="card">
+      <h2>Profile</h2>
+      <% if (nameLocked) { %>
+        <p class="muted">Your name appears on an issued certificate, so it can't be changed here. Email <a href="mailto:<%= supportEmail %>"><%= supportEmail %></a> to correct it.</p>
+        <dl class="meta"><dt>Name</dt><dd><%= user.first_name %> <%= user.last_name %></dd><dt>Email</dt><dd><%= user.email %></dd></dl>
+      <% } else { %>
+        <form method="post" action="/account/profile">
+          <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+          <div class="form-grid">
+            <%- include('../partials/field', { name: 'first_name', label: 'First name', type: 'text', value: values.first_name, error: errors.first_name, autocomplete: 'given-name' }) %>
+            <%- include('../partials/field', { name: 'last_name', label: 'Last name', type: 'text', value: values.last_name, error: errors.last_name, autocomplete: 'family-name' }) %>
+          </div>
+          <p class="small muted">Use your legal name. It's printed on your certificate and locks once a certificate is issued.</p>
+          <dl class="meta mb-16"><dt>Email</dt><dd><%= user.email %></dd></dl>
+          <button class="btn btn-primary" type="submit">Save profile</button>
+        </form>
+      <% } %>
+    </section>
+
+    <section class="card">
+      <h2>Password</h2>
+      <form method="post" action="/account/password">
+        <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+        <%- include('../partials/field', { name: 'current', label: 'Current password', type: 'password', value: '', autocomplete: 'current-password' }) %>
+        <%- include('../partials/field', { name: 'password', label: 'New password', type: 'password', value: '', autocomplete: 'new-password', error: errors.password, hint: 'At least 12 characters.' }) %>
+        <%- include('../partials/field', { name: 'confirm', label: 'Confirm new password', type: 'password', value: '', autocomplete: 'new-password' }) %>
+        <button class="btn btn-primary" type="submit">Change password</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <div class="spread">
+        <div>
+          <h2>Two-step verification</h2>
+          <p class="muted mb-0"><%= user.mfa_enabled_at ? 'On. You sign in with a code from your authenticator app.' : 'Add a second step at sign-in using an authenticator app.' %></p>
+        </div>
+        <a class="btn btn-ghost" href="/account/mfa"><%= user.mfa_enabled_at ? 'Manage' : 'Set up' %></a>
+      </div>
+    </section>
+  </div>
+</main>
+<%- include('../partials/foot') %>

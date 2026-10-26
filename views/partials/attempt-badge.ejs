@@ -1,0 +1,6 @@
+<% if (a.status === 'voided') { %><span class="badge badge-bad">Voided</span>
+<% } else if (a.status === 'in_progress') { %><span class="badge">Live</span>
+<% } else if (a.passed) { %><span class="badge badge-ok">Passed</span>
+<% } else { %><span class="badge badge-warn">Failed</span><% } %>
+<% if (a.auto_submitted === 'integrity') { %><span class="badge badge-bad">Auto-ended</span>
+<% } else if (a.focus_violations > 0) { %><span class="badge badge-warn" title="Focus violations"><%= a.focus_violations %> ⚑</span><% } %>

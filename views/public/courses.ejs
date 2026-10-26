@@ -1,0 +1,16 @@
+<%- include('../partials/head') %>
+<main id="main" class="page">
+  <div class="wrap">
+    <div class="page-head"><h1>Courses</h1></div>
+    <div class="grid-3">
+      <% for (const c of courses) { %>
+        <a class="card" href="/course/<%= c.slug %>">
+          <h3><%= c.title %></h3>
+          <p class="muted"><%= c.subtitle %></p>
+          <strong><%= money(c.price_cents, c.currency) %></strong>
+        </a>
+      <% } %>
+    </div>
+  </div>
+</main>
+<%- include('../partials/foot') %>

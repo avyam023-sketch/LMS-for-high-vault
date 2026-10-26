@@ -1,0 +1,62 @@
+<%- include('../partials/admin-start') %>
+<% const labels = { tab_hidden: 'Switched tab / minimised', window_blur: 'Left the exam window', fullscreen_exit: 'Exited full screen', copy: 'Tried to copy', paste: 'Tried to paste', context_menu: 'Right-click', print: 'Tried to print', devtools: 'Developer tools shortcut', shortcut: 'Blocked keyboard shortcut' }; %>
+<p class="small"><a href="/admin/attempts">← Exam attempts</a></p>
+<div class="page-head spread">
+  <div>
+    <h1 class="mb-8"><a href="/admin/users/<%= attempt.user_id %>"><%= attempt.first_name %> <%= attempt.last_name %></a></h1>
+    <div class="row"><span class="muted"><%= attempt.course_title %></span><%- include('../partials/attempt-badge', { a: attempt }) %></div>
+  </div>
+  <% if (attempt.score_percent != null) { %><div class="score"><%= attempt.score_percent %>%</div><% } %>
+</div>
+
+<div class="grid-2">
+  <section class="card">
+    <h2>Session</h2>
+    <dl class="meta">
+      <dt>Started</dt><dd><%= fmtDateTime(attempt.started_at) %></dd>
+      <dt>Deadline</dt><dd><%= fmtDateTime(attempt.expires_at) %></dd>
+      <dt>Submitted</dt><dd><%= fmtDateTime(attempt.submitted_at) %><%= attempt.auto_submitted ? ` (auto: ${attempt.auto_submitted})` : '' %></dd>
+      <dt>Duration</dt><dd><%= attempt.submitted_at ? Math.round((new Date(attempt.submitted_at) - new Date(attempt.started_at)) / 60000) + ' min' : '—' %></dd>
+      <dt>Correct</dt><dd><%= attempt.correct_count ?? '—' %> / <%= attempt.question_ids.length %> (pass mark <%= attempt.pass_mark %>%)</dd>
+      <dt>Warnings</dt><dd><%= attempt.focus_violations %><%= attempt.max_focus_violations ? ` of ${attempt.max_focus_violations} allowed` : '' %></dd>
+      <dt>IP address</dt><dd><%= attempt.ip %></dd>
+      <dt>Browser</dt><dd class="small"><%= attempt.user_agent %></dd>
+      <% if (certificate) { %><dt>Certificate</dt><dd><a href="/certificates/<%= certificate.code %>.pdf" target="_blank" rel="noopener"><%= certificate.code %></a><%= certificate.revoked_at ? ' (revoked)' : '' %></dd><% } %>
+      <% if (attempt.void_reason) { %><dt>Void reason</dt><dd><%= attempt.void_reason %></dd><% } %>
+    </dl>
+  </section>
+  <section class="card">
+    <h2>Integrity timeline</h2>
+    <% if (!events.length) { %><p class="muted">No integrity events. The learner stayed on the exam throughout.</p><% } %>
+    <ol class="timeline">
+      <% for (const ev of events) { %>
+        <li><time datetime="<%= new Date(ev.occurred_at).toISOString() %>"><%= new Date(ev.occurred_at).toLocaleTimeString('en-CA', { timeZone: 'America/Toronto' }) %></time>
+          <span><%= labels[ev.kind] || ev.kind %><% if (ev.counted) { %> <span class="badge badge-warn">warning</span><% } %><% if (ev.detail) { %> <span class="small muted"><%= ev.detail %></span><% } %></span></li>
+      <% } %>
+    </ol>
+  </section>
+</div>
+
+<% if (attempt.status !== 'voided') { %>
+<section class="card danger-zone mt-24">
+  <h2>Void this attempt</h2>
+  <p class="muted">Use this when you're satisfied the learner cheated. The attempt counts as used and any certificate from it is revoked immediately.</p>
+  <form method="post" action="/admin/attempts/<%= attempt.id %>/void" class="row" data-confirm="Void this attempt and revoke any certificate it produced?">
+    <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+    <input name="reason" class="grow" placeholder="Reason (recorded and shown to the learner)" maxlength="300" required aria-label="Reason">
+    <button class="btn btn-danger" type="submit">Void attempt</button>
+  </form>
+</section>
+<% } %>
+
+<h2 class="mt-32">Answers</h2>
+<% paper.forEach((q, i) => { %>
+  <div class="card">
+    <div class="spread"><strong>Q<%= i + 1 %>. <%= q.prompt %></strong><%- q.isRight ? '<span class="badge badge-ok">Correct</span>' : (q.answeredAt ? '<span class="badge badge-bad">Wrong</span>' : '<span class="badge">Unanswered</span>') %></div>
+    <% for (const o of q.options) { %>
+      <div class="answer-opt <%= o.is_correct ? 'correct' : (o.chosen ? 'chosen-wrong' : '') %>"><span><%= o.chosen ? '●' : '○' %></span><span><%= o.body %><%= o.is_correct ? ' ✓' : '' %></span></div>
+    <% } %>
+    <% if (q.answeredAt) { %><p class="small muted mt-8 mb-0">Answered <%= fmtDateTime(q.answeredAt) %></p><% } %>
+  </div>
+<% }) %>
+<%- include('../partials/admin-end') %>

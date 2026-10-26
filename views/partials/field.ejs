@@ -1,0 +1,11 @@
+<%# Usage: include('../partials/field', { name, label, type, value, error, hint, autocomplete, required }) %>
+<div class="field">
+  <label for="f-<%= name %>"><%= label %></label>
+  <% if (type === 'password') { %><div class="pw-wrap"><% } %>
+  <input id="f-<%= name %>" name="<%= name %>" type="<%= type || 'text' %>" value="<%= locals.value ?? '' %>"
+    <%- locals.autocomplete ? `autocomplete="${autocomplete}"` : '' %> <%- locals.required === false ? '' : 'required' %>
+    <%- locals.extra || '' %>
+    <%- locals.error ? `aria-invalid="true" aria-describedby="e-${name}"` : (locals.hint ? `aria-describedby="h-${name}"` : '') %>>
+  <% if (type === 'password') { %><button class="pw-toggle" type="button" data-pw-toggle aria-label="Show password">Show</button></div><% } %>
+  <% if (locals.error) { %><div class="err" id="e-<%= name %>"><%= error %></div><% } else if (locals.hint) { %><div class="hint" id="h-<%= name %>"><%= hint %></div><% } %>
+</div>

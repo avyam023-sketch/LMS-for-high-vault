@@ -1,0 +1,15 @@
+<%- include('head') %>
+<div class="admin-shell">
+  <aside class="admin-side" aria-label="Admin navigation">
+    <h4>Admin</h4>
+    <a href="/admin" <%- adminNav === 'overview' ? 'aria-current="page"' : '' %>>Overview</a>
+    <a href="/admin/users" <%- adminNav === 'users' ? 'aria-current="page"' : '' %>>Learners</a>
+    <a href="/admin/attempts" <%- adminNav === 'attempts' ? 'aria-current="page"' : '' %>>Exam attempts</a>
+    <a href="/admin/certificates" <%- adminNav.startsWith('certificates') ? 'aria-current="page"' : '' %>>Certificates</a>
+    <h4>Content</h4>
+    <a href="/admin/courses" <%- ['courses', 'lessons', 'questions', 'modules'].includes(adminNav) ? 'aria-current="page"' : '' %>>Courses &amp; exams</a>
+    <h4>Security</h4>
+    <a href="/admin/audit" <%- adminNav === 'audit' ? 'aria-current="page"' : '' %>>Audit log</a>
+  </aside>
+  <main id="main" class="admin-main">
+    <%- include('flash') %>

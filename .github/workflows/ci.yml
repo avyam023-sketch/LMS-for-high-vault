@@ -1,0 +1,33 @@
+name: CI
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: hv
+          POSTGRES_PASSWORD: hv_ci_pw
+          POSTGRES_DB: highvault_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U hv" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgres://hv:hv_ci_pw@localhost:5432/highvault_test
+      SESSION_SECRET: ci-only-session-secret-not-used-anywhere-else
+      ENCRYPTION_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      APP_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm audit --omit=dev --audit-level=high
+      - run: npm test

@@ -1,0 +1,12 @@
+<%- include('../partials/head') %>
+<main id="main" class="auth">
+  <div class="card center">
+    <h1>Confirming your payment</h1>
+    <p class="muted">This usually takes a few seconds. Refresh this page, or open your course from My learning.</p>
+    <div class="row justify-center mt-16">
+      <a class="btn btn-primary" href="/payments/success?session_id=<%= encodeURIComponent(locals.sessionId || '') %>">Refresh</a>
+      <a class="btn btn-ghost" href="/dashboard">My learning</a>
+    </div>
+  </div>
+</main>
+<%- include('../partials/foot') %>

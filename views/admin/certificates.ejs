@@ -1,0 +1,15 @@
+<%- include('../partials/admin-start') %>
+<div class="page-head spread">
+  <h1>Certificates</h1>
+  <div class="row">
+    <form method="get" class="row" role="search">
+      <label class="sr-only" for="q">Search</label>
+      <input id="q" type="search" name="q" value="<%= q %>" placeholder="Code, name or email">
+      <button class="btn btn-primary btn-sm" type="submit">Search</button>
+    </form>
+    <a class="btn btn-ghost btn-sm" href="/admin/certificates.csv">Export CSV</a>
+  </div>
+</div>
+<%- include('../partials/cert-table', { certificates, showUser: true }) %>
+<%- include('../partials/pager', { params: q ? { q } : {} }) %>
+<%- include('../partials/admin-end') %>

@@ -1,0 +1,53 @@
+<%- include('../partials/admin-start') %>
+<div class="page-head spread">
+  <h1>Overview</h1>
+  <a class="btn btn-ghost btn-sm" href="/" target="_blank" rel="noopener">View site</a>
+</div>
+<div class="tiles">
+  <div class="tile"><p class="label">Learners</p><div class="value"><%= stats.learners %></div><div class="sub">+<%= stats.learners_7d %> in the last 7 days</div></div>
+  <div class="tile"><p class="label">Enrolments</p><div class="value"><%= stats.enrollments %></div><div class="sub"><%= stats.live_exams %> exam<%= stats.live_exams === 1 ? '' : 's' %> in progress now</div></div>
+  <div class="tile"><p class="label">Certificates issued</p><div class="value"><%= stats.certificates %></div><div class="sub">active (not revoked)</div></div>
+  <div class="tile"><p class="label">Pass rate · 30 days</p><div class="value"><%= stats.pass_rate_30d == null ? '—' : stats.pass_rate_30d + '%' %></div><div class="sub"><%= stats.attempts_30d %> exam<%= stats.attempts_30d === 1 ? '' : 's' %> submitted</div></div>
+</div>
+<% if (stats.flagged_30d) { %>
+  <div class="alert alert-warn"><strong><%= stats.flagged_30d %></strong> exam attempt<%= stats.flagged_30d === 1 ? '' : 's' %> in the last 30 days had integrity events. <a href="/admin/attempts?filter=flagged">Review flagged attempts</a></div>
+<% } %>
+
+<div class="grid-2 mt-24">
+  <section>
+    <div class="spread mb-8"><h2 class="mb-0">Latest exam attempts</h2><a class="small" href="/admin/attempts">All attempts</a></div>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>Learner</th><th class="num">Score</th><th>Status</th></tr></thead>
+        <tbody>
+          <% for (const a of recentAttempts) { %>
+          <tr>
+            <td><a href="/admin/attempts/<%= a.id %>"><%= a.first_name %> <%= a.last_name %></a><div class="small muted"><%= fmtDateTime(a.started_at) %></div></td>
+            <td class="num"><%= a.score_percent ?? '—' %><%= a.score_percent != null ? '%' : '' %></td>
+            <td><%- include('../partials/attempt-badge', { a }) %></td>
+          </tr>
+          <% } %>
+          <% if (!recentAttempts.length) { %><tr><td colspan="3" class="muted">No attempts yet.</td></tr><% } %>
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <section>
+    <div class="spread mb-8"><h2 class="mb-0">Newest accounts</h2><a class="small" href="/admin/users">All learners</a></div>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>Name</th><th>Joined</th><th>Email</th></tr></thead>
+        <tbody>
+          <% for (const u of recentUsers) { %>
+          <tr>
+            <td><a href="/admin/users/<%= u.id %>"><%= u.first_name %> <%= u.last_name %></a><div class="small muted"><%= u.email %></div></td>
+            <td><%= fmtDate(u.created_at) %></td>
+            <td><%- u.email_verified_at ? '<span class="badge badge-ok">Verified</span>' : '<span class="badge badge-warn">Unverified</span>' %></td>
+          </tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+<%- include('../partials/admin-end') %>

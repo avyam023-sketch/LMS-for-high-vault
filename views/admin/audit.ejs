@@ -1,0 +1,21 @@
+<%- include('../partials/admin-start') %>
+<div class="page-head"><h1>Audit log</h1><p class="muted">Every sign-in, admin change and exam event that matters, newest first.</p></div>
+<div class="table-wrap">
+  <table class="data">
+    <thead><tr><th>When</th><th>Who</th><th>Action</th><th>Target</th><th>Details</th><th>IP</th></tr></thead>
+    <tbody>
+      <% for (const e of entries) { %>
+      <tr>
+        <td><%= fmtDateTime(e.created_at) %></td>
+        <td><%= e.actor_email || '—' %></td>
+        <td><code><%= e.action %></code></td>
+        <td><%= e.entity ? `${e.entity}` : '' %><% if (e.entity === 'user' && e.entity_id) { %> <a href="/admin/users/<%= e.entity_id %>">view</a><% } else if (e.entity === 'attempt' && e.entity_id) { %> <a href="/admin/attempts/<%= e.entity_id %>">view</a><% } %></td>
+        <td class="small"><%= Object.keys(e.meta || {}).length ? JSON.stringify(e.meta) : '' %></td>
+        <td><%= e.ip %></td>
+      </tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+<%- include('../partials/pager', { params: {} }) %>
+<%- include('../partials/admin-end') %>

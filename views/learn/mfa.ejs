@@ -1,0 +1,37 @@
+<%- include('../partials/head') %>
+<main id="main" class="page">
+  <div class="wrap maxw-560">
+    <div class="page-head"><p class="eyebrow">Security</p><h1>Two-step verification</h1></div>
+    <%- include('../partials/flash') %>
+    <% if (enabled) { %>
+      <div class="card">
+        <p><span class="badge badge-ok">On</span></p>
+        <p class="muted">Each sign-in asks for a code from your authenticator app.</p>
+        <% if (user.role !== 'admin') { %>
+        <form method="post" action="/account/mfa/disable" class="mt-24">
+          <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+          <%- include('../partials/field', { name: 'password', label: 'Confirm your password to turn it off', type: 'password', value: '', autocomplete: 'current-password' }) %>
+          <button class="btn btn-danger" type="submit">Turn off two-step verification</button>
+        </form>
+        <% } %>
+      </div>
+    <% } else { %>
+      <div class="card">
+        <% if (required) { %><div class="alert alert-info">Administrator accounts must use two-step verification. Set it up to open the admin dashboard.</div><% } %>
+        <ol class="rule-list">
+          <li>Install an authenticator app (Google Authenticator, Microsoft Authenticator, 1Password, Authy…).</li>
+          <li>Scan this QR code, or enter the setup key manually.</li>
+          <li>Enter the 6-digit code the app shows.</li>
+        </ol>
+        <img src="<%= qr %>" alt="QR code for your authenticator app" width="220" height="220" class="mt-16 mb-16">
+        <p class="small muted">Setup key: <code><%= secret %></code></p>
+        <form method="post" action="/account/mfa">
+          <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+          <%- include('../partials/field', { name: 'code', label: '6-digit code', type: 'text', value: '', autocomplete: 'one-time-code', extra: 'inputmode="numeric" maxlength="7"' }) %>
+          <button class="btn btn-primary" type="submit">Turn on</button>
+        </form>
+      </div>
+    <% } %>
+  </div>
+</main>
+<%- include('../partials/foot') %>

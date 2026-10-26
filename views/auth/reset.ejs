@@ -1,0 +1,14 @@
+<%- include('../partials/head') %>
+<main id="main" class="auth">
+  <div class="card">
+    <h1>Choose a new password</h1>
+    <% if (error) { %><div class="alert alert-error" role="alert"><%= error %></div><% } %>
+    <form method="post" action="/reset-password/<%= token %>">
+      <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+      <%- include('../partials/field', { name: 'password', label: 'New password', type: 'password', value: '', autocomplete: 'new-password', hint: 'At least 12 characters.', extra: 'minlength="12" maxlength="128"' }) %>
+      <%- include('../partials/field', { name: 'confirm', label: 'Confirm new password', type: 'password', value: '', autocomplete: 'new-password' }) %>
+      <button class="btn btn-primary btn-block btn-lg" type="submit">Save password</button>
+    </form>
+  </div>
+</main>
+<%- include('../partials/foot') %>

@@ -1,0 +1,26 @@
+<%- include('../partials/head') %>
+<main id="main" class="page">
+  <div class="wrap prose">
+    <p class="eyebrow">Privacy</p>
+    <h1>How we handle your information</h1>
+    <p class="muted">This summary explains what the academy collects and why. Questions: <a href="mailto:<%= supportEmail %>"><%= supportEmail %></a>.</p>
+    <h2>What we collect</h2>
+    <ul>
+      <li><strong>Account details</strong>: your name (printed on your certificate), email address and a securely hashed password. We never store your password itself.</li>
+      <li><strong>Learning records</strong>: lessons completed, time spent on lessons, exam answers and scores.</li>
+      <li><strong>Exam integrity records</strong>: during the final exam we record your IP address, browser type and events such as leaving the exam tab. These protect the value of every certificate we issue.</li>
+      <li><strong>Payment status</strong>, if a course is paid. Card details are handled by our payment processor and never touch our servers.</li>
+    </ul>
+    <h2>Why we use it</h2>
+    <ul>
+      <li>To run your account, track your progress and issue your certificate.</li>
+      <li>To let employers confirm a certificate is genuine. The public verification page shows only the certificate number, your name, the course and its dates.</li>
+      <li>To keep the platform secure and prevent cheating and fraud.</li>
+    </ul>
+    <h2>Your choices</h2>
+    <p>You can update your details on your account page, or ask us to correct or delete your information by emailing <a href="mailto:<%= supportEmail %>"><%= supportEmail %></a>. We may keep certificate records as long as a certificate remains valid so it can still be verified.</p>
+    <h2>Cookies</h2>
+    <p>We use one essential cookie to keep you signed in. We don't use advertising or tracking cookies.</p>
+  </div>
+</main>
+<%- include('../partials/foot') %>

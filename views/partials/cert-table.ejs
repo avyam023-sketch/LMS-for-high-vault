@@ -1,0 +1,34 @@
+<div class="table-wrap">
+  <table class="data">
+    <thead><tr><th>Certificate</th><% if (showUser) { %><th>Name</th><% } %><th>Course</th><th class="num">Score</th><th>Issued</th><th>Expires</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      <% for (const c of certificates) { %>
+      <tr>
+        <td><a href="/certificates/<%= c.code %>.pdf" target="_blank" rel="noopener"><code><%= c.code %></code></a></td>
+        <% if (showUser) { %><td><a href="/admin/users/<%= c.user_id %>"><%= c.full_name %></a><div class="small muted"><%= c.email %></div></td><% } %>
+        <td><%= c.course_title %></td>
+        <td class="num"><%= c.score_percent %>%</td>
+        <td><%= fmtDate(c.issued_at) %></td>
+        <td><%= fmtDate(c.expires_at) %></td>
+        <td>
+          <% if (c.revoked_at) { %><span class="badge badge-bad" title="<%= c.revoke_reason %>">Revoked</span>
+          <% } else if (c.expires_at && new Date(c.expires_at) < new Date()) { %><span class="badge badge-warn">Expired</span>
+          <% } else { %><span class="badge badge-ok">Valid</span><% } %>
+        </td>
+        <td>
+          <form method="post" action="/admin/certificates/<%= c.id %>" class="row" <%- c.revoked_at ? '' : 'data-confirm="Revoke this certificate? It will show as revoked on the public verification page."' %>>
+            <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+            <% if (c.revoked_at) { %>
+              <input type="hidden" name="action" value="reinstate"><button class="btn btn-ghost btn-sm" type="submit">Reinstate</button>
+            <% } else { %>
+              <input type="hidden" name="action" value="revoke"><input name="reason" placeholder="Reason" aria-label="Reason" maxlength="300">
+              <button class="btn btn-danger btn-sm" type="submit">Revoke</button>
+            <% } %>
+          </form>
+        </td>
+      </tr>
+      <% } %>
+      <% if (!certificates.length) { %><tr><td colspan="8" class="muted">No certificates.</td></tr><% } %>
+    </tbody>
+  </table>
+</div>

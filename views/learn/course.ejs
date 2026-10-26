@@ -1,0 +1,33 @@
+<%- include('../partials/head') %>
+<main id="main" class="page">
+  <div class="wrap">
+    <div class="page-head spread">
+      <div>
+        <p class="eyebrow">Course</p>
+        <h1><%= course.title %></h1>
+        <p class="muted mb-8"><%= outline.completed %> of <%= outline.total %> lessons complete</p>
+        <progress class="bar maxw-360" max="100" value="<%= outline.percent %>" aria-label="Course progress"><%= outline.percent %>%</progress>
+      </div>
+      <% const next = outline.lessons.find((l) => !l.done) %>
+      <% if (next) { %><a class="btn btn-primary btn-lg" href="/learn/<%= course.slug %>/lessons/<%= next.id %>"><%= outline.completed ? 'Continue' : 'Start first lesson' %></a>
+      <% } else { %><a class="btn btn-primary btn-lg" href="/learn/<%= course.slug %>/exam"><%= status.certificate ? 'View exam results' : 'Go to final exam' %></a><% } %>
+    </div>
+    <%- include('../partials/flash') %>
+    <div class="lesson-layout">
+      <%- include('../partials/lesson-nav', { currentId: null }) %>
+      <div class="lesson-body">
+        <h2>How this course works</h2>
+        <ul class="rule-list">
+          <li>Lessons unlock in order. Each lesson has a minimum study time before you can mark it complete.</li>
+          <li>Your progress saves automatically. Sign in from any device to continue.</li>
+          <li>When every lesson is complete, the final exam unlocks: <%= course.exam_time_limit_minutes %> minutes, <%= course.pass_mark %>% to pass, up to <%= course.max_attempts %> attempts.</li>
+          <li>Pass the exam and your certificate is issued immediately.</li>
+        </ul>
+        <% if (status.certificate) { %>
+          <div class="alert alert-success mt-24">You're certified. <a href="/certificates/<%= status.certificate.code %>.pdf" target="_blank" rel="noopener">Download your certificate</a>.</div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</main>
+<%- include('../partials/foot') %>

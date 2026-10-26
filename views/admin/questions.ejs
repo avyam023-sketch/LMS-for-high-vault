@@ -1,0 +1,39 @@
+<%- include('../partials/admin-start') %>
+<p class="small"><a href="/admin/courses/<%= course.id %>">← <%= course.title %></a></p>
+<div class="page-head spread">
+  <div>
+    <h1 class="mb-8">Question bank</h1>
+    <p class="muted mb-0"><%= questions.filter((q) => q.is_active).length %> active questions · each exam draws <%= course.exam_question_count %> at random.
+      <% if (questions.filter((q) => q.is_active).length < course.exam_question_count * 2) { %>A bank at least twice the exam size makes answer-sharing much less useful.<% } %></p>
+  </div>
+  <a class="btn btn-primary btn-sm" href="/admin/courses/<%= course.id %>/questions/new">New question</a>
+</div>
+<div class="table-wrap">
+  <table class="data">
+    <thead><tr><th>Question</th><th>Topic</th><th>Type</th><th class="num">Options</th><th class="num">Times answered</th><th>Status</th></tr></thead>
+    <tbody>
+      <% for (const q of questions) { %>
+      <tr>
+        <td class="wrap-text"><a href="/admin/questions/<%= q.id %>"><%= q.prompt.length > 120 ? q.prompt.slice(0, 117) + '…' : q.prompt %></a></td>
+        <td><%= q.module_title || '—' %></td>
+        <td><%= q.kind === 'multi' ? 'Multiple answers' : 'Single answer' %></td>
+        <td class="num"><%= q.options %></td>
+        <td class="num"><%= q.answered %></td>
+        <td><%- q.is_active ? '<span class="badge badge-ok">Active</span>' : '<span class="badge">Retired</span>' %></td>
+      </tr>
+      <% } %>
+      <% if (!questions.length) { %><tr><td colspan="6" class="muted">No questions yet.</td></tr><% } %>
+    </tbody>
+  </table>
+</div>
+
+<section class="card mt-32">
+  <h2>Import questions from CSV</h2>
+  <p class="muted small">Paste rows with these columns: <code>prompt, option_a, option_b, option_c, option_d, correct, module, explanation</code>. <code>correct</code> is the letter of the right option (e.g. <code>B</code>), or several letters for multi-answer (e.g. <code>A;C</code>). <code>module</code> must match a module title to tag the topic. A header row is optional.</p>
+  <form method="post" action="/admin/courses/<%= course.id %>/questions/import">
+    <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+    <textarea name="csv" class="code" placeholder='"What is the temperature danger zone?","0°C to 60°C","4°C to 60°C","10°C to 50°C","4°C to 74°C",B,"Temperature control",'></textarea>
+    <button class="btn btn-primary mt-16" type="submit">Import</button>
+  </form>
+</section>
+<%- include('../partials/admin-end') %>

@@ -1,0 +1,25 @@
+<%- include('../partials/admin-start') %>
+<% const v = values; const e = errors; %>
+<p class="small"><a href="/admin/courses/<%= mod.course_id %>#modules">← <%= mod.course_title %></a></p>
+<div class="page-head"><h1><%= lesson ? 'Edit lesson' : 'New lesson' %></h1></div>
+<% if (Object.keys(errors).length) { %><div class="alert alert-error">Fix the highlighted fields and save again.</div><% } %>
+<form method="post" action="<%= lesson ? `/admin/lessons/${lesson.id}` : '/admin/lessons' %>" class="card">
+  <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+  <%- include('../partials/field', { name: 'title', label: 'Title', type: 'text', value: v.title, error: e.title }) %>
+  <div class="form-grid-3">
+    <div class="field"><label for="f-module">Module</label><select id="f-module" name="module_id"><% for (const m of modules) { %><option value="<%= m.id %>" <%= v.module_id === m.id ? 'selected' : '' %>><%= m.title %></option><% } %></select></div>
+    <%- include('../partials/field', { name: 'position', label: 'Order', type: 'number', value: v.position ?? 0, error: e.position }) %>
+    <%- include('../partials/field', { name: 'min_seconds', label: 'Minimum study time (seconds)', type: 'number', value: v.min_seconds, error: e.min_seconds, hint: 'Learners can’t complete the lesson sooner.' }) %>
+  </div>
+  <%- include('../partials/field', { name: 'video_url', label: 'Video (YouTube or Vimeo link, optional)', type: 'url', value: v.video_url, error: e.video_url, required: false }) %>
+  <div class="field">
+    <label for="f-content">Lesson content (Markdown)</label>
+    <textarea id="f-content" name="content_md" class="code"><%= v.content_md %></textarea>
+    <div class="hint">Use ## for headings, - for bullet lists, **bold**, > for callouts, and | tables |. Images must use https:// links.</div>
+  </div>
+  <div class="spread">
+    <button class="btn btn-primary" type="submit" name="action" value="save">Save lesson</button>
+    <% if (lesson) { %><button class="btn btn-danger btn-sm" type="submit" name="action" value="delete" data-confirm="Delete this lesson? Learner progress for it will be lost.">Delete lesson</button><% } %>
+  </div>
+</form>
+<%- include('../partials/admin-end') %>
