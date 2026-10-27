@@ -1,4 +1,4 @@
-<%- include('../partials/head', { modules: ['/js/exam-checkin.js'] }) %>
+<%- include('../partials/head', { moduleScripts: ['/js/exam-checkin.js'] }) %>
 <main id="main" data-checkin="<%= attempt.id %>" data-csrf="<%= csrfToken() %>"
       data-done-face="<%= done.face ? '1' : '' %>" data-done-id="<%= done.id ? '1' : '' %>" data-done-room="<%= done.room_scan ? '1' : '' %>">
   <div class="page-band">

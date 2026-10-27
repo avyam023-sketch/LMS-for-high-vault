@@ -2,6 +2,14 @@
 
 An online learning platform for The High Vault Security's food handler course. Learners create their own account and work through **10 modules, each a chapter (video and reading) followed by a quiz**. They then take a **proctored final exam** on camera with an ID check and a room scan, and receive a certificate employers can verify once the exam has been reviewed. Administrators manage everything from a built-in dashboard.
 
+## Click-through preview
+
+**https://avyam023-sketch.github.io/LMS-for-high-vault/**
+
+These are the app's real pages, generated with fictional sample learners. There is no server behind them, so nothing you enter is saved. Use the bar at the bottom of the page to switch between the website, the learner area and the admin dashboard. The quizzes, the camera check-in and the timed exam all work.
+
+The [`Preview site`](.github/workflows/pages.yml) workflow rebuilds it on every push (`node demo/build.js`, sample data in [`demo/seed-demo.js`](demo/seed-demo.js)). The preview includes the question bank and answers, as the admin pages do. Turn the workflow off once real exam questions are in use.
+
 ## Try it on your computer (5 minutes)
 
 1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/) and open it.

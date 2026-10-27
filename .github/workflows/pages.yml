@@ -1,0 +1,65 @@
+# Publishes the click-through preview (the real pages, sample data, no server) to GitHub Pages.
+name: Preview site
+on:
+  push:
+    branches: [claude/vibrant-volta-u9jfww, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    if: ${{ !github.event.repository.private }}
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: hv
+          POSTGRES_PASSWORD: hv_preview_pw
+          POSTGRES_DB: highvault_preview
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U hv" --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - id: pages
+        uses: actions/configure-pages@v5
+      - name: Build the preview
+        run: |
+          export ENCRYPTION_KEY="$(node -e "console.log(require('crypto').randomBytes(32).toString('base64'))")"
+          export SESSION_SECRET="$(node -e "console.log(require('crypto').randomBytes(32).toString('base64'))")"
+          node demo/build.js _site
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgres://hv:hv_preview_pw@localhost:5432/highvault_preview
+          REQUIRE_ADMIN_MFA: "false"
+          REQUIRE_EMAIL_VERIFICATION: "false"
+          CHECK_BREACHED_PASSWORDS: "false"
+          APP_URL: ${{ steps.pages.outputs.base_url }}
+          BASE: ${{ steps.pages.outputs.base_path }}
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
