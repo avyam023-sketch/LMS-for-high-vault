@@ -1,0 +1,44 @@
+# Local preview — one command, nothing to configure:
+#
+#   docker compose -f docker-compose.preview.yml up --build
+#
+# Then open http://localhost:3000 and sign in as admin@example.com / vault-preview-2026
+# Stop with Ctrl+C. Delete all preview data with:  docker compose -f docker-compose.preview.yml down -v
+#
+# FOR YOUR OWN COMPUTER ONLY. The keys below are public placeholders, email confirmation and
+# admin two-step verification are switched off, and the app refuses to start in production with them.
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: hv
+      POSTGRES_PASSWORD: preview
+      POSTGRES_DB: highvault
+    volumes:
+      - preview-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hv -d highvault"]
+      interval: 3s
+      retries: 20
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      APP_URL: http://localhost:3000
+      DATABASE_URL: postgres://hv:preview@db:5432/highvault
+      SESSION_SECRET: local-preview-only-not-a-real-secret-do-not-deploy
+      ENCRYPTION_KEY: bG9jYWwtcHJldmlldy1vbmx5LW5vdC1zZWNyZXQhIQA=
+      SEED_ON_START: "true"
+      ADMIN_EMAIL: admin@example.com
+      ADMIN_PASSWORD: vault-preview-2026
+      REQUIRE_EMAIL_VERIFICATION: "false"
+      REQUIRE_ADMIN_MFA: "false"
+    ports:
+      - "3000:3000"
+
+volumes:
+  preview-pgdata:

@@ -2,6 +2,23 @@
 
 An online learning platform for The High Vault Security's food handler course. Learners create their own account and work through **10 modules, each a chapter (video and reading) followed by a quiz**. They then take a **proctored final exam** on camera with an ID check and a room scan, and receive a certificate employers can verify once the exam has been reviewed. Administrators manage everything from a built-in dashboard.
 
+## Try it on your computer (5 minutes)
+
+1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/) and open it.
+2. Download this repo: **Code → Download ZIP**, then unzip it.
+3. Open a terminal in the unzipped folder (on Windows: open the folder, click the address bar, type `cmd`, press Enter) and run:
+   ```
+   docker compose -f docker-compose.preview.yml up --build
+   ```
+4. When you see `listening on http://localhost:3000`, open **http://localhost:3000**.
+   - Admin: `admin@example.com` / `vault-preview-2026`
+   - Or click **Enrol now** and sign up as a learner (no email confirmation in the preview).
+5. Stop with `Ctrl+C`. To wipe the preview data: `docker compose -f docker-compose.preview.yml down -v`
+
+The preview turns off email confirmation and admin two-step verification and uses public placeholder keys, so it's only for your own computer. The app refuses to start in production with those keys.
+
+---
+
 ## See it live
 
 The fastest way to get a public URL is **Render** (free tier is fine for a preview). The repo includes a [`render.yaml`](render.yaml) blueprint that creates the app and its database and generates the secrets for you.

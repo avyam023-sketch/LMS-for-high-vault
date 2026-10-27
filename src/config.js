@@ -50,6 +50,11 @@ if (!parsed.success) {
 }
 
 const env = parsed.data;
+// The local preview (docker-compose.preview.yml) uses public placeholder keys. Never in production.
+if (env.NODE_ENV === 'production' && (env.SESSION_SECRET.startsWith('local-preview-only') || env.ENCRYPTION_KEY === 'bG9jYWwtcHJldmlldy1vbmx5LW5vdC1zZWNyZXQhIQA=')) {
+  console.error('Refusing to start: the local-preview keys must not be used in production. Generate new SESSION_SECRET and ENCRYPTION_KEY values.');
+  process.exit(1);
+}
 export const config = {
   ...env,
   isProd: env.NODE_ENV === 'production',
