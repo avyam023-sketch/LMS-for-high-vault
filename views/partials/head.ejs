@@ -6,7 +6,25 @@
   <title><%= title ? `${title} — The High Vault Security` : 'Food Handler Certification — The High Vault Security' %></title>
   <meta name="description" content="<%= locals.description || 'Online food handler certification from The High Vault Security. Study at your own pace, pass the final exam, and download a certificate employers can verify.' %>">
   <meta name="theme-color" content="#231F20">
+  <% const pageTitle = title ? `${title} — The High Vault Security` : 'Food Handler Certification — The High Vault Security'; const pageDesc = locals.description || 'Online food handler certification from The High Vault Security. Study at your own pace, pass the final exam, and download a certificate employers can verify.'; %>
+  <% if (!user && !path.startsWith('/admin')) { %>
+  <link rel="canonical" href="<%= appUrl %><%= path %>">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="The High Vault Security">
+  <meta property="og:title" content="<%= pageTitle %>">
+  <meta property="og:description" content="<%= pageDesc %>">
+  <meta property="og:url" content="<%= appUrl %><%= path %>">
+  <meta property="og:image" content="<%= appUrl %>/img/og-card.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:locale" content="en_CA">
+  <meta name="twitter:card" content="summary_large_image">
+  <% } else { %>
+  <meta name="robots" content="noindex">
+  <% } %>
   <link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
   <link rel="preload" href="/fonts/plex-sans/ibm-plex-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/fonts/jost/jost-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/css/app.css">
@@ -28,7 +46,7 @@
     <nav class="nav" id="site-nav" aria-label="Main">
       <% if (user) { %>
         <a href="/dashboard" <%- path.startsWith('/dashboard') || path.startsWith('/learn') ? 'aria-current="page"' : '' %>>My learning</a>
-        <% if (user.role === 'admin') { %><a href="/admin" <%- path.startsWith('/admin') ? 'aria-current="page"' : '' %>>Admin</a><% } %>
+        <% if (user.role === 'admin' || user.role === 'reviewer') { %><a href="/admin" <%- path.startsWith('/admin') ? 'aria-current="page"' : '' %>><%= user.role === 'admin' ? 'Admin' : 'Reviews' %></a><% } %>
         <a href="/verify" <%- path.startsWith('/verify') ? 'aria-current="page"' : '' %>>Verify</a>
         <a href="/account" <%- path.startsWith('/account') ? 'aria-current="page"' : '' %>>Account</a>
         <span class="divider-v" aria-hidden="true"></span>

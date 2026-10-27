@@ -668,3 +668,6 @@ svg.icon { width: 1.1em; height: 1.1em; display: inline-block; vertical-align: -
 .snapshots img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: var(--r); display: block; background: var(--charcoal); }
 .snapshots figure.flagged img { outline: 2px solid var(--warn); outline-offset: 2px; }
 .review-panel { border-color: var(--steel); box-shadow: inset 3px 0 0 var(--steel); }
+
+/* Honeypot field for bots: off-screen, never shown to people or screen readers. */
+.hp { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }

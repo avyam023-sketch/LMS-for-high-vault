@@ -8,7 +8,7 @@
       <div class="card">
         <p><span class="badge badge-ok">On</span></p>
         <p class="muted">Each sign-in asks for a code from your authenticator app.</p>
-        <% if (user.role !== 'admin') { %>
+        <% if (user.role === 'student') { %>
         <form method="post" action="/account/mfa/disable" class="mt-24">
           <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
           <%- include('../partials/field', { name: 'password', label: 'Confirm your password to turn it off', type: 'password', value: '', autocomplete: 'current-password' }) %>
@@ -18,7 +18,7 @@
       </div>
     <% } else { %>
       <div class="card">
-        <% if (required) { %><div class="alert alert-info">Administrator accounts must use two-step verification. Set it up to open the admin dashboard.</div><% } %>
+        <% if (required) { %><div class="alert alert-info">Staff accounts must use two-step verification. Set it up to open the dashboard.</div><% } %>
         <ol class="rule-list">
           <li>Install an authenticator app (Google Authenticator, Microsoft Authenticator, 1Password, Authy…).</li>
           <li>Scan this QR code, or enter the setup key manually.</li>

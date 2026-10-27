@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { many, one, query, tx } from '../db/pool.js';
-import { requireAdmin } from '../lib/auth.js';
+import { requireStaff } from '../lib/auth.js';
 import { audit } from '../lib/audit.js';
 import { parse, personName } from '../lib/validate.js';
 import { flash } from '../lib/view-helpers.js';
@@ -10,9 +10,19 @@ import { decryptBuffer } from '../lib/crypto.js';
 import { reviewAttempt } from '../lib/exam.js';
 import { sendMail } from '../lib/mailer.js';
 import { config } from '../config.js';
+import { securityNotice } from '../lib/notify.js';
 
 const router = Router();
-router.use(requireAdmin);
+router.use(requireStaff);
+
+// Identity reviewers see only the review queue and the evidence it needs — nothing else.
+const REVIEWER_ROUTES = [/^\/attempts(\/|$)/, /^\/media\//];
+router.use((req, res, next) => {
+  if (req.user.role === 'admin') return next();
+  if (req.path === '/' && req.method === 'GET') return res.redirect('/admin/attempts?filter=review');
+  if (REVIEWER_ROUTES.some((r) => r.test(req.path)) && !/\/(void|purge-evidence)$/.test(req.path)) return next();
+  next(Object.assign(new Error('Not found'), { status: 404 }));
+});
 router.use((req, res, next) => {
   res.locals.adminNav = req.path.split('/')[1] || 'overview';
   res.set('Cache-Control', 'no-store');
@@ -119,15 +129,34 @@ router.post('/users/:id/action', async (req, res) => {
       await query(`DELETE FROM session WHERE sess->>'userId' = $1`, [member.id]);
       break;
     case 'make_admin':
-      await query(`UPDATE users SET role = 'admin' WHERE id = $1`, [member.id]);
+    case 'make_reviewer':
+    case 'make_student': {
+      const role = { make_admin: 'admin', make_reviewer: 'reviewer', make_student: 'student' }[action];
+      if (self) return flash(req, 'error', "You can't change your own role."), back();
+      await query('UPDATE users SET role = $2, updated_at = now() WHERE id = $1', [member.id, role]);
+      // A role change takes effect at the next sign-in, which also enforces two-step for staff.
+      await query('UPDATE users SET active_session_id = NULL WHERE id = $1', [member.id]);
+      await query(`DELETE FROM session WHERE sess->>'userId' = $1`, [member.id]);
+      const target = await one('SELECT email, first_name FROM users WHERE id = $1', [member.id]);
+      await sendMail({
+        to: target.email,
+        subject: 'Your account access changed — The High Vault Security',
+        heading: `Hi ${target.first_name}`,
+        body: [
+          role === 'student' ? 'Your staff access has been removed.' : `You now have ${role === 'admin' ? 'administrator' : 'identity reviewer'} access.`,
+          role === 'student' ? '' : 'Sign in again. You’ll be asked to set up two-step verification if you haven’t already.',
+          `If you didn’t expect this change, contact ${config.SUPPORT_EMAIL} right away.`,
+        ].filter(Boolean),
+        action: { label: 'Sign in', url: `${config.appUrl}/login` },
+      });
       break;
-    case 'make_student':
-      if (self) return flash(req, 'error', "You can't remove your own admin access."), back();
-      await query(`UPDATE users SET role = 'student' WHERE id = $1`, [member.id]);
-      break;
-    case 'reset_mfa':
+    }
+    case 'reset_mfa': {
       await query('UPDATE users SET mfa_secret_enc = NULL, mfa_enabled_at = NULL WHERE id = $1', [member.id]);
+      const target = await one('SELECT email FROM users WHERE id = $1', [member.id]);
+      await securityNotice(target, 'Two-step verification was reset by an administrator');
       break;
+    }
     case 'rename': {
       const { data, errors } = parse(z.object({ first_name: personName, last_name: personName }), req.body);
       if (errors) return flash(req, 'error', 'Enter a valid first and last name.'), back();
@@ -597,7 +626,6 @@ router.get('/attempts/:id', async (req, res) => {
     [attempt.id],
   );
   const reviewer = attempt.reviewed_by ? await one('SELECT email FROM users WHERE id = $1', [attempt.reviewed_by]) : null;
-  if (media.length) await audit(req, 'admin.attempt.viewed_recording', { entity: 'attempt', entityId: attempt.id });
   res.render('admin/attempt', {
     title: 'Exam attempt', attempt, paper, events, certificate, reviewer,
     face: media.find((m) => m.kind === 'face'),
@@ -605,6 +633,7 @@ router.get('/attempts/:id', async (req, res) => {
     roomScan: media.find((m) => m.kind === 'room_scan'),
     snapshots: media.filter((m) => m.kind === 'snapshot'),
     retentionDays: config.PROCTOR_RETENTION_DAYS,
+    decisionDays: config.PROCTOR_RETENTION_AFTER_DECISION_DAYS,
   });
 });
 
@@ -660,11 +689,33 @@ router.post('/attempts/:id/review', async (req, res) => {
   res.redirect(next ? `/admin/attempts/${next.id}` : '/admin/attempts?filter=review');
 });
 
+/** Deletes an attempt's ID photo, face photo, room scan and snapshots now (after a decision). */
+router.post('/attempts/:id/purge-evidence', async (req, res) => {
+  const attempt = await one('SELECT id, status, review_status FROM exam_attempts WHERE id = $1', [req.params.id]);
+  if (!attempt) throw notFound();
+  if (attempt.review_status === 'pending' || ['checkin', 'in_progress'].includes(attempt.status)) {
+    flash(req, 'error', 'Decide on the attempt before deleting its evidence.');
+    return res.redirect(`/admin/attempts/${attempt.id}`);
+  }
+  const { rowCount } = await query('DELETE FROM proctor_media WHERE attempt_id = $1', [attempt.id]);
+  await query('UPDATE exam_attempts SET evidence_purged_at = now() WHERE id = $1', [attempt.id]);
+  await audit(req, 'admin.attempt.evidence_purged', { entity: 'attempt', entityId: attempt.id, meta: { files: rowCount } });
+  flash(req, 'success', `Deleted ${rowCount} file${rowCount === 1 ? '' : 's'}.`);
+  res.redirect(`/admin/attempts/${attempt.id}`);
+});
+
 /** Streams a decrypted proctoring file. Admin-only, never cached; supports seeking in videos. */
 router.get('/media/:id', async (req, res) => {
   const row = await one('SELECT id, attempt_id, kind, mime, data FROM proctor_media WHERE id = $1', [req.params.id]);
   if (!row) throw notFound();
-  const buf = decryptBuffer(row.data);
+  const buf = decryptBuffer(row.data, { purpose: 'proctor-media', context: `${row.attempt_id}:${row.kind}` });
+  // Every look at ID evidence is recorded: once per reviewer, attempt and file type per 10 minutes.
+  const seen = await one(
+    `SELECT 1 FROM audit_log WHERE actor_id = $1 AND action = 'staff.evidence_viewed' AND entity_id = $2
+       AND meta->>'kind' = $3 AND created_at > now() - interval '10 minutes'`,
+    [req.user.id, row.attempt_id, row.kind],
+  );
+  if (!seen) await audit(req, 'staff.evidence_viewed', { entity: 'attempt', entityId: row.attempt_id, meta: { kind: row.kind } });
   res.set({ 'Cache-Control': 'no-store', 'Content-Type': row.mime, 'Accept-Ranges': 'bytes', 'Content-Disposition': 'inline', 'X-Content-Type-Options': 'nosniff' });
   const range = /^bytes=(\d*)-(\d*)$/.exec(req.get('range') ?? '');
   if (range && (range[1] || range[2])) {

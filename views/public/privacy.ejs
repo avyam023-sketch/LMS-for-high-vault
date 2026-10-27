@@ -19,13 +19,19 @@
     </ul>
     <h2>How proctoring data is protected</h2>
     <ul>
-      <li>Photos, videos and snapshots are encrypted before they are stored.</li>
-      <li>Only authorised staff reviewing your exam can view them, and every review is logged.</li>
-      <li>They are deleted automatically <%= locals.retentionDays || 90 %> days after your exam.</li>
+      <li>Photos, videos and snapshots are encrypted before they are stored, each with a key bound to your exam.</li>
+      <li>Only authorised staff can view them. Identity reviewers see your exam evidence and nothing else, and every view is logged.</li>
+      <li>They are deleted automatically <%= locals.decisionDays || 30 %> days after your exam is decided, and never kept longer than <%= locals.retentionDays || 90 %> days.</li>
       <li>They are used only to confirm your identity and that the exam was taken under the required conditions — never for marketing, and never sold or shared.</li>
     </ul>
     <h2>Your choices</h2>
-    <p>You can update your details on your account page, or ask us to correct or delete your information by emailing <a href="mailto:<%= supportEmail %>"><%= supportEmail %></a>. We may keep certificate records as long as a certificate remains valid so it can still be verified.</p>
+    <ul>
+      <li><strong>See your data:</strong> download everything we hold about you from your account page (<em>Download my data</em>).</li>
+      <li><strong>Correct it:</strong> update your details on your account page, or email us if your name is already on a certificate.</li>
+      <li><strong>Delete it:</strong> delete your account from your account page at any time. Your profile, progress and exam recordings are erased. A certificate already issued stays verifiable by its number (name, course and dates only) until it expires, because employers rely on it.</li>
+      <li><strong>Security alerts:</strong> we email you when your password or two-step verification changes.</li>
+    </ul>
+    <p>Questions or requests: <a href="mailto:<%= supportEmail %>"><%= supportEmail %></a>.</p>
     <h2>Cookies</h2>
     <p>We use one essential cookie to keep you signed in. We don't use advertising or tracking cookies.</p>
   </div>

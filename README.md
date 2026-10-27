@@ -2,6 +2,23 @@
 
 An online learning platform for The High Vault Security's food handler course. Learners create their own account and work through **10 modules, each a chapter (video and reading) followed by a quiz**. They then take a **proctored final exam** on camera with an ID check and a room scan, and receive a certificate employers can verify once the exam has been reviewed. Administrators manage everything from a built-in dashboard.
 
+## See it live
+
+The fastest way to get a public URL is **Render** (free tier is fine for a preview). The repo includes a [`render.yaml`](render.yaml) blueprint that creates the app and its database and generates the secrets for you.
+
+1. Sign in at [render.com](https://render.com) with GitHub and allow access to this repository (it's private).
+2. **New → Blueprint**, pick `avyam023-sketch/LMS-for-high-vault`, then **Apply**. Or use the button: [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/avyam023-sketch/LMS-for-high-vault)
+3. When asked, enter `ADMIN_EMAIL` and a strong `ADMIN_PASSWORD` (12+ characters). Leave `SMTP_URL` blank for now if you don't have one.
+4. Wait for the first deploy (about 5 minutes). Your site is at `https://high-vault-lms.onrender.com` (or similar — Render shows the URL).
+5. Sign in with the admin email. You'll set up two-step verification on first sign-in. Then **delete `ADMIN_PASSWORD`** in Render → Environment.
+
+Notes for the preview:
+- **Email**: without `SMTP_URL`, sign-up confirmation emails aren't sent. As admin, open Learners → the person → *Mark email verified*, or add an SMTP provider (Postmark, Resend, Amazon SES) to `SMTP_URL`.
+- **Custom domain** (e.g. `learn.thehighvaultsecurity.ca`): add it in Render → Settings → Custom Domains, then set `APP_URL=https://learn.thehighvaultsecurity.ca`. Forms are refused from any other address, so this step matters.
+- **Free tier**: the app sleeps after inactivity (first visit takes ~30 seconds) and Render's free database is time-limited. Move both to paid plans before real learners use it.
+
+---
+
 **Stack:** Node.js 22 · Express 5 · PostgreSQL 16 · server-rendered EJS · no front-end framework. It's a small, auditable codebase that runs anywhere Docker or Node runs.
 
 | Course page | Module quiz | Exam check-in | Proctored exam | Identity review |
@@ -23,6 +40,10 @@ An online learning platform for The High Vault Security's food handler course. L
 - **PDF certificate** in the brand design, with a unique number (`HV-2026-XXXX-XXXX`) and a QR code.
 - **Public verification page** (`/verify`): shows valid, expired or revoked.
 
+### Privacy tools for learners
+- **Download my data** (JSON) and **Delete my account** on the account page. Deletion erases the profile, progress and exam recordings; issued certificates stay verifiable until they expire.
+- Terms of use and privacy policy pages, linked from sign-up and the footer.
+
 ### For administrators (`/admin`)
 - **Overview**: learners, enrolments, certificates, 30-day pass rate, flagged exams, and exams waiting for identity review.
 - **Identity review queue**: for each passed exam, the face photo and ID side by side with the name on file, the room-scan video, all snapshots (flagged moments highlighted) and the integrity timeline. **Approve** issues the certificate and emails the learner; **reject** voids the attempt and emails the reason.
@@ -31,7 +52,12 @@ An online learning platform for The High Vault Security's food handler course. L
 - **Questions**: two banks — the **final-exam bank** (drawn at random) and **module quizzes** (fixed order, with explanations). Single or multiple answer, retire questions, **bulk-import from CSV** into either.
 - **Exam attempts**: filter by flagged, live, passed, failed or voided. Each attempt shows every answer, the IP address, the browser and an integrity timeline. **Voiding** an attempt revokes its certificate.
 - **Certificates**: search, revoke or reinstate, export to CSV.
-- **Audit log** of sign-ins, admin changes and exam events.
+- **Audit log** of sign-ins, admin changes, exam events and every view of ID evidence.
+- **Roles**: *admin* (everything) and *identity reviewer* (review queue only). Both require two-step verification.
+- **Automatic emails**: certificate ready, exam rejected, certificate expiring in 60 days (sent once).
+
+### Search and sharing
+- Social share card (Open Graph/Twitter), Course structured data for search engines, `sitemap.xml`, `robots.txt` (private areas excluded), app icons and a web manifest.
 
 ---
 
@@ -71,15 +97,27 @@ An online learning platform for The High Vault Security's food handler course. L
 - **Passwords**: Argon2id hashing, at least 12 characters, a common-password blocklist and an optional Have I Been Pwned check (k-anonymity, so the password never leaves the server).
 - **Sign-in**: the account locks for 15 minutes after 5 failed attempts. Wrong MFA codes count toward the same limit. Login timing doesn't reveal whether an email exists, and neither does registration or password reset.
 - **Two-step verification (TOTP)**: required for admins, optional for learners. Secrets are encrypted at rest with AES-256-GCM, and used codes can't be replayed.
-- **Sessions**: stored server-side in Postgres. The cookie is `HttpOnly`, `Secure` and `SameSite=Lax`, with the `__Host-` prefix in production. The session ID changes at login, there's an 8-hour idle timeout, and changing or resetting a password signs out other sessions.
-- **CSRF**: a synchronizer token on every form and API call.
+- **Sessions**: stored server-side in Postgres. The cookie is `HttpOnly`, `Secure` and `SameSite=Lax`, with the `__Host-` prefix in production. The session ID changes at login. Sessions end after 8 hours idle, and after 12 hours (staff) or 7 days (learners) no matter what. Changing or resetting a password, or changing someone's role, signs out their other sessions.
+- **Security alerts**: learners are emailed when their password, two-step verification or staff access changes.
+- **CSRF**: a synchronizer token on every form and API call, plus a check that refuses cross-site requests (`Origin` / `Sec-Fetch-Site`).
+- **HTTPS only** in production (redirect + HSTS preload). Signed-in pages are sent with `Cache-Control: no-store` so shared computers don't keep copies.
 - **Headers** (Helmet): a strict Content-Security-Policy (no inline scripts or styles, no third-party scripts), HSTS, `frame-ancestors 'none'`, `nosniff`, a referrer policy and a permissions policy.
 - **Input**: every input is validated with zod. All SQL is parameterised. Admin-written Markdown is sanitised against an allow-list. The CSV export guards against formula injection.
-- **Rate limits** on sign-in, registration, email sending, certificate lookups and exam API calls.
-- **Proctoring data**: ID photos, room scans and snapshots are checked by file signature on upload, encrypted with AES-256-GCM before they reach the database, served only to admins (never cached), and deleted automatically after `PROCTOR_RETENTION_DAYS` (default 90). Face detection uses a self-hosted model, so no images go to any third party. Camera and microphone are allowed only on this site by the permissions policy.
+- **Rate limits** on sign-in, registration, email sending, password and account changes, certificate lookups and exam API calls. Counters live in Postgres, so they hold across restarts and multiple servers.
+- **Bot protection** on sign-up: a hidden honeypot field and a minimum fill time, without a third-party CAPTCHA.
+- **Database**: 15-second statement timeout and idle-transaction timeout, so one bad query can't take the site down.
+- **Operations**: request IDs on every response, a one-line access log with tokens redacted, `/healthz` for the platform's health checks.
+- **ID photos and exam recordings**:
+  - Checked by file signature on upload, then encrypted with AES-256-GCM before they reach the database.
+  - Each file's ciphertext is bound to its exam and file type (authenticated data), so a copied row won't decrypt; each purpose (ID evidence, MFA secrets) uses its own HKDF-derived key.
+  - Visible only to staff. **Identity reviewers** see the review queue and evidence and nothing else; every view is written to the audit log.
+  - Deleted automatically 30 days after a decision (`PROCTOR_RETENTION_AFTER_DECISION_DAYS`) and never kept past 90 days (`PROCTOR_RETENTION_DAYS`). Admins can delete an attempt's evidence immediately.
+  - Face detection runs in the browser with a self-hosted model: no images go to any third party. Camera and microphone are allowed only on this site.
+- **Key rotation**: put the old key in `ENCRYPTION_KEYS_PREVIOUS`, set a new `ENCRYPTION_KEY`, deploy, run `npm run rotate-keys`, then remove the old key.
 - **Least exposure**: the admin area returns 404 to anyone who isn't an admin. Nothing in the course content or question bank is publicly writable.
 - **Audit trail** for authentication and every admin action.
-- **Dependencies**: `npm audit` runs clean, and CI fails on high-severity advisories.
+- **Dependencies**: `npm audit` runs clean, CI fails on high-severity advisories, Dependabot opens weekly update PRs, and CodeQL scans the code (once the repo is public or has GitHub Advanced Security).
+- **Disclosure**: `/.well-known/security.txt` tells researchers how to report a vulnerability.
 
 ---
 
@@ -108,7 +146,7 @@ cp .env .env.test               # set NODE_ENV=test and DATABASE_URL to the test
 npm test
 ```
 
-The suite covers registration, verification, CSRF, the full learner journey through to a certificate, module quizzes (answer-until-correct, no skipping, unlock order), proctored check-in (required media, upload validation, encryption at rest, timer starting only at "begin", lapsed and cancelled check-ins), identity review, every anti-cheat rule, lockout, single-session enforcement, password reset, MFA (setup, sign-in and replay protection), admin access control, certificate revocation, CSV import and export, and XSS sanitisation.
+`test/security.test.js` covers encryption binding and tampering, cross-site request refusal, no-store caching, the sign-up bot trap, absolute session lifetime, security alert emails, reviewer least-privilege and evidence-view logging, evidence retention, data export and account deletion, expiry reminders, and the site essentials. The main suite covers registration, verification, CSRF, the full learner journey through to a certificate, module quizzes (answer-until-correct, no skipping, unlock order), proctored check-in (required media, upload validation, encryption at rest, timer starting only at "begin", lapsed and cancelled check-ins), identity review, every anti-cheat rule, lockout, single-session enforcement, password reset, MFA (setup, sign-in and replay protection), admin access control, certificate revocation, CSV import and export, and XSS sanitisation.
 
 ---
 
@@ -144,6 +182,7 @@ Rate-limit counters are kept in memory, which suits one app instance. If you run
 - [ ] **Add the 10 chapter videos.** Admin → Courses → each chapter → *Chapter video*. A direct `.mp4` link (for example from Cloudflare R2, Bunny Stream or S3) lets the platform require watching to the end; YouTube/Vimeo links play but can't be tracked.
 - [ ] Grow the final-exam bank to at least about 60 questions (twice the 30-question exam) to reduce answer sharing.
 - [ ] Decide who reviews exam recordings and how quickly, and tell learners (the result page says the certificate is issued after review).
+- [ ] Have the terms of use (`views/public/terms.ejs`) reviewed: refunds are currently "email us", and no governing-law clause is set.
 - [ ] Have the privacy page (`views/public/privacy.ejs`) and the exam recording consent reviewed for your obligations under PIPEDA or provincial privacy law. **Collecting ID images and room video is sensitive.** Confirm the retention period and who may access recordings.
 
 ---

@@ -5,7 +5,7 @@
 <p class="crumb"><a href="/admin/attempts">← Exam attempts</a></p>
 <div class="page-head">
   <div>
-    <h1 class="mb-8"><a href="/admin/users/<%= attempt.user_id %>"><%= attempt.first_name %> <%= attempt.last_name %></a></h1>
+    <h1 class="mb-8"><% if (user.role === 'admin') { %><a href="/admin/users/<%= attempt.user_id %>"><%= attempt.first_name %> <%= attempt.last_name %></a><% } else { %><%= attempt.first_name %> <%= attempt.last_name %><% } %></h1>
     <div class="row"><span class="muted"><%= attempt.course_title %></span><%- include('../partials/attempt-badge', { a: attempt }) %></div>
   </div>
   <% if (attempt.score_percent != null) { %><div class="score"><%= attempt.score_percent %>%</div><% } %>
@@ -27,8 +27,18 @@
     <figure><% if (idPhoto) { %><a href="/admin/media/<%= idPhoto.id %>" target="_blank" rel="noopener"><img src="/admin/media/<%= idPhoto.id %>" alt="Learner ID photo"></a><% } else { %><div class="evidence-missing">No ID photo</div><% } %><figcaption>Government ID<%= idPhoto ? ` · ${fmtDateTime(idPhoto.created_at)}` : '' %></figcaption></figure>
     <figure class="wide"><% if (roomScan) { %><video src="/admin/media/<%= roomScan.id %>" controls preload="metadata" data-fix-duration></video><% } else { %><div class="evidence-missing">No room scan</div><% } %><figcaption>Room scan<%= roomScan ? ` · ${Math.round(roomScan.byte_size / 1024 / 102.4) / 10} MB` : '' %></figcaption></figure>
   </div>
-  <p class="small muted mt-16 mb-0">Files are encrypted at rest and deleted automatically <%= retentionDays %> days after upload.</p>
+  <div class="spread mt-16">
+    <p class="small muted mb-0">Encrypted at rest. Every view is logged. Deleted automatically <%= decisionDays %> days after a decision, and never kept longer than <%= retentionDays %> days.</p>
+    <% if (user.role === 'admin' && attempt.review_status !== 'pending' && !['checkin', 'in_progress'].includes(attempt.status)) { %>
+      <form method="post" action="/admin/attempts/<%= attempt.id %>/purge-evidence" data-confirm="Permanently delete this attempt’s ID photo, face photo, room scan and snapshots?">
+        <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+        <button class="btn btn-ghost btn-sm" type="submit">Delete evidence now</button>
+      </form>
+    <% } %>
+  </div>
 </section>
+<% } else if (attempt.evidence_purged_at) { %>
+  <div class="alert alert-info">Proctoring evidence for this attempt was deleted on <%= fmtDateTime(attempt.evidence_purged_at) %>.</div>
 <% } %>
 
 <% if (attempt.review_status === 'pending') { %>
@@ -73,7 +83,7 @@
   </section>
 </div>
 
-<% if (attempt.status !== 'voided') { %>
+<% if (attempt.status !== 'voided' && user.role === 'admin') { %>
 <section class="card danger-zone mt-24">
   <h2>Void this attempt</h2>
   <p class="muted">Use this when you're satisfied the learner cheated. The attempt counts as used and any certificate from it is revoked immediately.</p>

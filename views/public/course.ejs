@@ -1,6 +1,17 @@
 <%- include('../partials/head') %>
 <% const years = course.certificate_validity_months ? Math.round(course.certificate_validity_months / 12 * 10) / 10 : null; %>
+<script type="application/ld+json"><%- JSON.stringify({
+  '@context': 'https://schema.org',
+  '@type': 'Course',
+  name: course.title,
+  description: course.subtitle,
+  inLanguage: 'en-CA',
+  provider: { '@type': 'Organization', name: 'The High Vault Security', url: 'https://thehighvaultsecurity.ca' },
+  hasCourseInstance: { '@type': 'CourseInstance', courseMode: 'online', courseWorkload: `PT${Math.round(course.duration_minutes / 60)}H` },
+  offers: { '@type': 'Offer', category: course.price_cents ? 'Paid' : 'Free', price: (course.price_cents / 100).toFixed(2), priceCurrency: course.currency.toUpperCase() },
+}).replace(/</g, '\u003c') %></script>
 <main id="main">
+  <% if (locals.deletedNotice) { %><div class="wrap"><div class="alert alert-success mt-24">Your account has been deleted.</div></div><% } %>
 
   <section class="hero dark">
     <div class="wrap">

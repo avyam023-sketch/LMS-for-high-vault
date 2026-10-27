@@ -11,6 +11,7 @@ import { sendMail } from '../lib/mailer.js';
 import { burnTime, checkPasswordPolicy, hashPassword, verifyPassword } from '../lib/passwords.js';
 import { email, parse, personName } from '../lib/validate.js';
 import { flash } from '../lib/view-helpers.js';
+import { securityNotice } from '../lib/notify.js';
 
 const router = Router();
 const MAX_FAILED = 5;
@@ -50,7 +51,7 @@ function afterLogin(req, res) {
   const to = req.session.returnTo;
   delete req.session.returnTo;
   const safe = typeof to === 'string' && to.startsWith('/') && !to.startsWith('//') ? to : null;
-  res.redirect(safe ?? (req.user?.role === 'admin' ? '/admin' : '/dashboard'));
+  res.redirect(safe ?? (['admin', 'reviewer'].includes(req.user?.role) ? '/admin' : '/dashboard'));
 }
 
 // ---------- Register ----------
@@ -67,10 +68,17 @@ const registerSchema = z
 
 router.get('/register', (req, res) => {
   if (req.user) return res.redirect('/dashboard');
+  req.session.registerShownAt = Date.now();
   res.render('auth/register', { title: 'Create your account', values: {}, errors: {} });
 });
 
 router.post('/register', registerLimiter, async (req, res) => {
+  // Bot traps: a hidden field people never fill in, and a form submitted faster than a person can type.
+  const shownAt = req.session.registerShownAt;
+  if (req.body.website || !shownAt || Date.now() - shownAt < (config.isTest ? 0 : 2500)) {
+    await audit(req, 'auth.register_blocked_bot', { meta: { honeypot: Boolean(req.body.website) } });
+    return res.render('auth/check-email', { title: 'Check your email', email: String(req.body.email ?? '').slice(0, 254) });
+  }
   const values = { first_name: req.body.first_name, last_name: req.body.last_name, email: req.body.email };
   const { data, errors } = parse(registerSchema, req.body);
   if (errors) return res.status(422).render('auth/register', { title: 'Create your account', values, errors });
@@ -149,7 +157,7 @@ router.post('/login', loginLimiter, async (req, res) => {
     res.status(401).render('auth/login', { title: 'Sign in', values: { email: emailValue }, error });
 
   const user = await one(
-    'SELECT id, email, first_name, role, password_hash, failed_logins, locked_until, disabled_at, mfa_enabled_at FROM users WHERE email = $1',
+    'SELECT id, email, first_name, role, password_hash, failed_logins, locked_until, disabled_at, mfa_enabled_at FROM users WHERE email = $1 AND deleted_at IS NULL',
     [emailValue],
   );
   if (!user) {
@@ -193,7 +201,7 @@ router.post('/login/mfa', loginLimiter, async (req, res) => {
     await signOut(req);
     return res.status(401).render('auth/login', { title: 'Sign in', values: {}, error: `Too many failed attempts. This account is locked for up to ${LOCK_MINUTES} minutes.` });
   }
-  const totp = new OTPAuth.TOTP({ secret: OTPAuth.Secret.fromBase32(decrypt(row.mfa_secret_enc)) });
+  const totp = new OTPAuth.TOTP({ secret: OTPAuth.Secret.fromBase32(decrypt(row.mfa_secret_enc, { purpose: 'mfa', context: pending.id })) });
   const code = String(req.body.code ?? '').replace(/\s/g, '');
   const delta = /^\d{6}$/.test(code) ? totp.validate({ token: code, window: 1 }) : null;
   // Reject replay of a code already used in the same 30-second window.
@@ -269,13 +277,14 @@ router.post('/reset-password/:token', emailLimiter, async (req, res) => {
   if (!(await consumeToken(req.params.token, 'reset'))) return render('This reset link is invalid or has expired.');
 
   await query(
-    `UPDATE users SET password_hash = $2, failed_logins = 0, locked_until = NULL, active_session_id = NULL,
+    `UPDATE users SET password_hash = $2, password_changed_at = now(), failed_logins = 0, locked_until = NULL, active_session_id = NULL,
             email_verified_at = coalesce(email_verified_at, now()), updated_at = now() WHERE id = $1`,
     [tokenRow.user_id, await hashPassword(password)],
   );
   // Sign out everywhere after a password reset.
   await query(`DELETE FROM session WHERE sess->>'userId' = $1`, [tokenRow.user_id]);
   await audit(req, 'auth.password_reset', { entity: 'user', entityId: tokenRow.user_id, actorId: tokenRow.user_id });
+  await securityNotice({ email: tokenRow.email }, 'Your password was reset', req.ip);
   flash(req, 'success', 'Password updated. Sign in with your new password.');
   res.redirect('/login');
 });

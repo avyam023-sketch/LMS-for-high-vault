@@ -2,6 +2,10 @@
 <% const navItem = (href, label, icon, active) => `<a href="${href}"${active ? ' aria-current="page"' : ''}>${include('icon', { name: icon })}<span>${label}</span></a>`; %>
 <div class="admin-shell">
   <aside class="admin-side" aria-label="Admin navigation">
+    <% if (user.role === 'reviewer') { %>
+    <h4>Identity review</h4>
+    <%- navItem('/admin/attempts?filter=review', 'Review queue', 'file', adminNav === 'attempts') %>
+    <% } else { %>
     <h4>Operations</h4>
     <%- navItem('/admin', 'Overview', 'grid', adminNav === 'overview') %>
     <%- navItem('/admin/users', 'Learners', 'users', adminNav === 'users') %>
@@ -11,6 +15,7 @@
     <%- navItem('/admin/courses', 'Courses &amp; exams', 'book', ['courses', 'lessons', 'questions', 'modules'].includes(adminNav)) %>
     <h4>Security</h4>
     <%- navItem('/admin/audit', 'Audit log', 'history', adminNav === 'audit') %>
+    <% } %>
   </aside>
   <main id="main" class="admin-main">
     <%- include('flash') %>

@@ -1,4 +1,7 @@
 import { randomToken, safeEqual } from './crypto.js';
+import { config } from '../config.js';
+
+const appOrigin = new URL(config.appUrl).origin;
 
 /**
  * Synchronizer-token CSRF protection. The token lives in the server-side session;
@@ -10,6 +13,11 @@ export function csrf(req, res, next) {
   // otherwise create a session for every anonymous page view.
   res.locals.csrfToken = () => (req.session.csrf ??= randomToken(24));
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
+  // Defence in depth: browsers label cross-site requests; refuse them outright.
+  const origin = req.get('origin');
+  if (req.get('sec-fetch-site') === 'cross-site' || (origin && origin !== 'null' && origin !== appOrigin)) {
+    return next(Object.assign(new Error('Cross-site request refused.'), { status: 403 }));
+  }
   const sent = req.get('x-csrf-token') ?? req.body?._csrf;
   if (sent && req.session.csrf && safeEqual(sent, req.session.csrf)) return next();
   const err = new Error('Your session expired or the form was tampered with. Refresh the page and try again.');

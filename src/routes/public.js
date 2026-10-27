@@ -22,6 +22,7 @@ async function coursePage(req, res, course) {
     outline,
     enrollment,
     examQuestions: Math.min(questionCount, course.exam_question_count),
+    deletedNotice: req.query.deleted === '1',
   });
 }
 
@@ -62,6 +63,37 @@ router.get('/verify/:code', verifyLimiter, async (req, res) => {
   res.render('public/verify', { title: 'Verify a certificate', cert, code, status });
 });
 
-router.get('/privacy', (req, res) => res.render('public/privacy', { title: 'Privacy', retentionDays: config.PROCTOR_RETENTION_DAYS }));
+router.get('/terms', (req, res) => res.render('public/terms', { title: 'Terms of use' }));
+
+router.get('/robots.txt', (req, res) => {
+  res.type('text/plain').send(
+    ['User-agent: *', 'Allow: /', 'Disallow: /admin', 'Disallow: /account', 'Disallow: /dashboard', 'Disallow: /learn', 'Disallow: /exam',
+      'Disallow: /certificates', 'Disallow: /verify/', '', `Sitemap: ${config.appUrl}/sitemap.xml`, ''].join('\n'),
+  );
+});
+
+router.get('/sitemap.xml', async (req, res) => {
+  const courses = await many('SELECT slug, updated_at FROM courses WHERE is_published ORDER BY created_at');
+  const urls = [
+    { loc: '/', lastmod: courses[0]?.updated_at },
+    ...courses.slice(1).map((c) => ({ loc: `/course/${c.slug}`, lastmod: c.updated_at })),
+    { loc: '/verify' }, { loc: '/privacy' }, { loc: '/terms' }, { loc: '/register' },
+  ];
+  res.type('application/xml').send(
+    `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls
+      .map((u) => `  <url><loc>${config.appUrl}${u.loc}</loc>${u.lastmod ? `<lastmod>${new Date(u.lastmod).toISOString().slice(0, 10)}</lastmod>` : ''}</url>`)
+      .join('\n')}\n</urlset>\n`,
+  );
+});
+
+/** RFC 9116: how security researchers can reach us. */
+router.get('/.well-known/security.txt', (req, res) => {
+  const expires = new Date(Date.now() + 365 * 24 * 3600_000).toISOString();
+  res.type('text/plain').send(
+    [`Contact: mailto:${config.SUPPORT_EMAIL}`, `Expires: ${expires}`, 'Preferred-Languages: en, fr', `Canonical: ${config.appUrl}/.well-known/security.txt`, `Policy: ${config.appUrl}/privacy`, ''].join('\n'),
+  );
+});
+
+router.get('/privacy', (req, res) => res.render('public/privacy', { title: 'Privacy', retentionDays: config.PROCTOR_RETENTION_DAYS, decisionDays: config.PROCTOR_RETENTION_AFTER_DECISION_DAYS }));
 
 export default router;

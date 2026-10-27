@@ -44,6 +44,27 @@
         <a class="btn btn-ghost" href="/account/mfa"><%= user.mfa_enabled_at ? 'Manage' : 'Set up' %></a>
       </div>
     </section>
+
+    <section class="card">
+      <h2>Your data</h2>
+      <p class="muted">Download a copy of everything we hold about you: your profile, progress, quiz answers, exam results and certificates.</p>
+      <a class="btn btn-ghost" href="/account/export">Download my data (JSON)</a>
+    </section>
+
+    <% if (user.role === 'student') { %>
+    <section class="card danger-zone" id="delete">
+      <h2>Delete your account</h2>
+      <p class="muted">This permanently erases your profile, progress and any exam recordings. It can’t be undone. Certificates already issued stay verifiable by their number until they expire, so employers can still check them.</p>
+      <form method="post" action="/account/delete" data-confirm="Permanently delete your account? This can’t be undone.">
+        <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+        <div class="form-grid">
+          <%- include('../partials/field', { name: 'confirm', label: 'Type DELETE to confirm', type: 'text', value: '', autocomplete: 'off' }) %>
+          <%- include('../partials/field', { name: 'del_password', label: 'Current password', type: 'password', value: '', autocomplete: 'current-password' }) %>
+        </div>
+        <button class="btn btn-danger" type="submit">Delete my account</button>
+      </form>
+    </section>
+    <% } %>
   </div>
   </div>
 </main>

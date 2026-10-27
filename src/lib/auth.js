@@ -10,6 +10,13 @@ export async function loadUser(req, res, next) {
   const id = req.session.userId;
   if (!id) return next();
   const user = await one(`SELECT ${USER_COLUMNS} FROM users WHERE id = $1`, [id]);
+  // Absolute session lifetime, however active the user is: 12 hours for staff, 7 days for learners.
+  const maxAge = user && user.role !== 'student' ? 12 * 3600_000 : 7 * 24 * 3600_000;
+  if (user && req.session.createdAt && Date.now() - req.session.createdAt > maxAge) {
+    await new Promise((resolve) => req.session.regenerate(resolve));
+    req.session.flash = { type: 'warn', text: 'For your security, please sign in again.' };
+    return next();
+  }
   // Password checked, MFA code still owed: not signed in yet, and other sessions stay untouched.
   if (req.session.mfaPending) {
     if (user && !user.disabled_at) req.pendingUser = user;
@@ -36,9 +43,12 @@ export function requireAuth(req, res, next) {
   res.redirect('/login');
 }
 
-export function requireAdmin(req, res, next) {
+export const isStaff = (user) => user?.role === 'admin' || user?.role === 'reviewer';
+
+/** Admins and identity reviewers. Reviewers are further limited to the review queue (see routes/admin.js). */
+export function requireStaff(req, res, next) {
   if (!req.user) return requireAuth(req, res, next);
-  if (req.user.role !== 'admin') {
+  if (!isStaff(req.user)) {
     const err = new Error('Not found');
     err.status = 404; // Do not reveal the admin area exists.
     return next(err);
@@ -55,6 +65,7 @@ export async function signIn(req, user, { mfaPending = false } = {}) {
   const returnTo = req.session.returnTo;
   await new Promise((resolve, reject) => req.session.regenerate((err) => (err ? reject(err) : resolve())));
   req.session.userId = user.id;
+  req.session.createdAt = Date.now();
   if (returnTo) req.session.returnTo = returnTo;
   if (mfaPending) {
     req.session.mfaPending = true;

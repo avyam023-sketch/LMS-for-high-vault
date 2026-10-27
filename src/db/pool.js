@@ -5,6 +5,10 @@ export const pool = new pg.Pool({
   connectionString: config.DATABASE_URL,
   ssl: config.DATABASE_SSL ? { rejectUnauthorized: true } : undefined,
   max: 10,
+  // Fail fast instead of piling up connections behind a stuck query.
+  statement_timeout: 15_000,
+  idle_in_transaction_session_timeout: 30_000,
+  connectionTimeoutMillis: 10_000,
 });
 
 export const query = (text, params) => pool.query(text, params);

@@ -1,0 +1,13 @@
+{
+  "name": "The High Vault Security — Food Handler Certification",
+  "short_name": "High Vault",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#231F20",
+  "theme_color": "#231F20",
+  "icons": [
+    { "src": "/img/favicon.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "/img/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "/img/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

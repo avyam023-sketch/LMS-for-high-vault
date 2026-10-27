@@ -4,6 +4,7 @@ import compression from 'compression';
 import session from 'express-session';
 import connectPgSimple from 'connect-pg-simple';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { config } from './config.js';
@@ -25,10 +26,35 @@ const require = createRequire(import.meta.url);
 export function createApp() {
   const app = express();
   app.disable('x-powered-by');
-  app.set('trust proxy', config.TRUST_PROXY === 'true' ? true : config.TRUST_PROXY);
+  // "1" means one proxy hop (Render, Railway, nginx); "true" trusts all; otherwise IPs/subnets.
+  const trust = config.TRUST_PROXY;
+  app.set('trust proxy', trust === 'true' ? true : /^\d+$/.test(trust) ? Number(trust) : trust);
   app.set('view engine', 'ejs');
   app.set('views', path.join(root, 'views'));
   if (config.isProd) app.enable('view cache');
+
+  // Request ID for tracing, and a one-line access log (tokens in URLs are redacted).
+  app.use((req, res, next) => {
+    const id = crypto.randomUUID();
+    res.set('X-Request-Id', id);
+    if (!config.isTest) {
+      const started = process.hrtime.bigint();
+      res.on('finish', () => {
+        const ms = Number(process.hrtime.bigint() - started) / 1e6;
+        const safePath = req.path.replace(/\/[A-Za-z0-9_-]{24,}/g, '/[redacted]');
+        console.log(`${new Date().toISOString()} ${id.slice(0, 8)} ${req.method} ${safePath} ${res.statusCode} ${ms.toFixed(0)}ms`);
+      });
+    }
+    next();
+  });
+
+  // Production is HTTPS-only. (Health checks from the platform may use plain HTTP.)
+  if (config.isProd) {
+    app.use((req, res, next) => {
+      if (req.secure || req.path === '/healthz') return next();
+      res.redirect(301, `${config.appUrl}${req.originalUrl}`);
+    });
+  }
 
   app.use(
     helmet({
@@ -102,6 +128,11 @@ export function createApp() {
     }),
   );
   app.use(loadUser);
+  // Signed-in pages hold personal data: never let a browser or proxy cache them.
+  app.use((req, res, next) => {
+    if (req.session?.userId) res.set('Cache-Control', 'no-store');
+    next();
+  });
   app.use(csrf);
   app.use(viewHelpers);
 

@@ -9,7 +9,7 @@
     <h1 class="mb-8"><%= member.first_name %> <%= member.last_name %></h1>
     <div class="row">
       <span class="muted"><%= member.email %></span>
-      <% if (member.role === 'admin') { %><span class="badge badge-dark">Admin</span><% } %>
+      <% if (member.role !== 'student') { %><span class="badge badge-dark"><%= member.role === 'admin' ? 'Admin' : 'Reviewer' %></span><% } %>
       <% if (member.disabled_at) { %><span class="badge badge-bad">Disabled</span><% } %>
       <% if (!member.email_verified_at) { %><span class="badge badge-warn">Email unverified</span><% } %>
       <% if (member.mfa_enabled_at) { %><span class="badge badge-ok">2-step on</span><% } %>
@@ -41,8 +41,9 @@
       <% if (!member.email_verified_at) { %><%- act('verify_email', 'Mark email verified') %><% } %>
       <%- act('sign_out', 'Sign out everywhere') %>
       <% if (member.mfa_enabled_at) { %><%- act('reset_mfa', 'Reset 2-step', 'btn-ghost', 'Remove this user’s two-step verification?') %><% } %>
-      <% if (member.role === 'admin') { %><%- act('make_student', 'Remove admin', 'btn-ghost', 'Remove admin access?') %>
-      <% } else { %><%- act('make_admin', 'Make admin', 'btn-ghost', 'Give this user full admin access?') %><% } %>
+      <% if (member.role !== 'student') { %><%- act('make_student', 'Remove staff access', 'btn-ghost', 'Remove this person’s staff access?') %><% } %>
+      <% if (member.role !== 'reviewer') { %><%- act('make_reviewer', 'Make identity reviewer', 'btn-ghost', 'Let this person review exam recordings and ID photos? They will see nothing else in the dashboard.') %><% } %>
+      <% if (member.role !== 'admin') { %><%- act('make_admin', 'Make admin', 'btn-ghost', 'Give this user full admin access, including all learner data?') %><% } %>
       <% if (member.disabled_at) { %><%- act('enable', 'Enable account', 'btn-primary') %>
       <% } else { %><%- act('disable', 'Disable account', 'btn-danger', 'Disable this account and sign it out?') %><% } %>
     </div>

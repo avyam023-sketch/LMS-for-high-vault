@@ -147,7 +147,7 @@ router.post(
     if (rule.replace) await query('DELETE FROM proctor_media WHERE attempt_id = $1 AND kind = $2', [attempt.id, kind]);
     const note = String(req.query.note ?? '').slice(0, 60) || null;
     await query('INSERT INTO proctor_media (attempt_id, kind, mime, byte_size, data, note) VALUES ($1, $2, $3, $4, $5, $6)', [
-      attempt.id, kind, mime, body.length, encryptBuffer(body), note,
+      attempt.id, kind, mime, body.length, encryptBuffer(body, { purpose: 'proctor-media', context: `${attempt.id}:${kind}` }), note,
     ]);
     res.json({ saved: true });
   },

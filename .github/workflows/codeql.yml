@@ -1,0 +1,23 @@
+name: CodeQL
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '23 6 * * 1'
+
+permissions:
+  security-events: write
+  contents: read
+
+jobs:
+  analyze:
+    # Code scanning is free on public repositories; private ones need GitHub Advanced Security.
+    if: ${{ !github.event.repository.private }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          queries: security-extended
+      - uses: github/codeql-action/analyze@v3
