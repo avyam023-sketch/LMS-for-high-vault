@@ -13,6 +13,22 @@ export function renderMarkdown(md = '') {
   });
 }
 
+/**
+ * Describes how to play a lesson video: { kind: 'file', src } for a direct .mp4/.webm/.mov link
+ * (played natively, so viewing can be tracked), { kind: 'embed', src } for YouTube/Vimeo, or null.
+ */
+export function videoSource(url) {
+  if (!url) return null;
+  try {
+    const u = new URL(url);
+    if (u.protocol === 'https:' && /\.(mp4|webm|mov|m4v)$/i.test(u.pathname)) return { kind: 'file', src: u.href };
+  } catch {
+    return null;
+  }
+  const src = embedUrl(url);
+  return src ? { kind: 'embed', src } : null;
+}
+
 /** Converts a YouTube/Vimeo URL into a privacy-friendly embed URL, or null. */
 export function embedUrl(url) {
   if (!url) return null;

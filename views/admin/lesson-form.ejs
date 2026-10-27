@@ -11,7 +11,7 @@
     <%- include('../partials/field', { name: 'position', label: 'Order', type: 'number', value: v.position ?? 0, error: e.position }) %>
     <%- include('../partials/field', { name: 'min_seconds', label: 'Minimum study time (seconds)', type: 'number', value: v.min_seconds, error: e.min_seconds, hint: 'Learners can’t complete the lesson sooner.' }) %>
   </div>
-  <%- include('../partials/field', { name: 'video_url', label: 'Video (YouTube or Vimeo link, optional)', type: 'url', value: v.video_url, error: e.video_url, required: false }) %>
+  <%- include('../partials/field', { name: 'video_url', label: 'Chapter video (optional)', hint: 'A direct https link to an .mp4 or .webm file (recommended — the learner must watch it to the end), or a YouTube or Vimeo link.', type: 'url', value: v.video_url, error: e.video_url, required: false }) %>
   <div class="field">
     <label for="f-content">Lesson content (Markdown)</label>
     <textarea id="f-content" name="content_md" class="code"><%= v.content_md %></textarea>

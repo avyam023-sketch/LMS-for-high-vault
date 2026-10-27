@@ -1,14 +1,16 @@
 import { Router } from 'express';
 import { many, one, query } from '../db/pool.js';
 import { requireAuth } from '../lib/auth.js';
-import { courseOutline, examStatus, startAttempt } from '../lib/exam.js';
+import { config } from '../config.js';
+import { answerQuiz, courseOutline, examStatus, itemUrl, quizState, startAttempt } from '../lib/exam.js';
 import { renderCertificate } from '../lib/certificate.js';
 import { apiLimiter } from '../lib/limits.js';
-import { embedUrl, renderMarkdown } from '../lib/markdown.js';
+import { renderMarkdown, videoSource } from '../lib/markdown.js';
 import { flash } from '../lib/view-helpers.js';
 
 const router = Router();
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const LOCKED_MESSAGE = 'Finish the earlier chapters and quizzes first. Modules unlock in order.';
 
 /** Loads the course and the learner's enrollment, or redirects and returns null. */
 async function enrolledCourse(req, res) {
@@ -23,6 +25,11 @@ async function enrolledCourse(req, res) {
   return { course, enrollment };
 }
 
+const afterItem = (slug, outline, index) => {
+  const next = outline.items[index + 1];
+  return next ? itemUrl(slug, next) : `/learn/${slug}/exam`;
+};
+
 router.get('/dashboard', requireAuth, async (req, res) => {
   const enrollments = await many(
     `SELECT e.*, c.slug, c.title, c.subtitle, c.duration_minutes FROM enrollments e
@@ -35,7 +42,12 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       `SELECT * FROM certificates WHERE user_id = $1 AND course_id = $2 ORDER BY issued_at DESC LIMIT 1`,
       [req.user.id, e.course_id],
     );
-    e.next = e.outline.lessons.find((l) => !l.done);
+    e.underReview = !e.certificate && Boolean(await one(
+      `SELECT 1 FROM exam_attempts WHERE user_id = $1 AND course_id = $2 AND review_status = 'pending'`,
+      [req.user.id, e.course_id],
+    ));
+    e.next = e.outline.next;
+    e.nextUrl = e.next ? itemUrl(e.slug, e.next) : null;
   }
   const available = await many(
     `SELECT * FROM courses WHERE is_published AND id NOT IN (SELECT course_id FROM enrollments WHERE user_id = $1) ORDER BY created_at`,
@@ -49,7 +61,7 @@ router.get('/learn/:slug', requireAuth, async (req, res) => {
   if (!ctx) return;
   const outline = await courseOutline(ctx.course.id, req.user.id);
   const status = await examStatus(req.user, ctx.course);
-  res.render('learn/course', { title: ctx.course.title, course: ctx.course, outline, status });
+  res.render('learn/course', { title: ctx.course.title, course: ctx.course, outline, status, itemUrl });
 });
 
 router.get('/learn/:slug/lessons/:lessonId', requireAuth, async (req, res) => {
@@ -57,11 +69,10 @@ router.get('/learn/:slug/lessons/:lessonId', requireAuth, async (req, res) => {
   const ctx = await enrolledCourse(req, res);
   if (!ctx) return;
   const outline = await courseOutline(ctx.course.id, req.user.id);
-  const index = outline.lessons.findIndex((l) => l.id === req.params.lessonId);
-  const entry = outline.lessons[index];
+  const entry = outline.items.find((i) => i.type === 'lesson' && i.id === req.params.lessonId);
   if (!entry) return res.redirect(`/learn/${ctx.course.slug}`);
   if (!entry.unlocked) {
-    flash(req, 'warn', 'Finish the earlier lessons first. Lessons unlock in order.');
+    flash(req, 'warn', LOCKED_MESSAGE);
     return res.redirect(`/learn/${ctx.course.slug}`);
   }
   const lesson = await one('SELECT * FROM lessons WHERE id = $1', [entry.id]);
@@ -70,23 +81,27 @@ router.get('/learn/:slug/lessons/:lessonId', requireAuth, async (req, res) => {
      ON CONFLICT (user_id, lesson_id) DO UPDATE SET last_heartbeat_at = now()`,
     [req.user.id, lesson.id],
   );
+  const prev = outline.items[entry.index - 1] ?? null;
+  const next = outline.items[entry.index + 1] ?? null;
   res.render('learn/lesson', {
     title: lesson.title,
     course: ctx.course,
     outline,
     lesson,
     entry,
+    itemUrl,
     html: renderMarkdown(lesson.content_md),
-    video: embedUrl(lesson.video_url),
-    prev: outline.lessons[index - 1] ?? null,
-    next: outline.lessons[index + 1] ?? null,
+    video: videoSource(lesson.video_url),
+    prev,
+    next,
+    chapterNumber: outline.lessons.findIndex((l) => l.id === lesson.id) + 1,
   });
 });
 
 async function lessonForUser(userId, lessonId) {
   if (!UUID.test(lessonId)) return null;
   return one(
-    `SELECT l.id, l.min_seconds, c.slug, lp.seconds_spent, lp.last_heartbeat_at, lp.completed_at
+    `SELECT l.id, l.min_seconds, c.id AS course_id, c.slug, lp.seconds_spent, lp.last_heartbeat_at, lp.completed_at
        FROM lessons l JOIN modules m ON m.id = l.module_id JOIN courses c ON c.id = m.course_id
        JOIN enrollments e ON e.course_id = c.id AND e.user_id = $1
        LEFT JOIN lesson_progress lp ON lp.lesson_id = l.id AND lp.user_id = $1
@@ -119,23 +134,80 @@ router.post('/learn/lessons/:lessonId/heartbeat', requireAuth, apiLimiter, async
 router.post('/learn/lessons/:lessonId/complete', requireAuth, async (req, res) => {
   const lesson = await lessonForUser(req.user.id, req.params.lessonId);
   if (!lesson) return res.redirect('/dashboard');
-  const outline = await courseOutline(
-    (await one('SELECT id FROM courses WHERE slug = $1', [lesson.slug])).id,
-    req.user.id,
-  );
-  const idx = outline.lessons.findIndex((l) => l.id === lesson.id);
-  const entry = outline.lessons[idx];
+  const outline = await courseOutline(lesson.course_id, req.user.id);
+  const entry = outline.items.find((i) => i.type === 'lesson' && i.id === lesson.id);
   if (!entry.unlocked) return res.redirect(`/learn/${lesson.slug}`);
   if (!lesson.completed_at) {
     const spent = lesson.seconds_spent ?? 0;
     if (spent < lesson.min_seconds) {
-      flash(req, 'warn', `Spend a little more time on this lesson (${Math.ceil((lesson.min_seconds - spent) / 60)} min left) before moving on.`);
+      flash(req, 'warn', `Spend a little more time on this chapter (${Math.ceil((lesson.min_seconds - spent) / 60)} min left) before moving on.`);
       return res.redirect(`/learn/${lesson.slug}/lessons/${lesson.id}`);
     }
     await query('UPDATE lesson_progress SET completed_at = now() WHERE user_id = $1 AND lesson_id = $2', [req.user.id, lesson.id]);
   }
-  const next = outline.lessons[idx + 1];
-  res.redirect(next ? `/learn/${lesson.slug}/lessons/${next.id}` : `/learn/${lesson.slug}/exam`);
+  res.redirect(afterItem(lesson.slug, outline, entry.index));
+});
+
+// ---------- Module quizzes: answer correctly to move on; not timed or monitored ----------
+
+async function quizContext(req, res) {
+  if (!UUID.test(req.params.moduleId)) {
+    res.redirect(`/learn/${req.params.slug}`);
+    return null;
+  }
+  const ctx = await enrolledCourse(req, res);
+  if (!ctx) return null;
+  const outline = await courseOutline(ctx.course.id, req.user.id);
+  const entry = outline.items.find((i) => i.type === 'quiz' && i.module_id === req.params.moduleId);
+  if (!entry) {
+    res.redirect(`/learn/${ctx.course.slug}`);
+    return null;
+  }
+  if (!entry.unlocked) {
+    flash(req, 'warn', LOCKED_MESSAGE);
+    res.redirect(`/learn/${ctx.course.slug}`);
+    return null;
+  }
+  return { ...ctx, outline, entry };
+}
+
+router.get('/learn/:slug/modules/:moduleId/quiz', requireAuth, async (req, res) => {
+  const ctx = await quizContext(req, res);
+  if (!ctx) return;
+  const state = await quizState(ctx.entry.module_id, req.user.id);
+  // Feedback from the answer just submitted (set by the POST, shown once).
+  const fb = req.session.quizFeedback?.moduleId === ctx.entry.module_id ? req.session.quizFeedback : null;
+  delete req.session.quizFeedback;
+  const justAnswered = fb?.correct ? state.questions.find((q) => q.id === fb.questionId) : null;
+  const question = justAnswered ?? state.current;
+  res.render('learn/quiz', {
+    title: `Module ${ctx.entry.moduleNumber} quiz`,
+    course: ctx.course,
+    outline: ctx.outline,
+    entry: ctx.entry,
+    itemUrl,
+    question,
+    number: question ? state.questions.indexOf(question) + 1 : state.questions.length,
+    total: state.questions.length,
+    feedback: fb,
+    complete: !state.current && !justAnswered,
+    nextUrl: afterItem(ctx.course.slug, ctx.outline, ctx.entry.index),
+    isLast: ctx.entry.index === ctx.outline.items.length - 1,
+  });
+});
+
+router.post('/learn/:slug/modules/:moduleId/quiz', requireAuth, apiLimiter, async (req, res) => {
+  const ctx = await quizContext(req, res);
+  if (!ctx) return;
+  const back = `/learn/${ctx.course.slug}/modules/${ctx.entry.module_id}/quiz`;
+  const questionId = String(req.body.question_id ?? '');
+  const raw = req.body.option;
+  const optionIds = (Array.isArray(raw) ? raw : raw ? [raw] : []).map(String).filter((id) => UUID.test(id));
+  if (!UUID.test(questionId)) return res.redirect(back);
+  const result = await answerQuiz(ctx.entry.module_id, req.user.id, questionId, optionIds);
+  if (result.error === 'empty') flash(req, 'warn', 'Choose an answer first.');
+  if (!result.error) req.session.quizFeedback = { moduleId: ctx.entry.module_id, questionId, correct: result.correct, chosen: result.chosen };
+  res.redirect(back);
 });
 
 // ---------- Exam lobby ----------
@@ -143,23 +215,26 @@ router.get('/learn/:slug/exam', requireAuth, async (req, res) => {
   const ctx = await enrolledCourse(req, res);
   if (!ctx) return;
   const status = await examStatus(req.user, ctx.course);
-  res.render('learn/exam-lobby', { title: `Final exam — ${ctx.course.title}`, course: ctx.course, status });
+  res.render('learn/exam-lobby', { title: `Final exam — ${ctx.course.title}`, course: ctx.course, status, retentionDays: config.PROCTOR_RETENTION_DAYS });
 });
+
+const EXAM_PLEDGES = ['agree_alone', 'agree_devices', 'agree_rules', 'agree_recording'];
 
 router.post('/learn/:slug/exam/start', requireAuth, async (req, res) => {
   const ctx = await enrolledCourse(req, res);
   if (!ctx) return;
-  if (req.body.agree !== 'on') {
-    flash(req, 'warn', 'Confirm that you agree to the exam rules to begin.');
+  const pledges = ctx.course.proctoring_required ? EXAM_PLEDGES : ['agree_rules'];
+  if (!pledges.every((p) => req.body[p] === 'on')) {
+    flash(req, 'warn', 'Confirm each exam condition to continue.');
     return res.redirect(`/learn/${ctx.course.slug}/exam`);
   }
   const result = await startAttempt(req.user, ctx.course, { ip: req.ip, userAgent: req.get('user-agent') });
   if (result.attemptId) return res.redirect(`/exam/${result.attemptId}`);
   if (result.error === 'in_progress') {
-    const open = await one(`SELECT id FROM exam_attempts WHERE user_id = $1 AND course_id = $2 AND status = 'in_progress'`, [
-      req.user.id,
-      ctx.course.id,
-    ]);
+    const open = await one(
+      `SELECT id FROM exam_attempts WHERE user_id = $1 AND course_id = $2 AND status IN ('checkin', 'in_progress')`,
+      [req.user.id, ctx.course.id],
+    );
     if (open) return res.redirect(`/exam/${open.id}`);
   }
   flash(req, 'warn', 'The exam is not available right now.');

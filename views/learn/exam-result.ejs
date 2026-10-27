@@ -29,6 +29,9 @@
               <a class="btn btn-primary btn-lg" href="/certificates/<%= certificate.code %>.pdf" target="_blank" rel="noopener">Download certificate</a>
               <a class="btn btn-ghost btn-lg" href="/verify/<%= certificate.code %>">Verification page</a>
             </div>
+          <% } else if (attempt.passed && attempt.review_status === 'pending') { %>
+            <div class="alert alert-info mt-32"><strong>Certificate pending review.</strong> Our team is checking your ID, room scan and exam recording. We’ll email you as soon as your certificate is issued.</div>
+            <a class="btn btn-ghost" href="/dashboard">Back to my learning</a>
           <% } else if (!attempt.passed) { %>
             <p class="mt-24">Review the topics marked below, then try again from the exam page.</p>
             <a class="btn btn-primary" href="/learn/<%= attempt.course_slug %>/exam">Back to the exam page</a>

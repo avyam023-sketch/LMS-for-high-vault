@@ -1,7 +1,7 @@
 <%- include('../partials/admin-start') %>
 <div class="page-head"><h1>Exam attempts</h1></div>
 <nav class="tabs" aria-label="Filter">
-  <% for (const [key, label] of [['all', 'All'], ['flagged', 'Flagged'], ['live', 'In progress'], ['passed', 'Passed'], ['failed', 'Failed'], ['voided', 'Voided']]) { %>
+  <% for (const [key, label] of [['review', 'Needs review'], ['all', 'All'], ['flagged', 'Flagged'], ['live', 'In progress'], ['passed', 'Passed'], ['failed', 'Failed'], ['voided', 'Voided']]) { %>
     <a href="/admin/attempts?filter=<%= key %>" <%- filter === key ? 'aria-current="page"' : '' %>><%= label %></a>
   <% } %>
 </nav>

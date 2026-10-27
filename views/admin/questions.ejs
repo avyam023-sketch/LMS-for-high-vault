@@ -2,15 +2,22 @@
 <p class="crumb"><a href="/admin/courses/<%= course.id %>">← <%= course.title %></a></p>
 <div class="page-head">
   <div>
-    <h1 class="mb-8">Question bank</h1>
-    <p class="muted mb-0"><%= questions.filter((q) => q.is_active).length %> active questions · each exam draws <%= course.exam_question_count %> at random.
-      <% if (questions.filter((q) => q.is_active).length < course.exam_question_count * 2) { %>A bank at least twice the exam size makes answer-sharing much less useful.<% } %></p>
+    <h1 class="mb-8">Questions</h1>
+    <p class="muted mb-0">
+      <% if (poolFilter === 'exam') { %><%= counts.exam %> active final-exam questions · each exam draws <%= course.exam_question_count %> at random.
+        <% if (counts.exam < course.exam_question_count * 2) { %>A bank at least twice the exam size makes answer-sharing much less useful.<% } %>
+      <% } else { %><%= counts.quiz %> active quiz questions. Learners must answer each one correctly to move on. Explanations are shown after a correct answer.<% } %>
+    </p>
   </div>
-  <a class="btn btn-primary btn-sm" href="/admin/courses/<%= course.id %>/questions/new">New question</a>
+  <a class="btn btn-primary btn-sm" href="/admin/courses/<%= course.id %>/questions/new?pool=<%= poolFilter %>">New <%= poolFilter === 'quiz' ? 'quiz' : 'exam' %> question</a>
 </div>
+<nav class="tabs" aria-label="Question type">
+  <a href="?pool=exam" <%- poolFilter === 'exam' ? 'aria-current="page"' : '' %>>Final exam bank (<%= counts.exam %>)</a>
+  <a href="?pool=quiz" <%- poolFilter === 'quiz' ? 'aria-current="page"' : '' %>>Module quizzes (<%= counts.quiz %>)</a>
+</nav>
 <div class="table-wrap">
   <table class="data">
-    <thead><tr><th>Question</th><th>Topic</th><th>Type</th><th class="num">Options</th><th class="num">Times answered</th><th>Status</th></tr></thead>
+    <thead><tr><th>Question</th><th><%= poolFilter === 'quiz' ? 'Module' : 'Topic' %></th><th>Type</th><th class="num">Options</th><th class="num">Times answered</th><th>Status</th></tr></thead>
     <tbody>
       <% for (const q of questions) { %>
       <tr>
@@ -28,10 +35,11 @@
 </div>
 
 <section class="card mt-32">
-  <h2>Import questions from CSV</h2>
-  <p class="muted small">Paste rows with these columns: <code>prompt, option_a, option_b, option_c, option_d, correct, module, explanation</code>. <code>correct</code> is the letter of the right option (e.g. <code>B</code>), or several letters for multi-answer (e.g. <code>A;C</code>). <code>module</code> must match a module title to tag the topic. A header row is optional.</p>
+  <h2>Import <%= poolFilter === 'quiz' ? 'quiz' : 'exam' %> questions from CSV</h2>
+  <p class="muted small">Paste rows with these columns: <code>prompt, option_a, option_b, option_c, option_d, correct, module, explanation</code>. <code>correct</code> is the letter of the right option (e.g. <code>B</code>), or several letters for multi-answer (e.g. <code>A;C</code>). <code>module</code> must match a module title<%= poolFilter === 'quiz' ? ' (required for quiz questions)' : ' to tag the topic' %>. A header row is optional.</p>
   <form method="post" action="/admin/courses/<%= course.id %>/questions/import">
     <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+    <input type="hidden" name="pool" value="<%= poolFilter %>">
     <textarea name="csv" class="code" placeholder='"What is the temperature danger zone?","0°C to 60°C","4°C to 60°C","10°C to 50°C","4°C to 74°C",B,"Temperature control",'></textarea>
     <button class="btn btn-primary mt-16" type="submit">Import</button>
   </form>

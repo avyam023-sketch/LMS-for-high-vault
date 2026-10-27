@@ -9,6 +9,9 @@
   <div class="tile"><p class="label">Certificates issued</p><div class="value"><%= stats.certificates %></div><div class="sub">active (not revoked)</div></div>
   <div class="tile"><p class="label">Pass rate · 30 days</p><div class="value"><%= stats.pass_rate_30d == null ? '—' : stats.pass_rate_30d + '%' %></div><div class="sub"><%= stats.attempts_30d %> exam<%= stats.attempts_30d === 1 ? '' : 's' %> submitted</div></div>
 </div>
+<% if (stats.pending_reviews) { %>
+  <div class="alert alert-info"><strong><%= stats.pending_reviews %></strong> passed exam<%= stats.pending_reviews === 1 ? ' is' : 's are' %> waiting for identity review. Certificates are issued when you approve them. <a href="/admin/attempts?filter=review">Start reviewing</a></div>
+<% } %>
 <% if (stats.flagged_30d) { %>
   <div class="alert alert-warn"><strong><%= stats.flagged_30d %></strong> exam attempt<%= stats.flagged_30d === 1 ? '' : 's' %> in the last 30 days had integrity events. <a href="/admin/attempts?filter=flagged">Review flagged attempts</a></div>
 <% } %>

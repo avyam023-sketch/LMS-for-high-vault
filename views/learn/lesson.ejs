@@ -1,30 +1,33 @@
 <%- include('../partials/head', { scripts: ['/js/lesson.js'] }) %>
-<% const index = outline.lessons.findIndex((l) => l.id === lesson.id); const mod = outline.modules.findIndex((m) => m.lessons.some((l) => l.id === lesson.id)); %>
 <%- include('../partials/lesson-top') %>
 <main id="main" class="page">
   <div class="wrap">
     <%- include('../partials/flash') %>
     <div class="lesson-layout">
-      <%- include('../partials/lesson-nav', { currentId: lesson.id }) %>
+      <%- include('../partials/lesson-nav', { currentKey: `lesson:${lesson.id}` }) %>
       <article class="lesson-body">
-        <p class="eyebrow">Module <%= mod + 1 %> · Lesson <%= index + 1 %> of <%= outline.total %></p>
+        <p class="eyebrow">Module <%= entry.moduleNumber %> · Chapter <%= chapterNumber %></p>
         <h1 class="lesson-title"><%= lesson.title %></h1>
-        <% if (video) { %><div class="video"><iframe src="<%= video %>" title="<%= lesson.title %> video" loading="lazy" allow="encrypted-media; picture-in-picture; fullscreen" referrerpolicy="strict-origin-when-cross-origin"></iframe></div><% } %>
+        <% if (video && video.kind === 'file') { %>
+          <div class="video"><video src="<%= video.src %>" controls preload="metadata" playsinline controlslist="nodownload" data-lesson-video></video></div>
+        <% } else if (video) { %>
+          <div class="video"><iframe src="<%= video.src %>" title="<%= lesson.title %> video" loading="lazy" allow="encrypted-media; picture-in-picture; fullscreen" referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
+        <% } %>
         <div class="prose"><%- html %></div>
 
         <div class="lesson-foot">
           <div>
-            <% if (prev) { %><a class="btn btn-ghost" href="/learn/<%= course.slug %>/lessons/<%= prev.id %>">← Previous</a><% } %>
+            <% if (prev) { %><a class="btn btn-ghost" href="<%= itemUrl(course.slug, prev) %>">← Previous</a><% } %>
           </div>
+          <% const nextLabel = next ? (next.type === 'quiz' ? `Module ${entry.moduleNumber} quiz` : 'Next chapter') : 'Final exam'; %>
           <% if (entry.done) { %>
-            <% if (next) { %><a class="btn btn-primary" href="/learn/<%= course.slug %>/lessons/<%= next.id %>">Next lesson <%- include('../partials/icon', { name: 'arrow', cls: 'icon arrow' }) %></a>
-            <% } else { %><a class="btn btn-primary" href="/learn/<%= course.slug %>/exam">Go to the final exam <%- include('../partials/icon', { name: 'arrow', cls: 'icon arrow' }) %></a><% } %>
+            <a class="btn btn-primary" href="<%= next ? itemUrl(course.slug, next) : `/learn/${course.slug}/exam` %>"><%= nextLabel %> <%- include('../partials/icon', { name: 'arrow', cls: 'icon arrow' }) %></a>
           <% } else { %>
             <form method="post" action="/learn/lessons/<%= lesson.id %>/complete" class="row"
                   data-lesson="<%= lesson.id %>" data-required="<%= lesson.min_seconds %>" data-spent="<%= entry.seconds_spent || 0 %>">
               <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
               <span class="timer-note" data-timer-note aria-live="polite"></span>
-              <button class="btn btn-primary" type="submit" data-complete><%= next ? 'Complete and continue' : 'Complete and go to exam' %> <%- include('../partials/icon', { name: 'arrow', cls: 'icon arrow' }) %></button>
+              <button class="btn btn-primary" type="submit" data-complete><%= next && next.type === 'quiz' ? 'Complete chapter and take the quiz' : 'Complete chapter' %> <%- include('../partials/icon', { name: 'arrow', cls: 'icon arrow' }) %></button>
             </form>
           <% } %>
         </div>

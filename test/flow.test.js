@@ -8,6 +8,7 @@ import { seed } from '../src/db/seed.js';
 import { createApp } from '../src/app.js';
 import { outbox } from '../src/lib/mailer.js';
 import { hashPassword } from '../src/lib/passwords.js';
+import { courseOutline, reviewAttempt } from '../src/lib/exam.js';
 
 const SLUG = 'food-handler-certification';
 let app;
@@ -38,29 +39,63 @@ async function verifiedLearner(email, name = {}) {
   return agent;
 }
 
-async function completeAllLessons(agent, email) {
-  const user = await one('SELECT id FROM users WHERE email = $1', [email]);
-  const lessons = await many(
-    `SELECT l.id, l.min_seconds FROM lessons l JOIN modules m ON m.id = l.module_id WHERE m.course_id = $1 ORDER BY m.position, l.position`,
-    [course.id],
-  );
-  for (const l of lessons) {
-    await agent.get(`/learn/${SLUG}/lessons/${l.id}`).expect(200);
-    // Simulate the study time the heartbeat would have credited.
-    await query('UPDATE lesson_progress SET seconds_spent = $3 WHERE user_id = $1 AND lesson_id = $2', [user.id, l.id, l.min_seconds]);
-    const token = await csrf(agent, `/learn/${SLUG}/lessons/${l.id}`);
-    await agent.post(`/learn/lessons/${l.id}/complete`).type('form').send({ _csrf: token }).expect(302);
+// Minimal files with the right leading bytes; the server checks magic numbers, not just Content-Type.
+const JPEG = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(64, 1)]);
+const WEBM = Buffer.concat([Buffer.from([0x1a, 0x45, 0xdf, 0xa3]), Buffer.alloc(256, 2)]);
+
+async function answerQuizCorrectly(agent, moduleId) {
+  const qs = await many(`SELECT id FROM questions WHERE module_id = $1 AND pool = 'quiz' AND is_active ORDER BY position, created_at`, [moduleId]);
+  for (const q of qs) {
+    const correct = (await many('SELECT id FROM question_options WHERE question_id = $1 AND is_correct', [q.id])).map((r) => r.id);
+    const url = `/learn/${SLUG}/modules/${moduleId}/quiz`;
+    const token = await csrf(agent, url);
+    await agent.post(url).type('form').send({ _csrf: token, question_id: q.id, option: correct }).expect(302);
   }
+}
+
+/** Works through every chapter and module quiz in order, as a learner would. */
+async function completeCourse(agent, email) {
+  const user = await one('SELECT id FROM users WHERE email = $1', [email]);
+  const outline = await courseOutline(course.id, user.id);
+  for (const item of outline.items) {
+    if (item.type === 'lesson') {
+      await agent.get(`/learn/${SLUG}/lessons/${item.id}`).expect(200);
+      // Simulate the study time the heartbeat would have credited.
+      await query('UPDATE lesson_progress SET seconds_spent = $3 WHERE user_id = $1 AND lesson_id = $2', [user.id, item.id, item.min_seconds]);
+      const token = await csrf(agent, `/learn/${SLUG}/lessons/${item.id}`);
+      await agent.post(`/learn/lessons/${item.id}/complete`).type('form').send({ _csrf: token }).expect(302);
+    } else {
+      await answerQuizCorrectly(agent, item.module_id);
+    }
+  }
+  assert.equal((await courseOutline(course.id, user.id)).allDone, true);
   return user;
 }
 
-async function startExam(agent) {
+const PLEDGES = { agree_rules: 'on', agree_alone: 'on', agree_devices: 'on', agree_recording: 'on' };
+
+/** Starts check-in (the exam timer has not started yet). */
+async function startCheckin(agent) {
   const token = await csrf(agent, `/learn/${SLUG}/exam`);
-  const res = await agent.post(`/learn/${SLUG}/exam/start`).type('form').send({ _csrf: token, agree: 'on' });
+  const res = await agent.post(`/learn/${SLUG}/exam/start`).type('form').send({ _csrf: token, ...PLEDGES });
   assert.equal(res.status, 302);
   const m = res.headers.location.match(/^\/exam\/([0-9a-f-]{36})$/);
   assert.ok(m, `unexpected redirect ${res.headers.location}`);
   return { attemptId: m[1], token };
+}
+
+const upload = (agent, attemptId, token, kind, type, body) =>
+  agent.post(`/exam/${attemptId}/media?kind=${kind}`).set('x-csrf-token', token).set('Content-Type', type).send(body);
+
+/** Check-in with face photo, ID photo and room scan, then begin. */
+async function startExam(agent) {
+  const { attemptId, token } = await startCheckin(agent);
+  await upload(agent, attemptId, token, 'face', 'image/jpeg', JPEG).expect(200);
+  await upload(agent, attemptId, token, 'id', 'image/jpeg', JPEG).expect(200);
+  await upload(agent, attemptId, token, 'room_scan', 'video/webm', WEBM).expect(200);
+  const res = await agent.post(`/exam/${attemptId}/begin`).set('x-csrf-token', token).send({ confirm: true }).expect(200);
+  assert.equal(res.body.redirect, `/exam/${attemptId}`);
+  return { attemptId, token };
 }
 
 before(async () => {
@@ -112,23 +147,24 @@ test('CSRF token is required for state-changing requests', async () => {
   await agent.post(`/enroll/${SLUG}`).type('form').send({}).expect(403);
 });
 
-test('full learner journey: lessons → exam → certificate → verification', async () => {
+test('full learner journey: chapters + quizzes → proctored exam → review → certificate', async () => {
   const email = 'pass@example.com';
   const agent = await verifiedLearner(email, { first: 'Amélie', last: "O'Neil" });
   let token = await csrf(agent, '/dashboard');
   await agent.post(`/enroll/${SLUG}`).type('form').send({ _csrf: token }).expect(302);
 
-  // Exam is locked until lessons are done.
+  // Exam is locked until every chapter and quiz is done.
   let res = await agent.get(`/learn/${SLUG}/exam`).expect(200);
-  assert.match(res.text, /Finish the lessons first/);
+  assert.match(res.text, /Finish the modules first/);
 
-  // Lessons unlock in order.
+  // Chapters unlock in order: chapter 2 is locked until chapter 1 *and* the module 1 quiz are done.
   const lessons = await many(
     `SELECT l.id FROM lessons l JOIN modules m ON m.id = l.module_id WHERE m.course_id = $1 ORDER BY m.position, l.position`,
     [course.id],
   );
-  res = await agent.get(`/learn/${SLUG}/lessons/${lessons[2].id}`);
-  assert.equal(res.status, 302, 'third lesson should be locked');
+  assert.equal(lessons.length, 10);
+  res = await agent.get(`/learn/${SLUG}/lessons/${lessons[1].id}`);
+  assert.equal(res.status, 302, 'chapter 2 should be locked');
 
   // Minimum study time is enforced server-side.
   await agent.get(`/learn/${SLUG}/lessons/${lessons[0].id}`).expect(200);
@@ -143,7 +179,7 @@ test('full learner journey: lessons → exam → certificate → verification', 
     assert.ok(hb.body.seconds <= 2, `credited ${hb.body.seconds}s for instant heartbeats`);
   }
 
-  await completeAllLessons(agent, email);
+  await completeCourse(agent, email);
 
   const { attemptId } = await startExam(agent);
   const paper = await agent.get(`/exam/${attemptId}/paper`).expect(200);
@@ -154,8 +190,9 @@ test('full learner journey: lessons → exam → certificate → verification', 
   for (const k of keys) assert.ok(!/correct|explanation|module/i.test(k), `answer key leaked via "${k}"`);
 
   // A second start while in progress resumes the same attempt.
-  const again = await startExam(agent);
-  assert.equal(again.attemptId, attemptId);
+  token = await csrf(agent, `/learn/${SLUG}/exam`);
+  res = await agent.post(`/learn/${SLUG}/exam/start`).type('form').send({ _csrf: token, ...PLEDGES });
+  assert.equal(res.headers.location, `/exam/${attemptId}`);
 
   // Can't answer with an option from another question.
   const [q1, q2] = paper.body.questions;
@@ -172,6 +209,15 @@ test('full learner journey: lessons → exam → certificate → verification', 
   res = await agent.get(`/exam/${attemptId}/result`).expect(200);
   assert.match(res.text, /class="score">100</);
   assert.match(res.text, /You passed/);
+
+  // Proctored pass: the certificate waits for identity review.
+  assert.match(res.text, /Certificate pending review/);
+  assert.equal((await one('SELECT count(*)::int AS n FROM certificates WHERE attempt_id = $1', [attemptId])).n, 0);
+  assert.equal((await one('SELECT review_status FROM exam_attempts WHERE id = $1', [attemptId])).review_status, 'pending');
+  res = await agent.get(`/learn/${SLUG}/exam`).expect(200);
+  assert.match(res.text, /review in progress/);
+  const reviewed = await reviewAttempt(attemptId, null, 'approve', 'ID matches');
+  assert.ok(reviewed.certificate);
 
   const cert = await one('SELECT * FROM certificates WHERE attempt_id = $1', [attemptId]);
   assert.ok(cert);
@@ -207,7 +253,7 @@ test('exam integrity: time limit, focus violations, cooldown and attempt limits'
   const agent = await verifiedLearner(email);
   let token = await csrf(agent, '/dashboard');
   await agent.post(`/enroll/${SLUG}`).type('form').send({ _csrf: token }).expect(302);
-  const user = await completeAllLessons(agent, email);
+  const user = await completeCourse(agent, email);
   token = await csrf(agent, '/dashboard');
 
   // 1. Expired timer: answers are refused and the attempt is auto-submitted.
@@ -235,7 +281,19 @@ test('exam integrity: time limit, focus violations, cooldown and attempt limits'
   assert.equal(res.body.violations, 1, 'blur + hidden from one tab switch count once');
   await ev('copy').expect(200);
   await ev('made_up_event').expect(400);
-  for (let i = 0; i < course.max_focus_violations; i++) {
+  // Face detection and noise are logged for the reviewer but never count toward auto-submit.
+  for (const kind of ['no_face', 'multiple_faces', 'noise']) {
+    await query(`UPDATE integrity_events SET occurred_at = now() - interval '1 minute' WHERE attempt_id = $1`, [second.attemptId]);
+    res = await ev(kind).expect(200);
+    assert.equal(res.body.violations, 1, `${kind} must not count as a warning`);
+  }
+  // A second screen does count.
+  await query(`UPDATE integrity_events SET occurred_at = now() - interval '1 minute' WHERE attempt_id = $1`, [second.attemptId]);
+  res = await ev('second_screen').expect(200);
+  assert.equal(res.body.violations, 2);
+  // Snapshots are accepted during the exam.
+  await upload(agent, second.attemptId, token, 'snapshot', 'image/jpeg', JPEG).expect(200);
+  for (let i = 0; i < course.max_focus_violations - 1; i++) {
     await query(`UPDATE integrity_events SET occurred_at = now() - interval '1 minute' WHERE attempt_id = $1`, [second.attemptId]);
     res = await ev('fullscreen_exit').expect(200);
   }
@@ -257,6 +315,130 @@ test('exam integrity: time limit, focus violations, cooldown and attempt limits'
   // Another learner can't touch this attempt.
   const other = await verifiedLearner('other@example.com');
   await other.get(`/exam/${third.attemptId}/paper`).expect(404);
+});
+
+test('module quizzes: answer correctly to advance; strict unlock order', async () => {
+  const email = 'quiz@example.com';
+  const agent = await verifiedLearner(email);
+  let token = await csrf(agent, '/dashboard');
+  await agent.post(`/enroll/${SLUG}`).type('form').send({ _csrf: token }).expect(302);
+  const user = await one('SELECT id FROM users WHERE email = $1', [email]);
+  const outline = await courseOutline(course.id, user.id);
+  assert.equal(outline.modules.length, 10);
+  assert.equal(outline.items.length, 20, '10 chapters + 10 quizzes');
+  const [chapter1, quiz1, chapter2] = outline.items;
+  assert.equal(quiz1.type, 'quiz');
+  const quizUrl = `/learn/${SLUG}/modules/${quiz1.module_id}/quiz`;
+
+  // The quiz is locked until its chapter is complete.
+  let res = await agent.get(quizUrl);
+  assert.equal(res.status, 302);
+  await agent.get(`/learn/${SLUG}/lessons/${chapter1.id}`).expect(200);
+  await query('UPDATE lesson_progress SET seconds_spent = 9999 WHERE user_id = $1 AND lesson_id = $2', [user.id, chapter1.id]);
+  token = await csrf(agent, `/learn/${SLUG}/lessons/${chapter1.id}`);
+  res = await agent.post(`/learn/lessons/${chapter1.id}/complete`).type('form').send({ _csrf: token });
+  assert.equal(res.headers.location, quizUrl, 'completing a chapter leads to its quiz');
+
+  const qs = await many(`SELECT id FROM questions WHERE module_id = $1 AND pool = 'quiz' ORDER BY position`, [quiz1.module_id]);
+  const opts = async (qid, correct) => (await many('SELECT id FROM question_options WHERE question_id = $1 AND is_correct = $2', [qid, correct])).map((r) => r.id);
+  res = await agent.get(quizUrl).expect(200);
+  assert.match(res.text, /Question 1 of 4/);
+  // Quiz pages never expose which answer is right before it's answered.
+  assert.ok(!res.text.includes('is-correct'));
+
+  // A wrong answer keeps the learner on the same question.
+  token = csrfFrom(res.text);
+  await agent.post(quizUrl).type('form').send({ _csrf: token, question_id: qs[0].id, option: (await opts(qs[0].id, false))[0] }).expect(302);
+  res = await agent.get(quizUrl).expect(200);
+  assert.match(res.text, /Not quite/);
+  assert.match(res.text, /Question 1 of 4/);
+
+  // Can't skip ahead by answering a later question.
+  token = csrfFrom(res.text);
+  await agent.post(quizUrl).type('form').send({ _csrf: token, question_id: qs[1].id, option: await opts(qs[1].id, true) }).expect(302);
+  assert.equal((await one('SELECT count(*)::int AS n FROM quiz_answers WHERE user_id = $1 AND question_id = $2', [user.id, qs[1].id])).n, 0);
+
+  // The correct answer shows the explanation, then moves on.
+  token = csrfFrom((await agent.get(quizUrl)).text);
+  await agent.post(quizUrl).type('form').send({ _csrf: token, question_id: qs[0].id, option: await opts(qs[0].id, true) }).expect(302);
+  res = await agent.get(quizUrl).expect(200);
+  assert.match(res.text, /Correct\./);
+  res = await agent.get(quizUrl).expect(200);
+  assert.match(res.text, /Question 2 of 4/);
+
+  // Chapter 2 stays locked until the whole quiz is done.
+  assert.equal((await agent.get(`/learn/${SLUG}/lessons/${chapter2.id}`)).status, 302);
+  await answerQuizCorrectly(agent, quiz1.module_id);
+  res = await agent.get(quizUrl).expect(200);
+  assert.match(res.text, /Finish quiz/); // feedback for the last answer first
+  res = await agent.get(quizUrl).expect(200);
+  assert.match(res.text, /Module 1 complete/);
+  await agent.get(`/learn/${SLUG}/lessons/${chapter2.id}`).expect(200);
+});
+
+test('proctored check-in: nothing is served until ID, face and room scan are in', async () => {
+  const email = 'checkin@example.com';
+  const agent = await verifiedLearner(email);
+  let token = await csrf(agent, '/dashboard');
+  await agent.post(`/enroll/${SLUG}`).type('form').send({ _csrf: token }).expect(302);
+  await completeCourse(agent, email);
+
+  // Every pledge is required.
+  token = await csrf(agent, `/learn/${SLUG}/exam`);
+  let res = await agent.post(`/learn/${SLUG}/exam/start`).type('form').send({ _csrf: token, agree_rules: 'on' });
+  assert.equal(res.headers.location, `/learn/${SLUG}/exam`);
+
+  const { attemptId } = await startCheckin(agent);
+  token = await csrf(agent, '/dashboard');
+  res = await agent.get(`/exam/${attemptId}`).expect(200);
+  assert.match(res.text, /Exam check-in/);
+  await agent.get(`/exam/${attemptId}/paper`).expect(409);
+  await agent.post(`/exam/${attemptId}/answer`).set('x-csrf-token', token).send({ questionId: '00000000-0000-0000-0000-000000000000', optionIds: [] }).expect(409);
+
+  // Uploads are checked by content, not just by label, and only allowed at the right stage.
+  await upload(agent, attemptId, token, 'face', 'image/jpeg', Buffer.from('<html>not an image</html>')).expect(400);
+  await upload(agent, attemptId, token, 'room_scan', 'image/jpeg', JPEG).expect(400);
+  await upload(agent, attemptId, token, 'snapshot', 'image/jpeg', JPEG).expect(409);
+  await upload(agent, attemptId, token, 'face', 'image/jpeg', JPEG).set('x-csrf-token', 'wrong').expect(403);
+
+  // Begin is refused until all three check-in items exist.
+  await upload(agent, attemptId, token, 'face', 'image/jpeg', JPEG).expect(200);
+  res = await agent.post(`/exam/${attemptId}/begin`).set('x-csrf-token', token).send({ confirm: true }).expect(400);
+  assert.match(res.body.error, /id, room scan/);
+  await upload(agent, attemptId, token, 'id', 'image/jpeg', JPEG).expect(200);
+  await upload(agent, attemptId, token, 'id', 'image/jpeg', JPEG).expect(200); // retake replaces
+  await upload(agent, attemptId, token, 'room_scan', 'video/webm', WEBM).expect(200);
+  assert.equal((await one(`SELECT count(*)::int AS n FROM proctor_media WHERE attempt_id = $1 AND kind = 'id'`, [attemptId])).n, 1);
+  // Stored encrypted, never as the raw upload.
+  const stored = await one(`SELECT data FROM proctor_media WHERE attempt_id = $1 AND kind = 'id'`, [attemptId]);
+  assert.notDeepEqual(stored.data.subarray(0, 4), JPEG.subarray(0, 4));
+  await agent.post(`/exam/${attemptId}/begin`).set('x-csrf-token', token).send({}).expect(400);
+
+  // Cancelling check-in discards it without using an attempt.
+  res = await agent.post(`/exam/${attemptId}/cancel`).type('form').send({ _csrf: token }).expect(302);
+  assert.equal(await one('SELECT id FROM exam_attempts WHERE id = $1', [attemptId]), null);
+
+  // The clock starts at "begin", not at check-in.
+  const { attemptId: second } = await startCheckin(agent);
+  await query(`UPDATE exam_attempts SET checkin_started_at = now() - interval '20 minutes' WHERE id = $1`, [second]);
+  await upload(agent, second, token, 'face', 'image/jpeg', JPEG).expect(200);
+  await upload(agent, second, token, 'id', 'image/jpeg', JPEG).expect(200);
+  await upload(agent, second, token, 'room_scan', 'video/webm', WEBM).expect(200);
+  await agent.post(`/exam/${second}/begin`).set('x-csrf-token', token).send({ confirm: true }).expect(200);
+  const a = await one('SELECT status, started_at, expires_at FROM exam_attempts WHERE id = $1', [second]);
+  assert.equal(a.status, 'in_progress');
+  const minutes = (new Date(a.expires_at) - Date.now()) / 60000;
+  assert.ok(minutes > course.exam_time_limit_minutes - 1 && minutes <= course.exam_time_limit_minutes, `timer ${minutes} min`);
+  await agent.get(`/exam/${second}/paper`).expect(200);
+
+  // A lapsed check-in is dropped and doesn't count.
+  await agent.post(`/exam/${second}/submit`).type('form').send({ _csrf: token }).expect(302);
+  await query(`UPDATE exam_attempts SET submitted_at = now() - interval '2 hours' WHERE id = $1`, [second]);
+  const { attemptId: third } = await startCheckin(agent);
+  await query(`UPDATE exam_attempts SET checkin_started_at = now() - interval '45 minutes' WHERE id = $1`, [third]);
+  res = await agent.get(`/exam/${third}`);
+  assert.equal(res.status, 302);
+  assert.equal(await one('SELECT id FROM exam_attempts WHERE id = $1', [third]), null);
 });
 
 test('sign-in: lockout, single active session, sign-out', async () => {
@@ -373,6 +555,40 @@ test('admin area: hidden from learners, requires MFA, manages certificates', asy
   }
   const attempt = await one(`SELECT id FROM exam_attempts LIMIT 1`);
   await fresh.get(`/admin/attempts/${attempt.id}`).expect(200);
+
+  // Identity review: a passed, proctored attempt waits in the queue until an admin decides.
+  const pendingUser = await one(`SELECT id FROM users WHERE email = 'checkin@example.com'`);
+  const pendingAttempt = await one(
+    `SELECT a.id FROM exam_attempts a JOIN proctor_media p ON p.attempt_id = a.id WHERE a.user_id = $1 AND a.status = 'submitted' LIMIT 1`,
+    [pendingUser.id],
+  );
+  await query(`UPDATE exam_attempts SET passed = true, score_percent = 90, review_status = 'pending' WHERE id = $1`, [pendingAttempt.id]);
+  res = await fresh.get('/admin/attempts?filter=review').expect(200);
+  assert.ok(res.text.includes(`/admin/attempts/${pendingAttempt.id}`));
+  res = await fresh.get(`/admin/attempts/${pendingAttempt.id}`).expect(200);
+  assert.match(res.text, /Identity check/);
+  assert.match(res.text, /Approve and issue certificate/);
+  const media = await many('SELECT id, kind FROM proctor_media WHERE attempt_id = $1', [pendingAttempt.id]);
+  const idMedia = media.find((m) => m.kind === 'id');
+  const img = await fresh.get(`/admin/media/${idMedia.id}`).buffer(true).parse((r, cb) => {
+    const chunks = [];
+    r.on('data', (c) => chunks.push(c));
+    r.on('end', () => cb(null, Buffer.concat(chunks)));
+  }).expect(200);
+  assert.deepEqual([...img.body.subarray(0, 3)], [0xff, 0xd8, 0xff], 'served decrypted');
+  assert.equal(img.headers['cache-control'], 'no-store');
+  const scan = media.find((m) => m.kind === 'room_scan');
+  res = await fresh.get(`/admin/media/${scan.id}`).set('Range', 'bytes=0-3').expect(206);
+  assert.match(res.headers['content-range'], /^bytes 0-3\/\d+$/);
+  await learner.get(`/admin/media/${idMedia.id}`).expect(404);
+
+  token = await csrf(fresh, `/admin/attempts/${pendingAttempt.id}`);
+  await fresh.post(`/admin/attempts/${pendingAttempt.id}/review`).type('form').send({ _csrf: token, decision: 'reject', note: '' }).expect(302);
+  assert.equal((await one('SELECT review_status FROM exam_attempts WHERE id = $1', [pendingAttempt.id])).review_status, 'pending');
+  await fresh.post(`/admin/attempts/${pendingAttempt.id}/review`).type('form').send({ _csrf: token, decision: 'approve', note: 'ID matches' }).expect(302);
+  const issued = await one('SELECT code FROM certificates WHERE attempt_id = $1', [pendingAttempt.id]);
+  assert.ok(issued, 'approval issues the certificate');
+  assert.match(lastMailTo('checkin@example.com').subject, /certificate is ready/);
 
   // Revoking a certificate shows on the public verification page.
   const cert = await one('SELECT * FROM certificates LIMIT 1');

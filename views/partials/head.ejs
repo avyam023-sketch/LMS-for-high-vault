@@ -13,6 +13,8 @@
   <script src="/js/site.js" defer></script>
   <% if (locals.scripts) { for (const s of scripts) { %><script src="<%= s %>" defer></script>
   <% } } %>
+  <% if (locals.modules) { for (const s of modules) { %><script type="module" src="<%= s %>"></script>
+  <% } } %>
 </head>
 <body class="<%= locals.bodyClass || '' %>">
 <a class="skip" href="#main">Skip to content</a>

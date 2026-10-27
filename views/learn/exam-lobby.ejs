@@ -16,6 +16,18 @@
         <p>Your certificate <strong><%= status.certificate.code %></strong> is valid until <%= status.certificate.expires_at ? fmtDate(status.certificate.expires_at) : 'further notice' %>.</p>
         <a class="btn btn-primary" href="/certificates/<%= status.certificate.code %>.pdf" target="_blank" rel="noopener">Download certificate (PDF)</a>
       </div>
+    <% } else if (status.reason === 'under_review') { %>
+      <div class="card">
+        <h2>You passed — review in progress</h2>
+        <p class="muted">Our team is checking your ID, room scan and exam recording. Your certificate will be issued as soon as the review is complete, and we’ll email you when it’s ready.</p>
+        <a class="btn btn-ghost" href="/exam/<%= status.attemptId %>/result">View your result</a>
+      </div>
+    <% } else if (status.reason === 'checkin') { %>
+      <div class="card">
+        <h2>Your check-in is open</h2>
+        <p class="muted">You started the identity and room check-in. The exam timer hasn’t started yet.</p>
+        <a class="btn btn-primary" href="/exam/<%= status.attemptId %>">Continue check-in</a>
+      </div>
     <% } else if (status.reason === 'in_progress') { %>
       <div class="card">
         <h2>Your exam is in progress</h2>
@@ -24,10 +36,10 @@
       </div>
     <% } else if (status.reason === 'lessons_incomplete') { %>
       <div class="card">
-        <h2>Finish the lessons first</h2>
-        <p class="muted">The exam unlocks when every lesson is complete. You've finished <%= status.outline.completed %> of <%= status.outline.total %>.</p>
+        <h2>Finish the modules first</h2>
+        <p class="muted">The final exam unlocks when every chapter and module quiz is complete. You’ve finished <%= status.outline.completed %> of <%= status.outline.total %>.</p>
         <progress class="bar mb-16" max="100" value="<%= status.outline.percent %>"></progress>
-        <a class="btn btn-primary" href="/learn/<%= course.slug %>">Back to lessons</a>
+        <a class="btn btn-primary" href="/learn/<%= course.slug %>">Back to the course</a>
       </div>
     <% } else if (status.reason === 'no_attempts_left') { %>
       <div class="card">
@@ -38,7 +50,7 @@
       <div class="card">
         <h2>Take a short break</h2>
         <p class="muted">Use the time to review the modules you found hardest. Your next attempt opens at <strong><%= fmtDateTime(status.availableAt) %></strong>.</p>
-        <a class="btn btn-ghost" href="/learn/<%= course.slug %>">Review lessons</a>
+        <a class="btn btn-ghost" href="/learn/<%= course.slug %>">Review the chapters</a>
       </div>
     <% } else if (status.reason === 'no_questions') { %>
       <div class="card"><h2>Exam not ready</h2><p class="muted">The exam for this course isn't available yet. Please check back soon.</p></div>
@@ -51,19 +63,55 @@
           <tr><th scope="row">Pass mark</th><td><%= course.pass_mark %>%</td></tr>
           <tr><th scope="row">Attempt</th><td><%= status.attemptsUsed + 1 %> of <%= status.attemptsAllowed %></td></tr>
         </table>
+        <% if (course.proctoring_required) { %>
+        <h3 class="mt-32">This exam is proctored</h3>
+        <p class="muted">Before the timer starts you’ll complete a short check-in: a system check, a photo of you, a photo of your ID, and a recorded scan of your room. Your camera and microphone stay on for the whole exam, and your recording is reviewed before your certificate is issued.</p>
+        <div class="grid-2 mt-24">
+          <div>
+            <h4>You’ll need</h4>
+            <ul class="rule-list">
+              <li>A laptop or desktop computer — not a phone or tablet</li>
+              <li>Google Chrome or Microsoft Edge</li>
+              <li>A working webcam and microphone</li>
+              <li>One screen only — disconnect extra monitors</li>
+              <li>Government-issued photo ID showing <strong><%= user.first_name %> <%= user.last_name %></strong></li>
+            </ul>
+          </div>
+          <div>
+            <h4>Your room</h4>
+            <ul class="rule-list">
+              <li>A quiet, private room with the door closed</li>
+              <li>No one else present at any time</li>
+              <li>Phone and all other devices switched off and out of reach</li>
+              <li>A clear desk: no notes, books or papers</li>
+              <li>Good lighting on your face</li>
+            </ul>
+          </div>
+        </div>
+        <% } %>
         <h3 class="mt-32">Exam rules</h3>
         <ul class="rule-list">
           <li>Work alone. No notes, books, websites, AI tools or other people.</li>
           <% if (course.require_fullscreen) { %><li>The exam runs in full screen. Leaving full screen is recorded.</li><% } %>
-          <li>Stay on the exam page. Switching tabs or windows is recorded<% if (course.max_focus_violations > 0) { %>, and after <%= course.max_focus_violations %> warnings your exam is submitted automatically<% } %>.</li>
+          <li>Stay on the exam page. Switching tabs or windows<%= course.proctoring_required ? ', turning off your camera or connecting another screen' : '' %> is recorded<% if (course.max_focus_violations > 0) { %>, and after <%= course.max_focus_violations %> warnings your exam is submitted automatically<% } %>.</li>
+          <% if (course.proctoring_required) { %><li>Keep your face in view. Leaving your seat, other people in view and talking are flagged for the reviewer.</li><% } %>
           <li>Copying, pasting, printing and right-clicking are disabled. Attempts are logged.</li>
           <li>Your answers save as you go. If you lose your connection, sign back in — the timer keeps running.</li>
           <li>Results show your score and the topics to review, not the answers.</li>
         </ul>
-        <form method="post" action="/learn/<%= course.slug %>/exam/start" class="mt-24">
+        <form method="post" action="/learn/<%= course.slug %>/exam/start" class="mt-32">
           <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
-          <label class="checkbox mb-24"><input type="checkbox" name="agree" required><span>I'm <strong><%= user.first_name %> <%= user.last_name %></strong>, I'm taking this exam myself, and I agree to the rules above.</span></label>
-          <button class="btn btn-primary btn-lg" type="submit">Start the exam <%- include('../partials/icon', { name: 'arrow', cls: 'icon arrow' }) %></button>
+          <fieldset class="pledges">
+            <legend class="label">Confirm each statement to continue</legend>
+            <label class="checkbox"><input type="checkbox" name="agree_rules" required><span>I’m <strong><%= user.first_name %> <%= user.last_name %></strong>, I’m taking this exam myself, and I agree to the rules above.</span></label>
+            <% if (course.proctoring_required) { %>
+            <label class="checkbox"><input type="checkbox" name="agree_alone" required><span>I’m in a quiet, private room, and no one else will be present during the exam.</span></label>
+            <label class="checkbox"><input type="checkbox" name="agree_devices" required><span>My phone and all other electronic devices are switched off and out of reach.</span></label>
+            <label class="checkbox"><input type="checkbox" name="agree_recording" required><span>I consent to The High Vault Security recording my camera, microphone and ID for exam verification. Recordings are encrypted and automatically deleted after <%= locals.retentionDays || 90 %> days.</span></label>
+            <% } %>
+          </fieldset>
+          <button class="btn btn-primary btn-lg mt-24" type="submit"><%= course.proctoring_required ? 'Start check-in' : 'Start the exam' %> <%- include('../partials/icon', { name: 'arrow', cls: 'icon arrow' }) %></button>
+          <% if (course.proctoring_required) { %><p class="small muted mt-16">The exam timer starts only after check-in, when you press Begin exam.</p><% } %>
         </form>
       </div>
     <% } %>

@@ -8,7 +8,7 @@
     <ul>
       <li><strong>Account details</strong>: your name (printed on your certificate), email address and a securely hashed password. We never store your password itself.</li>
       <li><strong>Learning records</strong>: lessons completed, time spent on lessons, exam answers and scores.</li>
-      <li><strong>Exam integrity records</strong>: during the final exam we record your IP address, browser type and events such as leaving the exam tab. These protect the value of every certificate we issue.</li>
+      <li><strong>Final exam proctoring</strong>: before the exam, a photo of you, a photo of your government ID and a short video of your room. During the exam, your camera and microphone are on, and we take periodic camera snapshots. We also record your IP address, browser type and events such as leaving the exam page, another person in view or a second screen. Face detection runs inside your browser; no images are sent to any other company.</li>
       <li><strong>Payment status</strong>, if a course is paid. Card details are handled by our payment processor and never touch our servers.</li>
     </ul>
     <h2>Why we use it</h2>
@@ -16,6 +16,13 @@
       <li>To run your account, track your progress and issue your certificate.</li>
       <li>To let employers confirm a certificate is genuine. The public verification page shows only the certificate number, your name, the course and its dates.</li>
       <li>To keep the platform secure and prevent cheating and fraud.</li>
+    </ul>
+    <h2>How proctoring data is protected</h2>
+    <ul>
+      <li>Photos, videos and snapshots are encrypted before they are stored.</li>
+      <li>Only authorised staff reviewing your exam can view them, and every review is logged.</li>
+      <li>They are deleted automatically <%= locals.retentionDays || 90 %> days after your exam.</li>
+      <li>They are used only to confirm your identity and that the exam was taken under the required conditions — never for marketing, and never sold or shared.</li>
     </ul>
     <h2>Your choices</h2>
     <p>You can update your details on your account page, or ask us to correct or delete your information by emailing <a href="mailto:<%= supportEmail %>"><%= supportEmail %></a>. We may keep certificate records as long as a certificate remains valid so it can still be verified.</p>

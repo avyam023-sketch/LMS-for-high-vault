@@ -47,6 +47,9 @@
     <h3>Anti-cheating</h3>
     <%- f('max_focus_violations', 'Warnings before auto-submit (0 = log only)', 'number', { extra: 'min="0"', hint: 'Leaving the tab, the window or full screen counts as one warning.' }) %>
     <label class="checkbox"><input type="checkbox" name="require_fullscreen" <%= v.require_fullscreen === true || v.require_fullscreen === 'on' ? 'checked' : '' %>><span>Require full screen during the exam (where the device supports it)</span></label>
+    <h3 class="mt-32">Proctoring</h3>
+    <label class="checkbox mb-16"><input type="checkbox" name="proctoring_required" <%= v.proctoring_required === true || v.proctoring_required === 'on' ? 'checked' : '' %>><span>Proctored exam: camera and microphone on, ID photo, face photo and room scan before the exam, snapshots throughout, one screen only, laptop or desktop with Chrome or Edge</span></label>
+    <label class="checkbox"><input type="checkbox" name="identity_review_required" <%= v.identity_review_required === true || v.identity_review_required === 'on' ? 'checked' : '' %>><span>Hold certificates until an administrator reviews the ID check and recording (recommended)</span></label>
   </section>
   <div class="row mt-16"><button class="btn btn-primary btn-lg" type="submit"><%= course ? 'Save course' : 'Create course' %></button></div>
 </form>

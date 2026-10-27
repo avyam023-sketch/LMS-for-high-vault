@@ -1,5 +1,7 @@
-<%- include('../partials/admin-start') %>
-<% const labels = { tab_hidden: 'Switched tab / minimised', window_blur: 'Left the exam window', fullscreen_exit: 'Exited full screen', copy: 'Tried to copy', paste: 'Tried to paste', context_menu: 'Right-click', print: 'Tried to print', devtools: 'Developer tools shortcut', shortcut: 'Blocked keyboard shortcut' }; %>
+<%- include('../partials/admin-start', { scripts: ['/js/admin-media.js'] }) %>
+<% const labels = { tab_hidden: 'Switched tab / minimised', window_blur: 'Left the exam window', fullscreen_exit: 'Exited full screen', copy: 'Tried to copy', paste: 'Tried to paste', context_menu: 'Right-click', print: 'Tried to print', devtools: 'Developer tools shortcut', shortcut: 'Blocked keyboard shortcut',
+  camera_off: 'Camera turned off', camera_restored: 'Camera back on', second_screen: 'Second screen connected', no_face: 'No face in view', multiple_faces: 'More than one person in view', noise: 'Sustained sound or talking', face_check_skipped: 'Photo taken without face detection', detector_unavailable: 'Face detection unavailable on device' };
+   const reviewKinds = ['no_face', 'multiple_faces', 'noise', 'face_check_skipped', 'detector_unavailable']; %>
 <p class="crumb"><a href="/admin/attempts">← Exam attempts</a></p>
 <div class="page-head">
   <div>
@@ -8,6 +10,40 @@
   </div>
   <% if (attempt.score_percent != null) { %><div class="score"><%= attempt.score_percent %>%</div><% } %>
 </div>
+
+<% if (attempt.review_status === 'pending') { %>
+  <div class="alert alert-info"><strong>Waiting for identity review.</strong> This learner passed. Check that the ID matches the face photo and the name on file, that the room scan shows no one else and no devices within reach, and look through the snapshots and flagged events below. Approving issues the certificate.</div>
+<% } else if (attempt.review_status === 'approved') { %>
+  <div class="alert alert-success">Approved by <%= reviewer ? reviewer.email : 'an administrator' %> on <%= fmtDateTime(attempt.reviewed_at) %><%= attempt.review_note ? ` — ${attempt.review_note}` : '' %>.</div>
+<% } else if (attempt.review_status === 'rejected') { %>
+  <div class="alert alert-error">Rejected by <%= reviewer ? reviewer.email : 'an administrator' %> on <%= fmtDateTime(attempt.reviewed_at) %> — <%= attempt.review_note %>.</div>
+<% } %>
+
+<% if (face || idPhoto || roomScan) { %>
+<section class="card mb-24">
+  <div class="spread mb-16"><h2 class="mb-0">Identity check</h2><span class="small muted">Name on file: <strong><%= attempt.first_name %> <%= attempt.last_name %></strong></span></div>
+  <div class="evidence">
+    <figure><% if (face) { %><a href="/admin/media/<%= face.id %>" target="_blank" rel="noopener"><img src="/admin/media/<%= face.id %>" alt="Learner face photo"></a><% } else { %><div class="evidence-missing">No face photo</div><% } %><figcaption>Face photo<%= face ? ` · ${fmtDateTime(face.created_at)}` : '' %></figcaption></figure>
+    <figure><% if (idPhoto) { %><a href="/admin/media/<%= idPhoto.id %>" target="_blank" rel="noopener"><img src="/admin/media/<%= idPhoto.id %>" alt="Learner ID photo"></a><% } else { %><div class="evidence-missing">No ID photo</div><% } %><figcaption>Government ID<%= idPhoto ? ` · ${fmtDateTime(idPhoto.created_at)}` : '' %></figcaption></figure>
+    <figure class="wide"><% if (roomScan) { %><video src="/admin/media/<%= roomScan.id %>" controls preload="metadata" data-fix-duration></video><% } else { %><div class="evidence-missing">No room scan</div><% } %><figcaption>Room scan<%= roomScan ? ` · ${Math.round(roomScan.byte_size / 1024 / 102.4) / 10} MB` : '' %></figcaption></figure>
+  </div>
+  <p class="small muted mt-16 mb-0">Files are encrypted at rest and deleted automatically <%= retentionDays %> days after upload.</p>
+</section>
+<% } %>
+
+<% if (attempt.review_status === 'pending') { %>
+<section class="card mb-24 review-panel">
+  <h2>Decision</h2>
+  <form method="post" action="/admin/attempts/<%= attempt.id %>/review">
+    <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+    <div class="field"><label for="f-note">Note <span class="muted">(required to reject — the learner sees it)</span></label><input id="f-note" name="note" maxlength="300" placeholder="e.g. ID name does not match account, another person visible at 10:42"></div>
+    <div class="row">
+      <button class="btn btn-primary" type="submit" name="decision" value="approve">Approve and issue certificate</button>
+      <button class="btn btn-danger" type="submit" name="decision" value="reject" data-confirm="Reject this attempt? It will be voided and the learner emailed.">Reject attempt</button>
+    </div>
+  </form>
+</section>
+<% } %>
 
 <div class="grid-2">
   <section class="card">
@@ -31,7 +67,7 @@
     <ol class="timeline">
       <% for (const ev of events) { %>
         <li><time datetime="<%= new Date(ev.occurred_at).toISOString() %>"><%= new Date(ev.occurred_at).toLocaleTimeString('en-CA', { timeZone: 'America/Toronto' }) %></time>
-          <span><%= labels[ev.kind] || ev.kind %><% if (ev.counted) { %> <span class="badge badge-warn">warning</span><% } %><% if (ev.detail) { %> <span class="small muted"><%= ev.detail %></span><% } %></span></li>
+          <span><%= labels[ev.kind] || ev.kind %><% if (ev.counted) { %> <span class="badge badge-warn">warning</span><% } else if (reviewKinds.includes(ev.kind)) { %> <span class="badge">check</span><% } %><% if (ev.detail) { %> <span class="small muted"><%= ev.detail %></span><% } %></span></li>
       <% } %>
     </ol>
   </section>
@@ -47,6 +83,16 @@
     <button class="btn btn-danger" type="submit">Void attempt</button>
   </form>
 </section>
+<% } %>
+
+<% if (snapshots.length) { %>
+<h2 class="mt-32">Camera snapshots <span class="muted small">(<%= snapshots.length %>)</span></h2>
+<div class="snapshots">
+  <% for (const m of snapshots) { %>
+    <figure class="<%= m.note && m.note !== 'start' ? 'flagged' : '' %>"><a href="/admin/media/<%= m.id %>" target="_blank" rel="noopener"><img src="/admin/media/<%= m.id %>" alt="Snapshot at <%= fmtDateTime(m.created_at) %>" loading="lazy"></a>
+      <figcaption><%= new Date(m.created_at).toLocaleTimeString('en-CA', { timeZone: 'America/Toronto' }) %><%= m.note && m.note !== 'start' ? ` · ${labels[m.note] || m.note}` : '' %></figcaption></figure>
+  <% } %>
+</div>
 <% } %>
 
 <h2 class="mt-32">Answers</h2>

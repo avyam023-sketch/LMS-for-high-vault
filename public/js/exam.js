@@ -173,24 +173,34 @@
   });
 
   // ---------- Integrity monitoring ----------
+  const WARNINGS = {
+    tab_hidden: 'You left the exam page.',
+    window_blur: 'You switched to another window.',
+    fullscreen_exit: 'You left full screen.',
+    camera_off: 'Your camera turned off.',
+    second_screen: 'A second screen was connected.',
+  };
   async function report(kind, detail) {
-    if (finished || !started) return;
+    if (finished || !started) return null;
     try {
       const res = await post('event', { kind, detail });
       const data = await res.json();
-      if (data.redirect) return leave(data.redirect);
-      if (['tab_hidden', 'window_blur', 'fullscreen_exit'].includes(kind) && data.maxViolations > 0) {
+      if (data.redirect) {
+        leave(data.redirect);
+        return data;
+      }
+      if (WARNINGS[kind] && data.maxViolations > 0 && data.violations > 0) {
         const left = data.maxViolations - data.violations;
-        warnText.textContent =
-          left >= 0
-            ? `Leaving the exam was recorded (warning ${data.violations} of ${data.maxViolations}). ${left === 0 ? 'One more and your exam is submitted automatically.' : ''}`
-            : 'Leaving the exam was recorded.';
+        warnText.textContent = `${WARNINGS[kind]} This was recorded (warning ${data.violations} of ${data.maxViolations}).${left === 0 ? ' One more and your exam is submitted automatically.' : ''}`;
         warnOverlay.hidden = false;
       }
+      return data;
     } catch {
-      /* best effort */
+      return null; /* best effort */
     }
   }
+  // Used by the camera monitor (exam-proctor.js) to report through the same channel.
+  window.hvExam = { report, attemptId, csrf, isRunning: () => started && !finished };
 
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) report('tab_hidden');
@@ -243,7 +253,8 @@
     if (!res.ok) return leave(data.redirect ?? '/dashboard');
     paper = data;
     offset = new Date(data.serverNow).getTime() - Date.now();
-    const begin = () => {
+    const begin = async () => {
+      if (data.proctored && window.hvProctorReady) await window.hvProctorReady;
       started = true;
       startOverlay.hidden = true;
       render();

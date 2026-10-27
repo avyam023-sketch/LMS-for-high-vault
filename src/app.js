@@ -38,7 +38,8 @@ export function createApp() {
           defaultSrc: ["'self'"],
           scriptSrc: ["'self'"],
           styleSrc: ["'self'"],
-          imgSrc: ["'self'", 'data:', 'https:'],
+          imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
+          mediaSrc: ["'self'", 'blob:', 'https:'],
           fontSrc: ["'self'"],
           connectSrc: ["'self'"],
           frameSrc: ['https://www.youtube-nocookie.com', 'https://player.vimeo.com'],
@@ -55,7 +56,8 @@ export function createApp() {
     }),
   );
   app.use((req, res, next) => {
-    res.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(self "https://checkout.stripe.com")');
+    // Camera and microphone are used only by the proctored final exam, on this origin.
+    res.set('Permissions-Policy', 'camera=(self), microphone=(self), geolocation=(), payment=(self "https://checkout.stripe.com")');
     next();
   });
   app.use(compression());
@@ -66,6 +68,10 @@ export function createApp() {
   app.use('/fonts/jost', express.static(fontDir('@fontsource/jost'), staticOpts));
   app.use('/fonts/plex-sans', express.static(fontDir('@fontsource/ibm-plex-sans'), staticOpts));
   app.use('/fonts/plex-mono', express.static(fontDir('@fontsource/ibm-plex-mono'), staticOpts));
+  // Self-hosted face detection for exam proctoring (no third-party scripts or model downloads).
+  const faceApi = path.dirname(require.resolve('@vladmandic/face-api/package.json'));
+  app.get('/vendor/face-api/face-api.esm.js', (req, res) => res.sendFile(path.join(faceApi, 'dist', 'face-api.esm.js'), { maxAge: staticOpts.maxAge }));
+  app.use('/vendor/face-api/model', express.static(path.join(faceApi, 'model'), staticOpts));
   app.get('/healthz', async (req, res) => {
     await pool.query('SELECT 1');
     res.json({ ok: true });

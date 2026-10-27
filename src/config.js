@@ -25,6 +25,8 @@ const schema = z.object({
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
   SUPPORT_EMAIL: z.string().default('info@thehighvaultsecurity.ca'),
+  // Days to keep exam ID photos, room scans and snapshots before they are deleted automatically.
+  PROCTOR_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(90),
 });
 
 const parsed = schema.safeParse(process.env);

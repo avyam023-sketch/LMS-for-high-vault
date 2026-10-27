@@ -1,0 +1,59 @@
+<%- include('../partials/head') %>
+<%- include('../partials/lesson-top') %>
+<main id="main" class="page">
+  <div class="wrap">
+    <%- include('../partials/flash') %>
+    <div class="lesson-layout">
+      <%- include('../partials/lesson-nav', { currentKey: `quiz:${entry.id}` }) %>
+      <section class="lesson-body quiz">
+        <p class="eyebrow">Module <%= entry.moduleNumber %> · Quiz</p>
+        <% if (complete) { %>
+          <h1 class="lesson-title">Module <%= entry.moduleNumber %> complete.</h1>
+          <p class="lead">You answered all <%= total %> questions correctly.<%= isLast ? ' The final exam is now unlocked.' : ' The next module is unlocked.' %></p>
+          <div class="row mt-32">
+            <a class="btn btn-primary btn-lg" href="<%= nextUrl %>"><%= isLast ? 'Go to the final exam' : `Start Module ${entry.moduleNumber + 1}` %> <%- include('../partials/icon', { name: 'arrow', cls: 'icon arrow' }) %></a>
+          </div>
+        <% } else if (question) { const correctNow = feedback && feedback.correct; const wrongNow = feedback && !feedback.correct; %>
+          <div class="quiz-progress">
+            <span class="mono">Question <%= number %> of <%= total %></span>
+            <span class="quiz-steps" aria-hidden="true"><% for (let i = 1; i <= total; i++) { %><i class="<%= i < number || (i === number && correctNow) ? 'done' : i === number ? 'current' : '' %>"></i><% } %></span>
+          </div>
+          <h1 class="qprompt mt-24"><%= question.prompt %></h1>
+          <% if (question.kind === 'multi') { %><p class="muted small">Select all that apply.</p><% } %>
+
+          <% if (correctNow) { %>
+            <div class="quiz-options">
+              <% for (const o of question.options) { %>
+                <div class="opt <%= o.is_correct ? 'is-correct' : '' %>"><span class="mark"><%- o.is_correct ? include('../partials/icon', { name: 'check' }) : '' %></span><span><%= o.body %></span></div>
+              <% } %>
+            </div>
+            <div class="quiz-feedback ok" role="status">
+              <strong>Correct.</strong><% if (question.explanation) { %> <%= question.explanation %><% } %>
+            </div>
+            <div class="qnav"><span></span><a class="btn btn-primary" href="/learn/<%= course.slug %>/modules/<%= entry.module_id %>/quiz" autofocus><%= number === total ? 'Finish quiz' : 'Next question' %> <%- include('../partials/icon', { name: 'arrow', cls: 'icon arrow' }) %></a></div>
+          <% } else { %>
+            <% if (wrongNow) { %><div class="quiz-feedback bad" role="alert"><strong>Not quite.</strong> Look at the question again and try another answer.</div><% } %>
+            <form method="post" action="/learn/<%= course.slug %>/modules/<%= entry.module_id %>/quiz">
+              <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+              <input type="hidden" name="question_id" value="<%= question.id %>">
+              <fieldset class="quiz-options">
+                <legend class="sr-only"><%= question.prompt %></legend>
+                <% for (const o of question.options) { const wasWrong = wrongNow && feedback.chosen.includes(o.id); %>
+                  <label class="opt <%= wasWrong ? 'is-wrong' : '' %>">
+                    <input type="<%= question.kind === 'multi' ? 'checkbox' : 'radio' %>" name="option" value="<%= o.id %>" <%= question.kind === 'single' ? 'required' : '' %>>
+                    <span><%= o.body %><% if (wasWrong) { %><span class="sr-only"> (your previous answer, incorrect)</span><% } %></span>
+                  </label>
+                <% } %>
+              </fieldset>
+              <div class="qnav"><span class="small muted">Answer correctly to continue.</span><button class="btn btn-primary" type="submit">Check answer</button></div>
+            </form>
+          <% } %>
+        <% } else { %>
+          <h1 class="lesson-title">No quiz questions yet</h1>
+          <a class="btn btn-primary" href="<%= nextUrl %>">Continue</a>
+        <% } %>
+      </section>
+    </div>
+  </div>
+</main>
+<%- include('../partials/foot') %>

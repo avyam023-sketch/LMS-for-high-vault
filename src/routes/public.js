@@ -3,6 +3,7 @@ import { many, one } from '../db/pool.js';
 import { renderMarkdown } from '../lib/markdown.js';
 import { courseOutline } from '../lib/exam.js';
 import { verifyLimiter } from '../lib/limits.js';
+import { config } from '../config.js';
 
 const router = Router();
 
@@ -12,7 +13,7 @@ async function coursePage(req, res, course) {
   const enrollment = req.user
     ? await one('SELECT * FROM enrollments WHERE user_id = $1 AND course_id = $2', [req.user.id, course.id])
     : null;
-  const questionCount = (await one('SELECT count(*)::int AS n FROM questions WHERE course_id = $1 AND is_active', [course.id])).n;
+  const questionCount = (await one(`SELECT count(*)::int AS n FROM questions WHERE course_id = $1 AND pool = 'exam' AND is_active`, [course.id])).n;
   res.render('public/course', {
     title: course.title,
     description: course.subtitle,
@@ -61,6 +62,6 @@ router.get('/verify/:code', verifyLimiter, async (req, res) => {
   res.render('public/verify', { title: 'Verify a certificate', cert, code, status });
 });
 
-router.get('/privacy', (req, res) => res.render('public/privacy', { title: 'Privacy' }));
+router.get('/privacy', (req, res) => res.render('public/privacy', { title: 'Privacy', retentionDays: config.PROCTOR_RETENTION_DAYS }));
 
 export default router;

@@ -5,7 +5,7 @@
 </div>
 <div class="table-wrap">
   <table class="data">
-    <thead><tr><th>Course</th><th>Status</th><th class="num">Price</th><th class="num">Lessons</th><th class="num">Questions</th><th class="num">Enrolled</th><th></th></tr></thead>
+    <thead><tr><th>Course</th><th>Status</th><th class="num">Price</th><th class="num">Chapters</th><th class="num">Quiz Qs</th><th class="num">Exam bank</th><th class="num">Enrolled</th><th></th></tr></thead>
     <tbody>
       <% for (const c of courses) { %>
       <tr>
@@ -13,6 +13,7 @@
         <td><%- c.is_published ? '<span class="badge badge-ok">Published</span>' : '<span class="badge">Draft</span>' %></td>
         <td class="num"><%= money(c.price_cents, c.currency) %></td>
         <td class="num"><%= c.lessons %></td>
+        <td class="num"><%= c.quiz_questions %></td>
         <td class="num"><%= c.questions %><% if (c.questions < c.exam_question_count) { %> <span class="badge badge-warn" title="Fewer questions than the exam draws">low</span><% } %></td>
         <td class="num"><%= c.enrolled %></td>
         <td><a class="btn btn-ghost btn-sm" href="/admin/courses/<%= c.id %>/questions">Question bank</a></td>

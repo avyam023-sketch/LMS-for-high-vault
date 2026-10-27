@@ -1,0 +1,116 @@
+<%- include('../partials/head', { modules: ['/js/exam-checkin.js'] }) %>
+<main id="main" data-checkin="<%= attempt.id %>" data-csrf="<%= csrfToken() %>"
+      data-done-face="<%= done.face ? '1' : '' %>" data-done-id="<%= done.id ? '1' : '' %>" data-done-room="<%= done.room_scan ? '1' : '' %>">
+  <div class="page-band">
+    <div class="wrap spread">
+      <div>
+        <p class="eyebrow"><%= attempt.course_title %> · Final exam</p>
+        <h1>Exam check-in</h1>
+      </div>
+      <p class="muted small maxw-360 mb-0">The exam timer hasn’t started. Finish check-in within <%= checkinMinutes %> minutes. Your exam begins when you press <strong>Begin exam</strong>.</p>
+    </div>
+  </div>
+  <div class="page">
+    <div class="wrap checkin">
+      <aside class="cam-panel" aria-label="Camera">
+        <div class="cam-frame">
+          <video data-cam playsinline muted aria-label="Your camera preview"></video>
+          <div class="cam-empty" data-cam-empty><%- include('../partials/icon', { name: 'monitor' }) %><span>Camera is off</span></div>
+          <span class="cam-rec" data-rec-badge hidden>● REC <span data-rec-time>0:00</span></span>
+        </div>
+        <ul class="check-list" aria-live="polite">
+          <li data-check="camera"><span class="state"></span>Camera</li>
+          <li data-check="mic"><span class="state"></span>Microphone <span class="meter"><i data-meter></i></span></li>
+          <li data-check="face"><span class="state"></span><span data-face-label>Face detection</span></li>
+          <li data-check="screen"><span class="state"></span>Single screen</li>
+          <li data-check="browser"><span class="state"></span>Supported browser and computer</li>
+        </ul>
+      </aside>
+
+      <ol class="steps-v">
+        <li class="step-v" data-step="system">
+          <h2><span>01</span>System check</h2>
+          <div class="step-body">
+            <p>Use a laptop or desktop computer with Google Chrome or Microsoft Edge. Disconnect any extra monitors, and close other apps and browser tabs.</p>
+            <div class="alert alert-error" data-error hidden></div>
+            <div class="row mt-24">
+              <button class="btn btn-primary" type="button" data-start-camera>Turn on camera and microphone</button>
+              <button class="btn btn-ghost" type="button" data-next disabled>Continue</button>
+            </div>
+          </div>
+        </li>
+
+        <li class="step-v" data-step="face">
+          <h2><span>02</span>Your photo</h2>
+          <div class="step-body">
+            <p>Sit facing the camera in good light. Remove hats and sunglasses. Only you should be in view.</p>
+            <p class="small muted" data-face-hint>Looking for your face…</p>
+            <div class="capture" data-preview-wrap hidden><img alt="Your captured photo" data-preview></div>
+            <div class="alert alert-error" data-error hidden></div>
+            <div class="row mt-24">
+              <button class="btn btn-primary" type="button" data-capture disabled>Take photo</button>
+              <button class="btn btn-ghost" type="button" data-retake hidden>Retake</button>
+              <button class="btn btn-primary" type="button" data-use hidden>Use this photo</button>
+            </div>
+          </div>
+        </li>
+
+        <li class="step-v" data-step="id">
+          <h2><span>03</span>Your ID</h2>
+          <div class="step-body">
+            <p>Hold your government-issued photo ID (driver’s licence, passport, provincial ID card) up to the camera, photo side facing the camera. Make sure it’s sharp and readable.</p>
+            <p class="id-name">The name on your ID must match: <strong><%= user.first_name %> <%= user.last_name %></strong></p>
+            <div class="capture" data-preview-wrap hidden><img alt="Your captured ID" data-preview></div>
+            <div class="alert alert-error" data-error hidden></div>
+            <div class="row mt-24">
+              <button class="btn btn-primary" type="button" data-capture>Take photo of ID</button>
+              <button class="btn btn-ghost" type="button" data-retake hidden>Retake</button>
+              <button class="btn btn-primary" type="button" data-use hidden>Use this photo</button>
+            </div>
+          </div>
+        </li>
+
+        <li class="step-v" data-step="room">
+          <h2><span>04</span>Room scan</h2>
+          <div class="step-body">
+            <p>Record a slow, full turn of your room. Tilt or carry your laptop, or turn your webcam, so the camera shows:</p>
+            <ul class="rule-list">
+              <li>All four walls, and that no one else is in the room</li>
+              <li>Your desk surface — clear of notes, books and devices</li>
+              <li>Under and around your desk</li>
+              <li>Where your phone is: switched off and out of reach</li>
+            </ul>
+            <p class="small muted">Recording takes at least 30 seconds and stops automatically after 2 minutes. Sound is recorded too.</p>
+            <div class="capture" data-preview-wrap hidden><video controls playsinline data-preview></video></div>
+            <div class="alert alert-error" data-error hidden></div>
+            <div class="row mt-24">
+              <button class="btn btn-primary" type="button" data-record>Start recording</button>
+              <button class="btn btn-primary" type="button" data-stop hidden disabled>Stop recording</button>
+              <button class="btn btn-ghost" type="button" data-retake hidden>Record again</button>
+              <button class="btn btn-primary" type="button" data-use hidden>Upload room scan</button>
+            </div>
+          </div>
+        </li>
+
+        <li class="step-v" data-step="confirm">
+          <h2><span>05</span>Begin your exam</h2>
+          <div class="step-body">
+            <p>Once you begin: stay in full screen, keep your camera on and your face in view, and don’t leave the exam page. Leaving the page, turning off the camera or connecting another screen is recorded, and repeated warnings end the exam.</p>
+            <label class="checkbox mt-16"><input type="checkbox" data-confirm><span>I’m alone in a quiet room. My phone and all other electronic devices are switched off and out of reach. I have no notes or books with me.</span></label>
+            <div class="alert alert-error mt-16" data-error hidden></div>
+            <div class="row mt-24">
+              <button class="btn btn-primary btn-lg" type="button" data-begin disabled>Begin exam <%- include('../partials/icon', { name: 'arrow', cls: 'icon arrow' }) %></button>
+            </div>
+          </div>
+        </li>
+      </ol>
+    </div>
+    <div class="wrap">
+      <form method="post" action="/exam/<%= attempt.id %>/cancel" class="cancel-checkin" data-confirm="Cancel check-in? This doesn’t use one of your attempts.">
+        <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+        <button class="btn-link small" type="submit">Cancel check-in and return later</button>
+      </form>
+    </div>
+  </div>
+</main>
+<%- include('../partials/foot') %>

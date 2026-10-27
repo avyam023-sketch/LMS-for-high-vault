@@ -20,22 +20,28 @@
             <div>
               <div class="row mb-16">
                 <% if (certified) { %><span class="badge badge-ok">Certified</span>
-                <% } else if (e.outline.allDone) { %><span class="badge badge-dark">Ready for the exam</span>
+                <% } else if (e.underReview) { %><span class="badge badge-warn">Exam passed · identity review</span>
+                <% } else if (e.underReview) { %>
+                <a class="btn btn-ghost" href="/learn/<%= e.slug %>/exam">View exam status</a>
+              <% } else if (e.outline.allDone) { %><span class="badge badge-dark">Ready for the exam</span>
                 <% } else { %><span class="badge">In progress</span><% } %>
               </div>
               <h2><%= e.title %></h2>
-              <div class="progress-meta"><span><strong><%= e.outline.completed %></strong> of <%= e.outline.total %> lessons</span><span class="mono"><%= e.outline.percent %>%</span></div>
+              <div class="progress-meta"><span><strong><%= e.outline.completed %></strong> of <%= e.outline.total %> chapters and quizzes</span><span class="mono"><%= e.outline.percent %>%</span></div>
               <progress class="bar" max="100" value="<%= e.outline.percent %>" aria-label="Course progress"><%= e.outline.percent %>%</progress>
-              <% if (e.next) { %><p class="small muted mt-16 mb-0">Up next: <span class="mono"><%= e.outline.lessons.indexOf(e.next) + 1 %>.</span> <%= e.next.title %></p><% } %>
+              <% if (e.next) { %><p class="small muted mt-16 mb-0">Up next: Module <%= e.next.moduleNumber %> · <%= e.next.type === 'quiz' ? 'Quiz' : e.next.title %></p><% } %>
+              <% if (e.underReview) { %><p class="small mt-16 mb-0">You passed the final exam. Your certificate will be issued once our team has reviewed your ID check and exam recording.</p><% } %>
             </div>
             <div class="course-actions">
               <% if (certified) { %>
                 <a class="btn btn-primary" href="/certificates/<%= e.certificate.code %>.pdf" target="_blank" rel="noopener">Download certificate</a>
                 <a class="btn btn-ghost" href="/learn/<%= e.slug %>">Review the course</a>
+              <% } else if (e.underReview) { %>
+                <a class="btn btn-ghost" href="/learn/<%= e.slug %>/exam">View exam status</a>
               <% } else if (e.outline.allDone) { %>
                 <a class="btn btn-primary" href="/learn/<%= e.slug %>/exam">Go to the final exam <%- include('../partials/icon', { name: 'arrow', cls: 'icon arrow' }) %></a>
               <% } else if (e.next) { %>
-                <a class="btn btn-primary" href="/learn/<%= e.slug %>/lessons/<%= e.next.id %>"><%= e.outline.completed ? 'Continue' : 'Start the course' %> <%- include('../partials/icon', { name: 'arrow', cls: 'icon arrow' }) %></a>
+                <a class="btn btn-primary" href="<%= e.nextUrl %>"><%= e.outline.completed ? 'Continue' : 'Start the course' %> <%- include('../partials/icon', { name: 'arrow', cls: 'icon arrow' }) %></a>
                 <a class="btn btn-ghost" href="/learn/<%= e.slug %>">Course outline</a>
               <% } %>
             </div>

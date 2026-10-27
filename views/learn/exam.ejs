@@ -1,4 +1,4 @@
-<%- include('../partials/head', { scripts: ['/js/exam.js'] }) %>
+<%- include('../partials/head', { scripts: ['/js/exam.js'], modules: attempt.proctoring_required ? ['/js/exam-proctor.js'] : [] }) %>
 <div class="exam-bar">
   <div class="wrap">
     <div>
@@ -22,7 +22,7 @@
 <div class="overlay" data-start-overlay hidden>
   <div class="card">
     <h2>Ready?</h2>
-    <p class="muted">The exam opens in full screen. Stay on this page until you submit.</p>
+    <p class="muted">The exam opens in full screen<%= attempt.proctoring_required ? ' with your camera on' : '' %>. Stay on this page until you submit.</p>
     <button class="btn btn-primary btn-lg" type="button" data-begin>Enter full screen &amp; begin</button>
   </div>
 </div>
@@ -44,6 +44,16 @@
     </form>
   </div>
 </div>
+<% if (attempt.proctoring_required) { %>
+<div class="exam-cam" data-exam-cam aria-label="Your camera"><video data-cam playsinline muted></video><span class="cam-state">Recording</span></div>
+<div class="overlay" data-camera-overlay hidden role="alertdialog" aria-labelledby="cam-title">
+  <div class="card">
+    <h2 id="cam-title">Turn your camera on</h2>
+    <p data-camera-text>Your camera and microphone must stay on for the whole exam.</p>
+    <button class="btn btn-primary" type="button" data-camera-retry>Turn camera on</button>
+  </div>
+</div>
+<% } %>
 <noscript><div class="overlay"><div class="card"><h2>JavaScript required</h2><p>The exam needs JavaScript to save your answers and run the timer.</p></div></div></noscript>
 </body>
 </html>

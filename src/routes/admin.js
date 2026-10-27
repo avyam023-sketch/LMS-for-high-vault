@@ -6,6 +6,10 @@ import { audit } from '../lib/audit.js';
 import { parse, personName } from '../lib/validate.js';
 import { flash } from '../lib/view-helpers.js';
 import { parseCsv } from '../lib/csv.js';
+import { decryptBuffer } from '../lib/crypto.js';
+import { reviewAttempt } from '../lib/exam.js';
+import { sendMail } from '../lib/mailer.js';
+import { config } from '../config.js';
 
 const router = Router();
 router.use(requireAdmin);
@@ -39,7 +43,8 @@ router.get('/', async (req, res) => {
       (SELECT round(100.0 * avg(passed::int))::int FROM exam_attempts WHERE status = 'submitted' AND submitted_at > now() - interval '30 days') AS pass_rate_30d,
       (SELECT count(*)::int FROM certificates WHERE revoked_at IS NULL) AS certificates,
       (SELECT count(*)::int FROM exam_attempts WHERE (focus_violations > 0 OR auto_submitted = 'integrity') AND started_at > now() - interval '30 days') AS flagged_30d,
-      (SELECT count(*)::int FROM exam_attempts WHERE status = 'in_progress') AS live_exams`);
+      (SELECT count(*)::int FROM exam_attempts WHERE status = 'in_progress') AS live_exams,
+      (SELECT count(*)::int FROM exam_attempts WHERE review_status = 'pending') AS pending_reviews`);
   const recentAttempts = await many(
     `SELECT a.id, a.status, a.score_percent, a.passed, a.focus_violations, a.auto_submitted, a.started_at,
             u.first_name, u.last_name, u.email
@@ -151,7 +156,8 @@ router.post('/users/:id/action', async (req, res) => {
 router.get('/courses', async (req, res) => {
   const courses = await many(`SELECT c.*,
       (SELECT count(*) FROM enrollments e WHERE e.course_id = c.id)::int AS enrolled,
-      (SELECT count(*) FROM questions q WHERE q.course_id = c.id AND q.is_active)::int AS questions,
+      (SELECT count(*) FROM questions q WHERE q.course_id = c.id AND q.is_active AND q.pool = 'exam')::int AS questions,
+      (SELECT count(*) FROM questions q WHERE q.course_id = c.id AND q.is_active AND q.pool = 'quiz')::int AS quiz_questions,
       (SELECT count(*) FROM lessons l JOIN modules m ON m.id = l.module_id WHERE m.course_id = c.id)::int AS lessons
     FROM courses c ORDER BY c.created_at`);
   res.render('admin/courses', { title: 'Courses', courses });
@@ -179,6 +185,8 @@ const courseSchema = z.object({
   certificate_validity_months: int(0, 240),
   is_published: z.literal('on').optional(),
   require_fullscreen: z.literal('on').optional(),
+  proctoring_required: z.literal('on').optional(),
+  identity_review_required: z.literal('on').optional(),
 });
 
 /** FAQ textarea format: question on the first line, answer below, blank line between items. */
@@ -196,11 +204,12 @@ function courseParams(d) {
     JSON.stringify(parseFaqs(d.faqs)), Math.round(d.price * 100), d.currency, d.duration_minutes, d.language, Boolean(d.is_published),
     d.pass_mark, d.exam_question_count, d.exam_time_limit_minutes, d.max_attempts, d.attempt_cooldown_minutes,
     d.max_focus_violations, Boolean(d.require_fullscreen), d.certificate_validity_months,
+    Boolean(d.proctoring_required), Boolean(d.identity_review_required),
   ];
 }
 const COURSE_COLS = `title, slug, subtitle, description_md, highlights, outcomes, faqs, price_cents, currency, duration_minutes, language,
   is_published, pass_mark, exam_question_count, exam_time_limit_minutes, max_attempts, attempt_cooldown_minutes,
-  max_focus_violations, require_fullscreen, certificate_validity_months`;
+  max_focus_violations, require_fullscreen, certificate_validity_months, proctoring_required, identity_review_required`;
 
 function courseFormValues(c) {
   return { ...c, highlights: (c.highlights ?? []).join('\n'), outcomes: (c.outcomes ?? []).join('\n'), faqs: faqsToText(c.faqs), price: (c.price_cents ?? 0) / 100 };
@@ -210,6 +219,7 @@ router.get('/courses/new', (req, res) => {
   const defaults = {
     currency: 'cad', duration_minutes: 240, language: 'English', pass_mark: 70, exam_question_count: 40, exam_time_limit_minutes: 60,
     max_attempts: 3, attempt_cooldown_minutes: 60, max_focus_violations: 3, certificate_validity_months: 60, require_fullscreen: true, price_cents: 0,
+    proctoring_required: true, identity_review_required: true,
   };
   res.render('admin/course-form', { title: 'New course', course: null, values: courseFormValues(defaults), errors: {} });
 });
@@ -359,17 +369,26 @@ router.post('/lessons/:id', async (req, res) => {
 router.get('/courses/:id/questions', async (req, res) => {
   const course = await one('SELECT id, title, exam_question_count FROM courses WHERE id = $1', [req.params.id]);
   if (!course) throw notFound();
-  const questions = await many(
-    `SELECT q.id, q.prompt, q.kind, q.is_active, m.title AS module_title,
-            (SELECT count(*) FROM question_options o WHERE o.question_id = q.id)::int AS options,
-            (SELECT count(*) FROM attempt_answers aa JOIN exam_attempts a ON a.id = aa.attempt_id WHERE aa.question_id = q.id AND a.status = 'submitted')::int AS answered
-       FROM questions q LEFT JOIN modules m ON m.id = q.module_id WHERE q.course_id = $1 ORDER BY m.position NULLS LAST, q.created_at`,
+  const poolFilter = req.query.pool === 'quiz' ? 'quiz' : 'exam';
+  const counts = await one(
+    `SELECT count(*) FILTER (WHERE pool = 'exam' AND is_active)::int AS exam, count(*) FILTER (WHERE pool = 'quiz' AND is_active)::int AS quiz
+       FROM questions WHERE course_id = $1`,
     [course.id],
   );
-  res.render('admin/questions', { title: `Question bank — ${course.title}`, course, questions });
+  const questions = await many(
+    `SELECT q.id, q.prompt, q.kind, q.is_active, q.pool, m.title AS module_title, m.position AS module_position,
+            (SELECT count(*) FROM question_options o WHERE o.question_id = q.id)::int AS options,
+            (SELECT count(*) FROM attempt_answers aa JOIN exam_attempts a ON a.id = aa.attempt_id WHERE aa.question_id = q.id AND a.status = 'submitted')::int AS answered
+       FROM questions q LEFT JOIN modules m ON m.id = q.module_id WHERE q.course_id = $1 AND q.pool = $2
+      ORDER BY m.position NULLS LAST, q.position, q.created_at`,
+    [course.id, poolFilter],
+  );
+  res.render('admin/questions', { title: `Question bank — ${course.title}`, course, questions, poolFilter, counts });
 });
 
 const questionSchema = z.object({
+  pool: z.enum(['exam', 'quiz']).default('exam'),
+  position: z.coerce.number().int().min(0).max(1000).default(0),
   prompt: z.string().trim().min(5).max(2000),
   kind: z.enum(['single', 'multi']),
   module_id: z.union([z.literal(''), z.uuid()]).default(''),
@@ -389,6 +408,7 @@ function readOptions(body) {
 }
 
 function questionErrors(data, options) {
+  if (data.pool === 'quiz' && !data.module_id) return 'Choose the module this quiz question belongs to.';
   if (options.length < 2) return 'Add at least two answer options.';
   const correct = options.filter((o) => o.is_correct).length;
   if (correct === 0) return 'Mark at least one option as correct.';
@@ -405,7 +425,8 @@ async function questionForm(res, { course, question, values, options, error }) {
 router.get('/courses/:id/questions/new', async (req, res) => {
   const course = await one('SELECT id, title FROM courses WHERE id = $1', [req.params.id]);
   if (!course) throw notFound();
-  await questionForm(res, { course, question: null, values: { kind: 'single', is_active: true }, options: [], error: null });
+  const pool = req.query.pool === 'quiz' ? 'quiz' : 'exam';
+  await questionForm(res, { course, question: null, values: { kind: 'single', is_active: true, pool }, options: [], error: null });
 });
 
 router.post('/courses/:id/questions', async (req, res) => {
@@ -417,8 +438,9 @@ router.post('/courses/:id/questions', async (req, res) => {
   if (error) return questionForm(res.status(422), { course, question: null, values: req.body, options, error });
   const q = await tx(async (db) => {
     const { rows } = await db.query(
-      'INSERT INTO questions (course_id, module_id, prompt, kind, explanation, is_active) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
-      [course.id, data.module_id || null, data.prompt, data.kind, data.explanation, Boolean(data.is_active)],
+      `INSERT INTO questions (course_id, module_id, prompt, kind, explanation, is_active, pool, position)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+      [course.id, data.module_id || null, data.prompt, data.kind, data.explanation, Boolean(data.is_active), data.pool, data.position],
     );
     for (const [i, o] of options.entries()) {
       await db.query('INSERT INTO question_options (question_id, body, is_correct, position) VALUES ($1, $2, $3, $4)', [rows[0].id, o.body, o.is_correct, i]);
@@ -427,7 +449,7 @@ router.post('/courses/:id/questions', async (req, res) => {
   });
   await audit(req, 'admin.question.create', { entity: 'question', entityId: q.id });
   flash(req, 'success', 'Question added.');
-  res.redirect(req.body.another === '1' ? `/admin/courses/${course.id}/questions/new` : `/admin/courses/${course.id}/questions`);
+  res.redirect(req.body.another === '1' ? `/admin/courses/${course.id}/questions/new?pool=${data.pool}` : `/admin/courses/${course.id}/questions?pool=${data.pool}`);
 });
 
 router.get('/questions/:id', async (req, res) => {
@@ -446,16 +468,17 @@ router.post('/questions/:id', async (req, res) => {
     await query('DELETE FROM questions WHERE id = $1', [question.id]);
     await audit(req, 'admin.question.delete', { entity: 'question', entityId: question.id });
     flash(req, 'success', 'Question deleted.');
-    return res.redirect(`/admin/courses/${course.id}/questions`);
+    return res.redirect(`/admin/courses/${course.id}/questions?pool=${question.pool}`);
   }
   const { data, errors } = parse(questionSchema, req.body);
   const options = readOptions(req.body);
   const error = errors ? Object.values(errors)[0] : questionErrors(data, options);
   if (error) return questionForm(res.status(422), { course, question, values: req.body, options, error });
   await tx(async (db) => {
-    await db.query('UPDATE questions SET module_id = $2, prompt = $3, kind = $4, explanation = $5, is_active = $6 WHERE id = $1', [
-      question.id, data.module_id || null, data.prompt, data.kind, data.explanation, Boolean(data.is_active),
-    ]);
+    await db.query(
+      'UPDATE questions SET module_id = $2, prompt = $3, kind = $4, explanation = $5, is_active = $6, pool = $7, position = $8 WHERE id = $1',
+      [question.id, data.module_id || null, data.prompt, data.kind, data.explanation, Boolean(data.is_active), data.pool, data.position],
+    );
     // Update options in place so exams already in progress keep valid option ids.
     const keep = options.filter((o) => o.id).map((o) => o.id);
     await db.query('DELETE FROM question_options WHERE question_id = $1 AND NOT (id = ANY($2::uuid[]))', [question.id, keep]);
@@ -469,7 +492,7 @@ router.post('/questions/:id', async (req, res) => {
   });
   await audit(req, 'admin.question.update', { entity: 'question', entityId: question.id });
   flash(req, 'success', 'Question saved.');
-  res.redirect(`/admin/courses/${course.id}/questions`);
+  res.redirect(`/admin/courses/${course.id}/questions?pool=${data.pool}`);
 });
 
 /**
@@ -479,6 +502,7 @@ router.post('/questions/:id', async (req, res) => {
 router.post('/courses/:id/questions/import', async (req, res) => {
   const course = await one('SELECT id FROM courses WHERE id = $1', [req.params.id]);
   if (!course) throw notFound();
+  const pool = req.body.pool === 'quiz' ? 'quiz' : 'exam';
   const rows = parseCsv(String(req.body.csv ?? '').slice(0, 150_000));
   const modules = await many('SELECT id, lower(title) AS title FROM modules WHERE course_id = $1', [course.id]);
   const header = rows[0]?.map((h) => h.trim().toLowerCase());
@@ -489,14 +513,15 @@ router.post('/courses/:id/questions/import', async (req, res) => {
     const [prompt, a, b, c, d, correct, moduleTitle, explanation] = r.map((v) => (v ?? '').trim());
     const opts = [a, b, c, d].map((t, i) => ({ body: t, letter: 'ABCD'[i] })).filter((o) => o.body);
     const letters = (correct ?? '').toUpperCase().split(/[;,\s]+/).filter(Boolean);
-    if (!prompt || opts.length < 2 || !letters.length || !letters.every((l) => opts.some((o) => o.letter === l))) {
+    const moduleId = modules.find((m) => m.title === (moduleTitle ?? '').toLowerCase())?.id ?? null;
+    if (!prompt || opts.length < 2 || !letters.length || !letters.every((l) => opts.some((o) => o.letter === l)) || (pool === 'quiz' && !moduleId)) {
       problems.push(idx + (header?.[0] === 'prompt' ? 2 : 1));
       return;
     }
     ready.push({
       prompt: prompt.slice(0, 2000),
       kind: letters.length > 1 ? 'multi' : 'single',
-      moduleId: modules.find((m) => m.title === (moduleTitle ?? '').toLowerCase())?.id ?? null,
+      moduleId,
       explanation: (explanation ?? '').slice(0, 2000),
       options: opts.map((o) => ({ body: o.body.slice(0, 500), is_correct: letters.includes(o.letter) })),
     });
@@ -504,8 +529,8 @@ router.post('/courses/:id/questions/import', async (req, res) => {
   await tx(async (db) => {
     for (const q of ready) {
       const { rows: ins } = await db.query(
-        'INSERT INTO questions (course_id, module_id, prompt, kind, explanation) VALUES ($1, $2, $3, $4, $5) RETURNING id',
-        [course.id, q.moduleId, q.prompt, q.kind, q.explanation],
+        'INSERT INTO questions (course_id, module_id, prompt, kind, explanation, pool, position) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
+        [course.id, q.moduleId, q.prompt, q.kind, q.explanation, pool, 100],
       );
       for (const [i, o] of q.options.entries()) {
         await db.query('INSERT INTO question_options (question_id, body, is_correct, position) VALUES ($1, $2, $3, $4)', [ins[0].id, o.body, o.is_correct, i]);
@@ -518,27 +543,29 @@ router.post('/courses/:id/questions/import', async (req, res) => {
     problems.length ? 'warn' : 'success',
     `Imported ${ready.length} question${ready.length === 1 ? '' : 's'}.` + (problems.length ? ` Skipped rows: ${problems.slice(0, 15).join(', ')}.` : ''),
   );
-  res.redirect(`/admin/courses/${course.id}/questions`);
+  res.redirect(`/admin/courses/${course.id}/questions?pool=${pool}`);
 });
 
 // ---------- Exam attempts ----------
 router.get('/attempts', async (req, res) => {
-  const filter = ['flagged', 'passed', 'failed', 'live', 'voided'].includes(req.query.filter) ? req.query.filter : 'all';
+  const filter = ['review', 'flagged', 'passed', 'failed', 'live', 'voided'].includes(req.query.filter) ? req.query.filter : 'all';
   const page = pageOf(req);
   const where = {
-    all: 'TRUE',
-    flagged: `(a.focus_violations > 0 OR a.auto_submitted = 'integrity')`,
+    all: `a.status <> 'checkin'`,
+    review: `a.review_status = 'pending'`,
+    flagged: `(a.focus_violations > 0 OR a.auto_submitted = 'integrity'
+               OR EXISTS (SELECT 1 FROM integrity_events e WHERE e.attempt_id = a.id AND e.kind IN ('no_face', 'multiple_faces', 'noise', 'face_check_skipped')))`,
     passed: `a.status = 'submitted' AND a.passed`,
     failed: `a.status = 'submitted' AND NOT a.passed`,
     live: `a.status = 'in_progress'`,
     voided: `a.status = 'voided'`,
   }[filter];
   const attempts = await many(
-    `SELECT a.id, a.status, a.score_percent, a.passed, a.focus_violations, a.auto_submitted, a.started_at, a.submitted_at, a.ip,
+    `SELECT a.id, a.status, a.score_percent, a.passed, a.focus_violations, a.auto_submitted, a.started_at, a.submitted_at, a.ip, a.review_status,
             u.id AS user_id, u.first_name, u.last_name, u.email, c.title AS course_title,
             (SELECT count(*) FROM integrity_events e WHERE e.attempt_id = a.id)::int AS events
        FROM exam_attempts a JOIN users u ON u.id = a.user_id JOIN courses c ON c.id = a.course_id
-      WHERE ${where} ORDER BY a.started_at DESC LIMIT ${PAGE + 1} OFFSET ${(page - 1) * PAGE}`,
+      WHERE ${where} ORDER BY ${filter === 'review' ? 'a.submitted_at ASC' : 'a.started_at DESC'} LIMIT ${PAGE + 1} OFFSET ${(page - 1) * PAGE}`,
   );
   res.render('admin/attempts', { title: 'Exam attempts', attempts: attempts.slice(0, PAGE), hasMore: attempts.length > PAGE, page, filter });
 });
@@ -565,19 +592,91 @@ router.get('/attempts/:id', async (req, res) => {
   });
   const events = await many('SELECT * FROM integrity_events WHERE attempt_id = $1 ORDER BY occurred_at', [attempt.id]);
   const certificate = await one('SELECT * FROM certificates WHERE attempt_id = $1', [attempt.id]);
-  res.render('admin/attempt', { title: 'Exam attempt', attempt, paper, events, certificate });
+  const media = await many(
+    'SELECT id, kind, mime, byte_size, note, created_at FROM proctor_media WHERE attempt_id = $1 ORDER BY created_at',
+    [attempt.id],
+  );
+  const reviewer = attempt.reviewed_by ? await one('SELECT email FROM users WHERE id = $1', [attempt.reviewed_by]) : null;
+  if (media.length) await audit(req, 'admin.attempt.viewed_recording', { entity: 'attempt', entityId: attempt.id });
+  res.render('admin/attempt', {
+    title: 'Exam attempt', attempt, paper, events, certificate, reviewer,
+    face: media.find((m) => m.kind === 'face'),
+    idPhoto: media.find((m) => m.kind === 'id'),
+    roomScan: media.find((m) => m.kind === 'room_scan'),
+    snapshots: media.filter((m) => m.kind === 'snapshot'),
+    retentionDays: config.PROCTOR_RETENTION_DAYS,
+  });
 });
 
 router.post('/attempts/:id/void', async (req, res) => {
   const reason = String(req.body.reason ?? '').trim().slice(0, 300);
   if (!reason) return flash(req, 'error', 'Give a reason for voiding.'), res.redirect(`/admin/attempts/${req.params.id}`);
   await tx(async (db) => {
-    await db.query(`UPDATE exam_attempts SET status = 'voided', void_reason = $2, submitted_at = coalesce(submitted_at, now()) WHERE id = $1`, [req.params.id, reason]);
+    await db.query(
+      `UPDATE exam_attempts SET status = 'voided', void_reason = $2, submitted_at = coalesce(submitted_at, now()),
+              review_status = CASE WHEN review_status = 'pending' THEN 'rejected' ELSE review_status END
+        WHERE id = $1`,
+      [req.params.id, reason],
+    );
     await db.query(`UPDATE certificates SET revoked_at = now(), revoke_reason = $2 WHERE attempt_id = $1 AND revoked_at IS NULL`, [req.params.id, `Exam voided: ${reason}`]);
   });
   await audit(req, 'admin.attempt.void', { entity: 'attempt', entityId: req.params.id, meta: { reason } });
   flash(req, 'success', 'Attempt voided. Any certificate from it is revoked.');
   res.redirect(`/admin/attempts/${req.params.id}`);
+});
+
+/** Identity review decision on a passed, proctored attempt. */
+router.post('/attempts/:id/review', async (req, res) => {
+  const decision = req.body.decision === 'approve' ? 'approve' : req.body.decision === 'reject' ? 'reject' : null;
+  const note = String(req.body.note ?? '').trim().slice(0, 300);
+  if (!decision) return res.redirect(`/admin/attempts/${req.params.id}`);
+  if (decision === 'reject' && !note) return flash(req, 'error', 'Give a reason for rejecting — the learner will see it.'), res.redirect(`/admin/attempts/${req.params.id}`);
+  const result = await reviewAttempt(req.params.id, req.user.id, decision, note);
+  if (result.error) {
+    flash(req, 'warn', 'This attempt is no longer waiting for review.');
+    return res.redirect(`/admin/attempts/${req.params.id}`);
+  }
+  const learner = await one('SELECT email, first_name FROM users WHERE id = $1', [result.attempt.user_id]);
+  if (decision === 'approve') {
+    await sendMail({
+      to: learner.email,
+      subject: 'Your certificate is ready — The High Vault Security',
+      heading: `Congratulations, ${learner.first_name}`,
+      body: [`Your exam review is complete and your certificate (${result.certificate.code}) has been issued.`, 'You can download it from your dashboard at any time.'],
+      action: { label: 'Download your certificate', url: `${config.appUrl}/dashboard` },
+    });
+  } else {
+    await sendMail({
+      to: learner.email,
+      subject: 'About your exam — The High Vault Security',
+      heading: 'We couldn’t verify your exam',
+      body: [`Reason: ${note}`, `If you think this is a mistake, reply to ${config.SUPPORT_EMAIL}.`],
+    });
+  }
+  await audit(req, `admin.attempt.${decision}`, { entity: 'attempt', entityId: req.params.id, meta: { note } });
+  flash(req, 'success', decision === 'approve' ? `Approved. Certificate ${result.certificate.code} issued and the learner was emailed.` : 'Rejected. The learner was emailed.');
+  // Move straight on to the next attempt waiting for review.
+  const next = await one(`SELECT id FROM exam_attempts WHERE review_status = 'pending' ORDER BY submitted_at LIMIT 1`);
+  res.redirect(next ? `/admin/attempts/${next.id}` : '/admin/attempts?filter=review');
+});
+
+/** Streams a decrypted proctoring file. Admin-only, never cached; supports seeking in videos. */
+router.get('/media/:id', async (req, res) => {
+  const row = await one('SELECT id, attempt_id, kind, mime, data FROM proctor_media WHERE id = $1', [req.params.id]);
+  if (!row) throw notFound();
+  const buf = decryptBuffer(row.data);
+  res.set({ 'Cache-Control': 'no-store', 'Content-Type': row.mime, 'Accept-Ranges': 'bytes', 'Content-Disposition': 'inline', 'X-Content-Type-Options': 'nosniff' });
+  const range = /^bytes=(\d*)-(\d*)$/.exec(req.get('range') ?? '');
+  if (range && (range[1] || range[2])) {
+    let start = range[1] ? Number(range[1]) : buf.length - Number(range[2]);
+    let end = range[1] && range[2] ? Number(range[2]) : buf.length - 1;
+    start = Math.max(0, start);
+    end = Math.min(end, buf.length - 1);
+    if (start > end) return res.status(416).set('Content-Range', `bytes */${buf.length}`).end();
+    res.status(206).set('Content-Range', `bytes ${start}-${end}/${buf.length}`);
+    return res.send(buf.subarray(start, end + 1));
+  }
+  res.send(buf);
 });
 
 // ---------- Certificates ----------

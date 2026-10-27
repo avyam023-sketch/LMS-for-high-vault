@@ -6,8 +6,8 @@
         <p class="eyebrow"><a href="/dashboard">My learning</a></p>
         <h1><%= course.title %></h1>
       </div>
-      <% const next = outline.lessons.find((l) => !l.done) %>
-      <% if (next) { %><a class="btn btn-primary btn-lg" href="/learn/<%= course.slug %>/lessons/<%= next.id %>"><%= outline.completed ? 'Continue' : 'Start the first lesson' %> <%- include('../partials/icon', { name: 'arrow', cls: 'icon arrow' }) %></a>
+      <% const next = outline.next %>
+      <% if (next) { %><a class="btn btn-primary btn-lg" href="<%= itemUrl(course.slug, next) %>"><%= outline.completed ? 'Continue' : 'Start Module 1' %> <%- include('../partials/icon', { name: 'arrow', cls: 'icon arrow' }) %></a>
       <% } else { %><a class="btn btn-primary btn-lg" href="/learn/<%= course.slug %>/exam"><%= status.certificate ? 'View your result' : 'Go to the final exam' %> <%- include('../partials/icon', { name: 'arrow', cls: 'icon arrow' }) %></a><% } %>
     </div>
   </div>
@@ -15,9 +15,9 @@
     <div class="wrap">
       <%- include('../partials/flash') %>
       <div class="lesson-layout">
-        <%- include('../partials/lesson-nav', { currentId: null }) %>
+        <%- include('../partials/lesson-nav', { currentKey: null }) %>
         <div class="lesson-body">
-          <div class="progress-meta"><span><strong><%= outline.completed %></strong> of <%= outline.total %> lessons complete</span><span class="mono"><%= outline.percent %>%</span></div>
+          <div class="progress-meta"><span><strong><%= outline.completed %></strong> of <%= outline.total %> chapters and quizzes complete</span><span class="mono"><%= outline.percent %>%</span></div>
           <progress class="bar mb-32" max="100" value="<%= outline.percent %>" aria-label="Course progress"></progress>
           <% if (status.certificate) { %>
             <div class="alert alert-success">You’re certified. <a href="/certificates/<%= status.certificate.code %>.pdf" target="_blank" rel="noopener">Download your certificate</a>.</div>
@@ -25,10 +25,11 @@
           <div class="prose">
             <h2>How this course works</h2>
             <ol>
-              <li>Lessons unlock in order. Each one has a minimum study time before you can mark it complete.</li>
-              <li>Your progress saves automatically. Sign in on any device to continue.</li>
-              <li>When every lesson is complete, the final exam unlocks: <%= course.exam_time_limit_minutes %> minutes, <%= course.pass_mark %>% to pass, up to <%= course.max_attempts %> attempts.</li>
-              <li>Pass, and your certificate is issued immediately.</li>
+              <li>The course has <%= outline.modules.length %> modules. Each one is a chapter — a video and a written lesson — followed by a short quiz.</li>
+              <li>Watch the video and spend the minimum study time on each chapter before marking it complete.</li>
+              <li>In each quiz, answer every question correctly to move on. Quizzes aren’t timed or monitored.</li>
+              <li>Modules unlock in order, and your progress saves automatically on any device.</li>
+              <li>After the last quiz, the proctored final exam unlocks: <%= course.exam_time_limit_minutes %> minutes, <%= course.pass_mark %>% to pass, up to <%= course.max_attempts %> attempts.</li>
             </ol>
           </div>
         </div>
