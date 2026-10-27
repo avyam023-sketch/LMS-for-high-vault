@@ -6,7 +6,7 @@
     <div class="lesson-layout">
       <%- include('../partials/lesson-nav', { currentKey: `quiz:${entry.id}` }) %>
       <section class="lesson-body quiz">
-        <p class="eyebrow">Module <%= entry.moduleNumber %> · Quiz</p>
+        <p class="eyebrow">Module <%= entry.moduleNumber %> quiz</p>
         <% if (complete) { %>
           <h1 class="lesson-title">Module <%= entry.moduleNumber %> complete.</h1>
           <p class="lead">You answered all <%= total %> questions correctly.<%= isLast ? ' The final exam is now unlocked.' : ' The next module is unlocked.' %></p>

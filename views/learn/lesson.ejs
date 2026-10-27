@@ -6,7 +6,7 @@
     <div class="lesson-layout">
       <%- include('../partials/lesson-nav', { currentKey: `lesson:${lesson.id}` }) %>
       <article class="lesson-body">
-        <p class="eyebrow">Module <%= entry.moduleNumber %> · Chapter <%= chapterNumber %></p>
+        <p class="eyebrow">Module <%= entry.moduleNumber %>: Chapter <%= entry.chapterNumber %></p>
         <h1 class="lesson-title"><%= lesson.title %></h1>
         <% if (video && video.kind === 'file') { %>
           <div class="video"><video src="<%= video.src %>" controls preload="metadata" playsinline controlslist="nodownload" data-lesson-video></video></div>

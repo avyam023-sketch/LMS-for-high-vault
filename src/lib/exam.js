@@ -54,7 +54,8 @@ export async function courseOutline(courseId, userId) {
 
   const modules = allModules.map((m, i) => ({ id: m.id, title: m.title, number: i + 1, lessons: [], quiz: null }));
   const byId = new Map(modules.map((m) => [m.id, m]));
-  for (const r of lessonRows) byId.get(r.module_id).lessons.push({ ...r, type: 'lesson', done: Boolean(r.completed_at) });
+  let chapter = 0;
+  for (const r of lessonRows) byId.get(r.module_id).lessons.push({ ...r, type: 'lesson', chapterNumber: ++chapter, done: Boolean(r.completed_at) });
   for (const m of modules) {
     const q = quizByModule.get(m.id);
     if (q) m.quiz = { type: 'quiz', id: m.id, module_id: m.id, title: `Module ${m.number} quiz`, total: q.total, correct: q.correct, done: q.correct >= q.total };

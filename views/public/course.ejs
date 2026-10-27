@@ -90,15 +90,20 @@
           <details <%= i === 0 ? 'open' : '' %>>
             <summary>
               <span class="mod-n"><%= String(i + 1).padStart(2, '0') %></span>
-              <span class="mod-title"><%= m.title %></span>
-              <span class="mod-meta"><%= m.lessons.some((l) => l.has_video) ? 'Video · ' : '' %>Chapter<%= m.quiz ? ' + quiz' : '' %></span>
+              <span class="mod-title">Module <%= i + 1 %>: Chapter <%= m.lessons.map((l) => l.chapterNumber).join(', ') %> <span class="mod-topic">— <%= m.title %></span></span>
+              <span class="mod-meta">Chapter<%= m.quiz ? ' + quiz' : '' %></span>
             </summary>
             <ol>
-              <% m.lessons.forEach((l, j) => { %><li><span>Ch. <%= i + 1 %></span><%= l.title %><%= l.has_video ? ' — video and reading' : '' %></li><% }) %>
+              <% m.lessons.forEach((l) => { %><li><span>Ch. <%= l.chapterNumber %></span><%= l.title %><%= l.has_video ? ' — video and reading' : '' %></li><% }) %>
               <% if (m.quiz) { %><li><span>Quiz</span>Module <%= i + 1 %> quiz · <%= m.quiz.total %> questions</li><% } %>
             </ol>
           </details>
           <% }) %>
+          <div class="curriculum-final">
+            <span class="mod-n">—</span>
+            <span class="mod-title">Final exam</span>
+            <span class="mod-meta"><%= examQuestions %> questions · proctored</span>
+          </div>
         </div>
         <% if (descriptionHtml) { %><div class="prose mt-48"><%- descriptionHtml %></div><% } %>
       </div>

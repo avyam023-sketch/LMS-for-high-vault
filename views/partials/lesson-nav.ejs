@@ -1,7 +1,7 @@
 <nav class="lesson-nav" aria-label="Course outline">
   <% outline.modules.forEach((m) => { %>
     <h4><span><%= String(m.number).padStart(2, '0') %></span>Module <%= m.number %></h4>
-    <% for (const item of [...m.lessons, ...(m.quiz ? [m.quiz] : [])]) { const label = item.type === 'quiz' ? `Quiz · ${item.total} questions` : item.title; const current = locals.currentKey === `${item.type}:${item.id}`; %>
+    <% for (const item of [...m.lessons, ...(m.quiz ? [m.quiz] : [])]) { const label = item.type === 'quiz' ? `Module ${m.number} quiz` : `Chapter ${item.chapterNumber}: ${item.title}`; const current = locals.currentKey === `${item.type}:${item.id}`; %>
       <% if (item.unlocked) { %>
         <a href="<%= itemUrl(course.slug, item) %>" class="<%= item.type === 'quiz' ? 'is-quiz' : '' %>" <%- current ? 'aria-current="page"' : '' %>>
           <span class="dot <%= item.done ? 'done' : '' %>"><% if (item.done) { %><%- include('icon', { name: 'check', cls: '' }) %><% } %></span><span><%= label %><% if (item.done) { %><span class="sr-only"> (complete)</span><% } %></span>

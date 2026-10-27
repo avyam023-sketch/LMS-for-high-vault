@@ -29,7 +29,7 @@
               <h2><%= e.title %></h2>
               <div class="progress-meta"><span><strong><%= e.outline.completed %></strong> of <%= e.outline.total %> chapters and quizzes</span><span class="mono"><%= e.outline.percent %>%</span></div>
               <progress class="bar" max="100" value="<%= e.outline.percent %>" aria-label="Course progress"><%= e.outline.percent %>%</progress>
-              <% if (e.next) { %><p class="small muted mt-16 mb-0">Up next: Module <%= e.next.moduleNumber %> · <%= e.next.type === 'quiz' ? 'Quiz' : e.next.title %></p><% } %>
+              <% if (e.next) { %><p class="small muted mt-16 mb-0">Up next: <%= e.next.type === 'quiz' ? `Module ${e.next.moduleNumber} quiz` : `Module ${e.next.moduleNumber}: Chapter ${e.next.chapterNumber} — ${e.next.title}` %></p><% } else if (!certified && !e.underReview) { %><p class="small muted mt-16 mb-0">Up next: Final exam</p><% } %>
               <% if (e.underReview) { %><p class="small mt-16 mb-0">You passed the final exam. Your certificate will be issued once our team has reviewed your ID check and exam recording.</p><% } %>
             </div>
             <div class="course-actions">
