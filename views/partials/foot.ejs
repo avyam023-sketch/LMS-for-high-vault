@@ -1,29 +1,39 @@
 <footer class="site-footer">
   <div class="wrap">
-    <div>
-      <a class="brand" href="/" aria-label="The High Vault Security — home">
-        <img src="/img/logo-mark.svg" alt="" width="30" height="36">
-        <span class="brand-text"><strong>The High Vault</strong><span>Security · Academy</span></span>
-      </a>
-      <p class="mt-16 maxw-360">Food handler certification you can complete online, at your own pace, with a certificate any employer can verify.</p>
+    <div class="footer-grid">
+      <div>
+        <img src="/img/logo-lockup.svg" alt="The High Vault Security" width="176" height="64">
+        <p>Food handler certification, completed online, with a certificate any employer can verify in seconds.</p>
+      </div>
+      <div>
+        <h4>Course</h4>
+        <ul>
+          <li><a href="/#curriculum">Curriculum</a></li>
+          <li><a href="/#how">How it works</a></li>
+          <li><a href="/#certificate">Exam &amp; certificate</a></li>
+          <li><a href="/#faq">FAQ</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Learners</h4>
+        <ul>
+          <% if (user) { %><li><a href="/dashboard">My learning</a></li><li><a href="/account">Account</a></li>
+          <% } else { %><li><a href="/register">Create an account</a></li><li><a href="/login">Sign in</a></li><% } %>
+          <li><a href="/verify">Verify a certificate</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Contact</h4>
+        <ul>
+          <li><a href="mailto:<%= supportEmail %>"><%= supportEmail %></a></li>
+          <li><a href="https://thehighvaultsecurity.ca" rel="noopener">thehighvaultsecurity.ca</a></li>
+        </ul>
+      </div>
     </div>
-    <div>
-      <h4>Course</h4>
-      <ul>
-        <li><a href="/#outline">Course content</a></li>
-        <li><a href="/#exam">Exam &amp; certificate</a></li>
-        <li><a href="/#faq">FAQ</a></li>
-      </ul>
+    <div class="footer-legal">
+      <span>© <%= new Date().getFullYear() %> The High Vault Security. All rights reserved.</span>
+      <a href="/privacy">Privacy</a>
     </div>
-    <div>
-      <h4>Help</h4>
-      <ul>
-        <li><a href="/verify">Verify a certificate</a></li>
-        <li><a href="mailto:<%= supportEmail %>"><%= supportEmail %></a></li>
-        <li><a href="/privacy">Privacy</a></li>
-      </ul>
-    </div>
-    <p class="legal">© <%= new Date().getFullYear() %> The High Vault Security. All rights reserved.</p>
   </div>
 </footer>
 </body>

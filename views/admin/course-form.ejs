@@ -1,7 +1,7 @@
 <%- include('../partials/admin-start') %>
 <% const v = values; const e = errors; const f = (name, label, type = 'text', opts = {}) => include('../partials/field', { name, label, type, value: v[name], error: e[name], required: opts.required ?? true, hint: opts.hint, extra: opts.extra }); %>
-<p class="small"><a href="/admin/courses">← Courses</a></p>
-<div class="page-head spread">
+<p class="crumb"><a href="/admin/courses">← Courses</a></p>
+<div class="page-head">
   <h1><%= course ? course.title : 'New course' %></h1>
   <% if (course) { %>
   <div class="row">

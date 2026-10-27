@@ -1,6 +1,6 @@
 <%- include('../partials/admin-start') %>
-<p class="small"><a href="/admin/courses/<%= course.id %>">← <%= course.title %></a></p>
-<div class="page-head spread">
+<p class="crumb"><a href="/admin/courses/<%= course.id %>">← <%= course.title %></a></p>
+<div class="page-head">
   <div>
     <h1 class="mb-8">Question bank</h1>
     <p class="muted mb-0"><%= questions.filter((q) => q.is_active).length %> active questions · each exam draws <%= course.exam_question_count %> at random.

@@ -1,7 +1,7 @@
 <%- include('../partials/admin-start') %>
 <% const labels = { tab_hidden: 'Switched tab / minimised', window_blur: 'Left the exam window', fullscreen_exit: 'Exited full screen', copy: 'Tried to copy', paste: 'Tried to paste', context_menu: 'Right-click', print: 'Tried to print', devtools: 'Developer tools shortcut', shortcut: 'Blocked keyboard shortcut' }; %>
-<p class="small"><a href="/admin/attempts">← Exam attempts</a></p>
-<div class="page-head spread">
+<p class="crumb"><a href="/admin/attempts">← Exam attempts</a></p>
+<div class="page-head">
   <div>
     <h1 class="mb-8"><a href="/admin/users/<%= attempt.user_id %>"><%= attempt.first_name %> <%= attempt.last_name %></a></h1>
     <div class="row"><span class="muted"><%= attempt.course_title %></span><%- include('../partials/attempt-badge', { a: attempt }) %></div>

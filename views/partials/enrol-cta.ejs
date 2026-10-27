@@ -1,0 +1,11 @@
+<%# Primary enrol action, adapted to the visitor's state. Params: cls %>
+<% if (!user) { %>
+  <a class="btn <%= cls %>" href="/register">Enrol now <%- include('icon', { name: 'arrow', cls: 'icon arrow' }) %></a>
+<% } else if (enrollment) { %>
+  <a class="btn <%= cls %>" href="/learn/<%= course.slug %>"><%= outline.completed ? 'Continue learning' : 'Start learning' %> <%- include('icon', { name: 'arrow', cls: 'icon arrow' }) %></a>
+<% } else { %>
+  <form method="post" action="/enroll/<%= course.slug %>" class="<%= cls.includes('btn-block') ? '' : 'inline-form' %>">
+    <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+    <button class="btn <%= cls %>" type="submit">Enrol now <%- include('icon', { name: 'arrow', cls: 'icon arrow' }) %></button>
+  </form>
+<% } %>

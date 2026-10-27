@@ -1,40 +1,45 @@
 <%- include('../partials/head') %>
-<main id="main" class="page">
-  <div class="wrap maxw-720">
-    <div class="page-head">
+<main id="main">
+  <div class="page-band">
+    <div class="wrap">
       <p class="eyebrow">Certificate verification</p>
       <h1>Verify a certificate</h1>
-      <p class="muted">Enter the certificate number printed on the certificate (for example HV-2026-ABCD-EFGH), or scan its QR code.</p>
     </div>
-    <form class="card row" method="get" action="/verify" role="search">
-      <label class="sr-only" for="code">Certificate number</label>
-      <input class="grow" id="code" name="code" type="search" value="<%= code %>" placeholder="HV-2026-XXXX-XXXX" autocomplete="off" required>
-      <button class="btn btn-primary" type="submit">Verify</button>
-    </form>
+  </div>
+  <div class="page">
+    <div class="wrap wrap-narrow">
+      <p class="lead">Enter the number printed on the certificate (for example HV-2026-ABCD-EFGH), or scan its QR code.</p>
+      <form class="row mt-24" method="get" action="/verify" role="search">
+        <label class="sr-only" for="code">Certificate number</label>
+        <input class="grow mono" id="code" name="code" type="search" value="<%= code %>" placeholder="HV-2026-XXXX-XXXX" autocomplete="off" spellcheck="false" required>
+        <button class="btn btn-primary" type="submit">Verify</button>
+      </form>
 
-    <% if (code) { %>
-      <div class="mt-24 verify-result <%= status === 'valid' ? 'valid' : 'invalid' %>" role="status">
-        <% if (status === 'valid') { %>
-          <div class="status-line"><%- include('../partials/icon', { name: 'ok' }) %> Valid certificate</div>
-        <% } else if (status === 'expired') { %>
-          <div class="status-line"><%- include('../partials/icon', { name: 'alert' }) %> This certificate has expired</div>
-        <% } else if (status === 'revoked') { %>
-          <div class="status-line"><%- include('../partials/icon', { name: 'x' }) %> This certificate has been revoked</div>
-        <% } else { %>
-          <div class="status-line"><%- include('../partials/icon', { name: 'x' }) %> No certificate found</div>
-          <p class="mb-0 muted">Check the number and try again. Certificate numbers look like HV-2026-ABCD-EFGH.</p>
-        <% } %>
-        <% if (cert) { %>
-          <dl class="meta">
-            <dt>Certificate no.</dt><dd><%= cert.code %></dd>
-            <dt>Issued to</dt><dd><%= cert.full_name %></dd>
-            <dt>Course</dt><dd><%= cert.course_title %></dd>
-            <dt>Issued</dt><dd><%= fmtDate(cert.issued_at) %></dd>
-            <dt>Valid until</dt><dd><%= cert.expires_at ? fmtDate(cert.expires_at) : 'No expiry' %></dd>
-          </dl>
-        <% } %>
-      </div>
-    <% } %>
+      <% if (code) { %>
+        <div class="verify-result <%= status === 'valid' ? 'valid' : 'invalid' %>" role="status">
+          <% if (status === 'valid') { %>
+            <div class="status-line"><%- include('../partials/icon', { name: 'ok' }) %> Valid certificate</div>
+          <% } else if (status === 'expired') { %>
+            <div class="status-line"><%- include('../partials/icon', { name: 'alert' }) %> This certificate has expired</div>
+          <% } else if (status === 'revoked') { %>
+            <div class="status-line"><%- include('../partials/icon', { name: 'x' }) %> This certificate has been revoked</div>
+          <% } else { %>
+            <div class="status-line"><%- include('../partials/icon', { name: 'x' }) %> No certificate found</div>
+            <p class="muted">Check the number and try again. Certificate numbers look like HV-2026-ABCD-EFGH.</p>
+          <% } %>
+          <% if (cert) { %>
+            <dl class="meta">
+              <dt>Certificate no.</dt><dd class="mono"><%= cert.code %></dd>
+              <dt>Issued to</dt><dd><%= cert.full_name %></dd>
+              <dt>Course</dt><dd><%= cert.course_title %></dd>
+              <dt>Issued</dt><dd><%= fmtDate(cert.issued_at) %></dd>
+              <dt>Valid until</dt><dd><%= cert.expires_at ? fmtDate(cert.expires_at) : 'No expiry' %></dd>
+              <dt>Issued by</dt><dd>The High Vault Security</dd>
+            </dl>
+          <% } %>
+        </div>
+      <% } %>
+    </div>
   </div>
 </main>
 <%- include('../partials/foot') %>

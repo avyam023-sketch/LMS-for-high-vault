@@ -1,6 +1,6 @@
 <%- include('../partials/head') %>
 <main id="main" class="auth">
-  <div class="card">
+  <div class="panel">
     <h1>Choose a new password</h1>
     <% if (error) { %><div class="alert alert-error" role="alert"><%= error %></div><% } %>
     <form method="post" action="/reset-password/<%= token %>">

@@ -170,7 +170,7 @@ test('full learner journey: lessons → exam → certificate → verification', 
   }
   res = await agent.post(`/exam/${attemptId}/submit`).type('form').send({ _csrf: token }).expect(302);
   res = await agent.get(`/exam/${attemptId}/result`).expect(200);
-  assert.match(res.text, /100%/);
+  assert.match(res.text, /class="score">100</);
   assert.match(res.text, /You passed/);
 
   const cert = await one('SELECT * FROM certificates WHERE attempt_id = $1', [attemptId]);

@@ -1,6 +1,6 @@
 <%- include('../partials/admin-start') %>
 <% const v = values; const e = errors; %>
-<p class="small"><a href="/admin/courses/<%= mod.course_id %>#modules">← <%= mod.course_title %></a></p>
+<p class="crumb"><a href="/admin/courses/<%= mod.course_id %>#modules">← <%= mod.course_title %></a></p>
 <div class="page-head"><h1><%= lesson ? 'Edit lesson' : 'New lesson' %></h1></div>
 <% if (Object.keys(errors).length) { %><div class="alert alert-error">Fix the highlighted fields and save again.</div><% } %>
 <form method="post" action="<%= lesson ? `/admin/lessons/${lesson.id}` : '/admin/lessons' %>" class="card">

@@ -3,8 +3,8 @@
   <form method="post" action="/admin/users/${member.id}/action" class="inline-form"${confirmMsg ? ` data-confirm="${confirmMsg}"` : ''}>
     <input type="hidden" name="_csrf" value="${csrfToken()}"><input type="hidden" name="action" value="${action}">
     <button class="btn ${cls} btn-sm" type="submit">${label}</button></form>`; %>
-<p class="small"><a href="/admin/users">← Learners</a></p>
-<div class="page-head spread">
+<p class="crumb"><a href="/admin/users">← Learners</a></p>
+<div class="page-head">
   <div>
     <h1 class="mb-8"><%= member.first_name %> <%= member.last_name %></h1>
     <div class="row">

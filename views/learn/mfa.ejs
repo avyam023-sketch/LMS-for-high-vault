@@ -1,7 +1,8 @@
 <%- include('../partials/head') %>
-<main id="main" class="page">
-  <div class="wrap maxw-560">
-    <div class="page-head"><p class="eyebrow">Security</p><h1>Two-step verification</h1></div>
+<main id="main">
+  <div class="page-band"><div class="wrap"><p class="eyebrow">Security</p><h1>Two-step verification</h1></div></div>
+  <div class="page">
+  <div class="wrap wrap-narrow">
     <%- include('../partials/flash') %>
     <% if (enabled) { %>
       <div class="card">
@@ -32,6 +33,7 @@
         </form>
       </div>
     <% } %>
+  </div>
   </div>
 </main>
 <%- include('../partials/foot') %>

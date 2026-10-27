@@ -62,7 +62,10 @@ export function createApp() {
 
   const staticOpts = { maxAge: config.isProd ? '7d' : 0, index: false };
   app.use(express.static(path.join(root, 'public'), staticOpts));
-  app.use('/fonts', express.static(path.join(path.dirname(require.resolve('@fontsource/jost/package.json')), 'files'), staticOpts));
+  const fontDir = (pkg) => path.join(path.dirname(require.resolve(`${pkg}/package.json`)), 'files');
+  app.use('/fonts/jost', express.static(fontDir('@fontsource/jost'), staticOpts));
+  app.use('/fonts/plex-sans', express.static(fontDir('@fontsource/ibm-plex-sans'), staticOpts));
+  app.use('/fonts/plex-mono', express.static(fontDir('@fontsource/ibm-plex-mono'), staticOpts));
   app.get('/healthz', async (req, res) => {
     await pool.query('SELECT 1');
     res.json({ ok: true });

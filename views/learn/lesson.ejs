@@ -1,14 +1,14 @@
 <%- include('../partials/head', { scripts: ['/js/lesson.js'] }) %>
+<% const index = outline.lessons.findIndex((l) => l.id === lesson.id); const mod = outline.modules.findIndex((m) => m.lessons.some((l) => l.id === lesson.id)); %>
+<%- include('../partials/lesson-top') %>
 <main id="main" class="page">
   <div class="wrap">
-    <div class="page-head">
-      <p class="eyebrow"><a href="/learn/<%= course.slug %>"><%= course.title %></a></p>
-      <h1><%= lesson.title %></h1>
-    </div>
     <%- include('../partials/flash') %>
     <div class="lesson-layout">
       <%- include('../partials/lesson-nav', { currentId: lesson.id }) %>
       <article class="lesson-body">
+        <p class="eyebrow">Module <%= mod + 1 %> · Lesson <%= index + 1 %> of <%= outline.total %></p>
+        <h1 class="lesson-title"><%= lesson.title %></h1>
         <% if (video) { %><div class="video"><iframe src="<%= video %>" title="<%= lesson.title %> video" loading="lazy" allow="encrypted-media; picture-in-picture; fullscreen" referrerpolicy="strict-origin-when-cross-origin"></iframe></div><% } %>
         <div class="prose"><%- html %></div>
 
@@ -17,14 +17,14 @@
             <% if (prev) { %><a class="btn btn-ghost" href="/learn/<%= course.slug %>/lessons/<%= prev.id %>">← Previous</a><% } %>
           </div>
           <% if (entry.done) { %>
-            <% if (next) { %><a class="btn btn-primary" href="/learn/<%= course.slug %>/lessons/<%= next.id %>">Next lesson →</a>
-            <% } else { %><a class="btn btn-primary" href="/learn/<%= course.slug %>/exam">Go to final exam →</a><% } %>
+            <% if (next) { %><a class="btn btn-primary" href="/learn/<%= course.slug %>/lessons/<%= next.id %>">Next lesson <%- include('../partials/icon', { name: 'arrow', cls: 'icon arrow' }) %></a>
+            <% } else { %><a class="btn btn-primary" href="/learn/<%= course.slug %>/exam">Go to the final exam <%- include('../partials/icon', { name: 'arrow', cls: 'icon arrow' }) %></a><% } %>
           <% } else { %>
             <form method="post" action="/learn/lessons/<%= lesson.id %>/complete" class="row"
                   data-lesson="<%= lesson.id %>" data-required="<%= lesson.min_seconds %>" data-spent="<%= entry.seconds_spent || 0 %>">
               <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
               <span class="timer-note" data-timer-note aria-live="polite"></span>
-              <button class="btn btn-primary" type="submit" data-complete><%= next ? 'Complete & continue →' : 'Complete & go to exam →' %></button>
+              <button class="btn btn-primary" type="submit" data-complete><%= next ? 'Complete and continue' : 'Complete and go to exam' %> <%- include('../partials/icon', { name: 'arrow', cls: 'icon arrow' }) %></button>
             </form>
           <% } %>
         </div>

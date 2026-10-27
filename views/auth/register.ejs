@@ -1,27 +1,30 @@
 <%- include('../partials/head') %>
-<main id="main" class="auth">
-  <div class="card">
-    <p class="eyebrow">Food Handler Certification</p>
-    <h1>Create your account</h1>
-    <p class="muted">It takes a minute. Use your legal name — it's printed on your certificate.</p>
-    <%- include('../partials/flash') %>
-    <% if (errors.form) { %><div class="alert alert-error"><%= errors.form %></div><% } %>
-    <form method="post" action="/register" novalidate>
-      <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
-      <div class="form-grid">
-        <%- include('../partials/field', { name: 'first_name', label: 'First name', type: 'text', value: values.first_name, error: errors.first_name, autocomplete: 'given-name', extra: 'maxlength="60"' }) %>
-        <%- include('../partials/field', { name: 'last_name', label: 'Last name', type: 'text', value: values.last_name, error: errors.last_name, autocomplete: 'family-name', extra: 'maxlength="60"' }) %>
-      </div>
-      <%- include('../partials/field', { name: 'email', label: 'Email', type: 'email', value: values.email, error: errors.email, autocomplete: 'email' }) %>
-      <%- include('../partials/field', { name: 'password', label: 'Password', type: 'password', value: '', error: errors.password, autocomplete: 'new-password', hint: 'At least 12 characters. A short phrase is easy to remember and hard to guess.', extra: 'minlength="12" maxlength="128"' }) %>
-      <%- include('../partials/field', { name: 'confirm', label: 'Confirm password', type: 'password', value: '', error: errors.confirm, autocomplete: 'new-password' }) %>
-      <div class="field">
-        <label class="checkbox"><input type="checkbox" name="terms" required <%= values.terms ? 'checked' : '' %>><span>I confirm the name above is my legal name, and I agree to the <a href="/privacy" target="_blank" rel="noopener">privacy policy</a> and exam rules (no outside help, notes or other people during the exam).</span></label>
-        <% if (errors.terms) { %><div class="err"><%= errors.terms %></div><% } %>
-      </div>
-      <button class="btn btn-primary btn-block btn-lg" type="submit">Create account</button>
-    </form>
-    <p class="divider">Already have an account? <a href="/login">Sign in</a></p>
+<main id="main" class="auth-shell">
+  <%- include('../partials/auth-aside') %>
+  <div class="auth-main">
+    <div class="auth-form">
+      <p class="eyebrow">Step 1 of 4</p>
+      <h1>Create your account</h1>
+      <p class="muted">Use your legal name. It’s printed on your certificate.</p>
+      <%- include('../partials/flash') %>
+      <% if (errors.form) { %><div class="alert alert-error"><%= errors.form %></div><% } %>
+      <form method="post" action="/register" novalidate>
+        <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+        <div class="form-grid">
+          <%- include('../partials/field', { name: 'first_name', label: 'First name', type: 'text', value: values.first_name, error: errors.first_name, autocomplete: 'given-name', extra: 'maxlength="60"' }) %>
+          <%- include('../partials/field', { name: 'last_name', label: 'Last name', type: 'text', value: values.last_name, error: errors.last_name, autocomplete: 'family-name', extra: 'maxlength="60"' }) %>
+        </div>
+        <%- include('../partials/field', { name: 'email', label: 'Email', type: 'email', value: values.email, error: errors.email, autocomplete: 'email' }) %>
+        <%- include('../partials/field', { name: 'password', label: 'Password', type: 'password', value: '', error: errors.password, autocomplete: 'new-password', hint: 'At least 12 characters. A short phrase is easy to remember and hard to guess.', extra: 'minlength="12" maxlength="128"' }) %>
+        <%- include('../partials/field', { name: 'confirm', label: 'Confirm password', type: 'password', value: '', error: errors.confirm, autocomplete: 'new-password' }) %>
+        <div class="field">
+          <label class="checkbox"><input type="checkbox" name="terms" required><span>I confirm this is my legal name, and I agree to the <a href="/privacy" target="_blank" rel="noopener">privacy policy</a> and to take the exam without outside help.</span></label>
+          <% if (errors.terms) { %><div class="err"><%= errors.terms %></div><% } %>
+        </div>
+        <button class="btn btn-primary btn-lg btn-block" type="submit">Create account</button>
+      </form>
+      <p class="divider">Already have an account? <a href="/login">Sign in</a></p>
+    </div>
   </div>
 </main>
 <%- include('../partials/foot') %>

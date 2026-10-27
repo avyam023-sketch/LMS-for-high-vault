@@ -1,118 +1,143 @@
 <%- include('../partials/head') %>
+<% const years = course.certificate_validity_months ? Math.round(course.certificate_validity_months / 12 * 10) / 10 : null; %>
 <main id="main">
+
   <section class="hero dark">
     <div class="wrap">
-      <div>
-        <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> / <%= course.title %></nav>
-        <p class="eyebrow">Online certification course</p>
-        <h1><%= course.title %></h1>
-        <p class="lead"><%= course.subtitle %></p>
-        <ul class="facts">
-          <li><%- include('../partials/icon', { name: 'monitor' }) %>100% online</li>
-          <li><%- include('../partials/icon', { name: 'clock' }) %>About <%= duration(course.duration_minutes) %>, self-paced</li>
-          <li><%- include('../partials/icon', { name: 'globe' }) %><%= course.language %></li>
-          <li><%- include('../partials/icon', { name: 'file' }) %><%= examQuestions %>-question final exam</li>
-          <li><%- include('../partials/icon', { name: 'award' }) %>Certificate<%= course.certificate_validity_months ? ` valid ${Math.round(course.certificate_validity_months / 12 * 10) / 10} years` : '' %></li>
-        </ul>
+      <div class="hero-grid">
+        <div>
+          <p class="kicker">Online certification course</p>
+          <h1><%= course.title %>, <em>completed online.</em></h1>
+          <p class="lead">One careless shortcut can make a customer sick and shut a kitchen down. This course teaches the rules that prevent it, then certifies you the moment you pass.</p>
+          <div class="hero-actions">
+            <%- include('../partials/enrol-cta', { cls: 'btn-ice btn-lg' }) %>
+            <a class="btn btn-ghost btn-lg" href="#curriculum">See the curriculum</a>
+          </div>
+        </div>
+
+        <aside class="enrol" id="enroll" aria-label="Enrol">
+          <div class="enrol-head">
+            <p class="eyebrow">Course, final exam &amp; certificate</p>
+            <div class="price"><%= money(course.price_cents, course.currency) %><% if (course.price_cents) { %><small><%= course.currency.toUpperCase() %> + tax</small><% } %></div>
+          </div>
+          <div class="enrol-body">
+            <ul class="enrol-list">
+              <% for (const h of course.highlights) { %><li><%- include('../partials/icon', { name: 'check' }) %><span><%= h %></span></li><% } %>
+            </ul>
+            <%- include('../partials/enrol-cta', { cls: 'btn-primary btn-lg btn-block' }) %>
+            <% if (!user) { %><p class="enrol-foot">Already registered? <a href="/login">Sign in</a></p>
+            <% } else if (enrollment) { %><p class="enrol-foot"><%= outline.completed %> of <%= outline.total %> lessons complete</p><% } %>
+          </div>
+        </aside>
       </div>
 
-      <aside class="buy-card" id="enroll" aria-label="Enrol">
-        <div class="price"><%= money(course.price_cents, course.currency) %><% if (course.price_cents) { %><small><%= course.currency.toUpperCase() %> + tax</small><% } %></div>
-        <ul>
-          <% for (const h of course.highlights) { %><li><%- include('../partials/icon', { name: 'check', cls: 'check' }) %><span><%= h %></span></li><% } %>
-        </ul>
-        <hr>
-        <% if (!user) { %>
-          <a class="btn btn-primary btn-lg btn-block" href="/register">Create your account</a>
-          <p class="small muted center mt-16 mb-0">Already registered? <a href="/login">Sign in</a></p>
-        <% } else if (enrollment) { %>
-          <a class="btn btn-primary btn-lg btn-block" href="/learn/<%= course.slug %>"><%= outline.completed ? 'Continue learning' : 'Start learning' %></a>
-          <p class="small muted center mt-16 mb-0"><%= outline.completed %> of <%= outline.total %> lessons complete</p>
-        <% } else { %>
-          <form method="post" action="/enroll/<%= course.slug %>">
-            <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
-            <button class="btn btn-primary btn-lg btn-block" type="submit"><%= course.price_cents ? 'Enrol now' : 'Enrol — start now' %></button>
-          </form>
-        <% } %>
-        <p class="small muted center mt-16 mb-0">Secure sign-up · Instant access</p>
-      </aside>
+      <dl class="spec-bar">
+        <div><dt>Study time</dt><dd>About <%= duration(course.duration_minutes) %></dd></div>
+        <div><dt>Format</dt><dd>Online, self-paced</dd></div>
+        <div><dt>Final exam</dt><dd><%= examQuestions %> questions</dd></div>
+        <div><dt>Certificate</dt><dd><%= years ? `Valid ${years} years` : 'No expiry' %></dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <section class="assurance" aria-label="Why this course">
+    <div class="wrap">
+      <div class="assurance-grid">
+        <div><%- include('../partials/icon', { name: 'qr' }) %><h3>Verifiable in seconds</h3><p>Every certificate has a unique number and QR code that employers can check online.</p></div>
+        <div><%- include('../partials/icon', { name: 'book' }) %><h3>Built on Canadian standards</h3><p>Content follows Health Canada guidance and Ontario’s Food Premises Regulation.</p></div>
+        <div><%- include('../partials/icon', { name: 'devices' }) %><h3>Learn on any device</h3><p>Phone, tablet or computer. Your progress saves as you go.</p></div>
+        <div><%- include('../partials/icon', { name: 'shield' }) %><h3>An exam that means something</h3><p>Randomised questions and a monitored exam keep every certificate credible.</p></div>
+      </div>
     </div>
   </section>
 
   <% if (course.outcomes.length) { %>
-  <section class="section">
-    <div class="wrap">
-      <div class="section-head">
-        <p class="eyebrow">What you'll learn</p>
-        <h2>Everything you need to handle food safely at work</h2>
+  <section class="section" id="outcomes">
+    <div class="wrap split">
+      <div class="split-head">
+        <p class="kicker">01 — Outcomes</p>
+        <h2>What you’ll be able to do</h2>
+        <p>Practical rules you’ll use on every shift, explained plainly.</p>
       </div>
-      <div class="grid-2">
-        <% for (const o of course.outcomes) { %>
-          <div class="outcome"><%- include('../partials/icon', { name: 'check', cls: 'check' }) %><span><%= o %></span></div>
-        <% } %>
-      </div>
+      <ol class="index-list">
+        <% for (const o of course.outcomes) { %><li><%= o %></li><% } %>
+      </ol>
     </div>
   </section>
   <% } %>
 
-  <section class="section section-alt" id="how">
-    <div class="wrap">
-      <div class="section-head">
-        <p class="eyebrow">How it works</p>
-        <h2>Four steps to your certificate</h2>
+  <section class="section section-white section-rule" id="curriculum">
+    <div class="wrap split">
+      <div class="split-head">
+        <p class="kicker">02 — Curriculum</p>
+        <h2><%= outline.modules.length %> modules, one clear path</h2>
+        <p><%= outline.total %> lessons, about <%= duration(course.duration_minutes) %> in total. Lessons unlock in order, so nothing important gets skipped.</p>
       </div>
-      <div class="grid-4">
-        <div class="step"><div class="step-n">1</div><h3>Create your account</h3><p>Sign up with your legal name. It's printed on your certificate.</p></div>
-        <div class="step"><div class="step-n">2</div><h3>Study the lessons</h3><p>Work through each module at your own pace, on any device. Progress saves automatically.</p></div>
-        <div class="step"><div class="step-n">3</div><h3>Pass the final exam</h3><p><%= examQuestions %> questions, <%= course.exam_time_limit_minutes %> minutes, <%= course.pass_mark %>% to pass. Up to <%= course.max_attempts %> attempts.</p></div>
-        <div class="step"><div class="step-n">4</div><h3>Download your certificate</h3><p>Get a PDF certificate right away, with a QR code employers can scan to verify it.</p></div>
+      <div>
+        <div class="curriculum">
+          <% outline.modules.forEach((m, i) => { %>
+          <details <%= i === 0 ? 'open' : '' %>>
+            <summary>
+              <span class="mod-n"><%= String(i + 1).padStart(2, '0') %></span>
+              <span class="mod-title"><%= m.title %></span>
+              <span class="mod-meta"><%= m.lessons.length %> lesson<%= m.lessons.length === 1 ? '' : 's' %></span>
+            </summary>
+            <ol><% m.lessons.forEach((l, j) => { %><li><span><%= i + 1 %>.<%= j + 1 %></span><%= l.title %></li><% }) %></ol>
+          </details>
+          <% }) %>
+        </div>
+        <% if (descriptionHtml) { %><div class="prose mt-48"><%- descriptionHtml %></div><% } %>
       </div>
     </div>
   </section>
 
-  <section class="section" id="outline">
-    <div class="wrap layout-main">
-      <div>
-        <div class="section-head">
-          <p class="eyebrow">Course content</p>
-          <h2><%= outline.modules.length %> modules · <%= outline.total %> lessons</h2>
-        </div>
-        <div class="outline">
-          <% outline.modules.forEach((m, i) => { %>
-          <details <%= i === 0 ? 'open' : '' %>>
-            <summary><span>Module <%= i + 1 %>: <%= m.title %></span><span class="muted"><%= m.lessons.length %> lesson<%= m.lessons.length === 1 ? '' : 's' %></span></summary>
-            <ol><% for (const l of m.lessons) { %><li><%= l.title %></li><% } %></ol>
-          </details>
-          <% }) %>
-        </div>
-        <% if (descriptionHtml) { %><div class="prose mt-32"><%- descriptionHtml %></div><% } %>
+  <section class="section" id="how">
+    <div class="wrap">
+      <div class="split mb-32">
+        <div><p class="kicker">03 — How it works</p></div>
+        <h2 class="mb-0">From sign-up to certificate, without leaving your browser.</h2>
       </div>
+      <ol class="steps">
+        <li><h3>Create your account</h3><p>Register with your legal name. It’s printed on your certificate.</p></li>
+        <li><h3>Study the lessons</h3><p>Work through each module at your own pace. Your place is saved on every device.</p></li>
+        <li><h3>Pass the final exam</h3><p><%= examQuestions %> questions in <%= course.exam_time_limit_minutes %> minutes. <%= course.pass_mark %>% to pass, <%= course.max_attempts %> attempts included.</p></li>
+        <li><h3>Download your certificate</h3><p>Issued instantly as a PDF, with a QR code employers can scan.</p></li>
+      </ol>
+    </div>
+  </section>
 
-      <div id="exam">
-        <div class="section-head">
-          <p class="eyebrow">Exam &amp; certificate</p>
-          <h2>The details</h2>
-        </div>
-        <table class="spec">
-          <tr><th scope="row">Format</th><td>Online, self-paced</td></tr>
-          <tr><th scope="row">Estimated study time</th><td><%= duration(course.duration_minutes) %></td></tr>
-          <tr><th scope="row">Final exam</th><td><%= examQuestions %> multiple-choice questions</td></tr>
-          <tr><th scope="row">Time limit</th><td><%= course.exam_time_limit_minutes %> minutes</td></tr>
-          <tr><th scope="row">Pass mark</th><td><%= course.pass_mark %>%</td></tr>
-          <tr><th scope="row">Attempts included</th><td><%= course.max_attempts %></td></tr>
-          <tr><th scope="row">Certificate</th><td>Instant PDF download<% if (course.certificate_validity_months) { %>, valid <%= Math.round(course.certificate_validity_months / 12 * 10) / 10 %> years<% } %></td></tr>
-          <tr><th scope="row">Verification</th><td>Unique ID + QR code, checkable online</td></tr>
-        </table>
+  <section class="section dark" id="certificate">
+    <div class="wrap showcase">
+      <figure>
+        <picture>
+          <source srcset="/img/certificate-sample.webp" type="image/webp">
+          <img src="/img/certificate-sample.jpg" alt="Sample High Vault Security food handler certificate showing the learner’s name, course, score, issue and expiry dates, certificate number and QR code" width="1400" height="1082" loading="lazy" decoding="async">
+        </picture>
+        <figcaption>Sample certificate</figcaption>
+      </figure>
+      <div>
+        <p class="kicker">04 — Exam &amp; certificate</p>
+        <h2>A certificate employers can check.</h2>
+        <p class="lead">Each certificate carries a unique number and QR code. Anyone can confirm it’s genuine, current and issued to you.</p>
+        <dl class="facts-list">
+          <div><dt>Final exam</dt><dd><%= examQuestions %> multiple-choice questions</dd></div>
+          <div><dt>Time limit</dt><dd><%= course.exam_time_limit_minutes %> minutes</dd></div>
+          <div><dt>Pass mark</dt><dd><%= course.pass_mark %>%</dd></div>
+          <div><dt>Attempts included</dt><dd><%= course.max_attempts %></dd></div>
+          <div><dt>Certificate</dt><dd>Instant PDF<%= years ? `, valid ${years} years` : '' %></dd></div>
+        </dl>
+        <a class="btn btn-ghost" href="/verify">Verify a certificate <%- include('../partials/icon', { name: 'arrow', cls: 'icon arrow' }) %></a>
       </div>
     </div>
   </section>
 
   <% if (course.faqs.length) { %>
-  <section class="section section-alt" id="faq">
-    <div class="wrap maxw-720">
-      <div class="section-head">
-        <p class="eyebrow">FAQ</p>
-        <h2>Common questions</h2>
+  <section class="section section-white" id="faq">
+    <div class="wrap split">
+      <div class="split-head">
+        <p class="kicker">05 — Questions</p>
+        <h2>Before you enrol</h2>
+        <p class="contact-line">Still have a question? Email <a href="mailto:<%= supportEmail %>"><%= supportEmail %></a>.</p>
       </div>
       <div class="faq">
         <% for (const f of course.faqs) { %>
@@ -123,15 +148,12 @@
   </section>
   <% } %>
 
-  <section class="cta-band dark">
-    <div class="wrap">
-      <h2>Ready to get certified?</h2>
-      <p>Study at your own pace, pick up where you left off on any device, and download your certificate the moment you pass.</p>
-      <% if (enrollment) { %>
-        <a class="btn btn-ice btn-lg" href="/learn/<%= course.slug %>">Continue learning</a>
-      <% } else { %>
-        <a class="btn btn-ice btn-lg" href="<%= user ? '#enroll' : '/register' %>">Get started</a>
-      <% } %>
+  <section class="closing dark">
+    <div class="wrap closing-grid">
+      <h2>Start today. Your certificate is issued the moment you pass.</h2>
+      <div class="closing-actions">
+        <%- include('../partials/enrol-cta', { cls: 'btn-ice btn-lg' }) %>
+      </div>
     </div>
   </section>
 </main>

@@ -1,49 +1,54 @@
 <%- include('../partials/head') %>
-<main id="main" class="page">
-  <div class="wrap maxw-720">
-    <div class="card result-hero">
-      <% if (attempt.status === 'voided') { %>
-        <p class="eyebrow">Attempt voided</p>
-        <h1>This attempt was voided</h1>
-        <p class="muted">Reason: <%= attempt.void_reason %>. Contact <a href="mailto:<%= supportEmail %>"><%= supportEmail %></a> if you have questions.</p>
-      <% } else { %>
-        <p class="eyebrow"><%= attempt.course_title %></p>
-        <div class="score"><%= attempt.score_percent %>%</div>
-        <p class="muted mt-8"><%= attempt.correct_count %> of <%= attempt.question_ids.length %> correct · pass mark <%= attempt.pass_mark %>%</p>
-        <% if (attempt.passed) { %>
-          <h1 class="mt-16">You passed. Well done.</h1>
-          <% if (certificate) { %>
-            <p>Your certificate number is <strong><%= certificate.code %></strong>.</p>
-            <div class="row justify-center">
-              <a class="btn btn-primary btn-lg" href="/certificates/<%= certificate.code %>.pdf" target="_blank" rel="noopener">Download certificate (PDF)</a>
-              <a class="btn btn-ghost btn-lg" href="/verify/<%= certificate.code %>">View verification page</a>
-            </div>
-          <% } %>
-        <% } else { %>
-          <h1 class="mt-16">Not this time</h1>
-          <p class="muted">Review the topics below, then try again from the exam page.</p>
-          <a class="btn btn-primary" href="/learn/<%= attempt.course_slug %>/exam">Back to exam page</a>
-        <% } %>
-        <% if (attempt.auto_submitted === 'time') { %><div class="alert alert-warn mt-24">Time ran out, so your exam was submitted automatically.</div><% } %>
-        <% if (attempt.auto_submitted === 'integrity') { %><div class="alert alert-error mt-24">Your exam was submitted automatically because you left the exam page too many times. This attempt has been flagged for review.</div><% } %>
-      <% } %>
+<main id="main">
+  <div class="page-band">
+    <div class="wrap">
+      <p class="eyebrow"><a href="/learn/<%= attempt.course_slug %>"><%= attempt.course_title %></a> · Final exam</p>
+      <h1><%= attempt.status === 'voided' ? 'Attempt voided' : attempt.passed ? 'You passed.' : 'Not this time.' %></h1>
     </div>
-
-    <% if (breakdown.length) { %>
-      <h2 class="mt-32">Results by topic</h2>
-      <div class="table-wrap">
-        <table class="data">
-          <thead><tr><th>Topic</th><th class="num">Correct</th><th></th></tr></thead>
-          <tbody>
+  </div>
+  <div class="page">
+    <div class="wrap">
+      <% if (attempt.status === 'voided') { %>
+        <div class="wrap-narrow">
+          <p class="lead">This attempt was voided. Reason: <%= attempt.void_reason %>.</p>
+          <p class="muted">Contact <a href="mailto:<%= supportEmail %>"><%= supportEmail %></a> if you have questions.</p>
+        </div>
+      <% } else { %>
+      <div class="result">
+        <div>
+          <div class="score"><%= attempt.score_percent %><span class="muted">%</span></div>
+          <p class="score-meta"><%= attempt.correct_count %> of <%= attempt.question_ids.length %> correct · pass mark <%= attempt.pass_mark %>%</p>
+          <% if (attempt.auto_submitted === 'time') { %><div class="alert alert-warn mt-24">Time ran out, so your exam was submitted automatically.</div><% } %>
+          <% if (attempt.auto_submitted === 'integrity') { %><div class="alert alert-error mt-24">Your exam was submitted automatically because you left the exam page too many times. This attempt has been flagged for review.</div><% } %>
+          <% if (attempt.passed && certificate) { %>
+            <dl class="meta mt-32">
+              <dt>Certificate no.</dt><dd class="mono"><%= certificate.code %></dd>
+              <dt>Valid until</dt><dd><%= certificate.expires_at ? fmtDate(certificate.expires_at) : 'No expiry' %></dd>
+            </dl>
+            <div class="row mt-24">
+              <a class="btn btn-primary btn-lg" href="/certificates/<%= certificate.code %>.pdf" target="_blank" rel="noopener">Download certificate</a>
+              <a class="btn btn-ghost btn-lg" href="/verify/<%= certificate.code %>">Verification page</a>
+            </div>
+          <% } else if (!attempt.passed) { %>
+            <p class="mt-24">Review the topics marked below, then try again from the exam page.</p>
+            <a class="btn btn-primary" href="/learn/<%= attempt.course_slug %>/exam">Back to the exam page</a>
+          <% } %>
+        </div>
+        <% if (breakdown.length) { %>
+        <div>
+          <h2 class="mb-16">Results by topic</h2>
+          <table class="spec">
             <% for (const b of breakdown) { const pct = Math.round(b.correct / b.total * 100) %>
-              <tr><td class="wrap-text"><%= b.module %></td><td class="num"><%= b.correct %> / <%= b.total %></td>
+              <tr><th scope="row"><%= b.module %></th><td class="mono"><%= b.correct %> / <%= b.total %></td>
               <td><%- pct >= attempt.pass_mark ? '<span class="badge badge-ok">Strong</span>' : '<span class="badge badge-warn">Review</span>' %></td></tr>
             <% } %>
-          </tbody>
-        </table>
+          </table>
+          <p class="small muted mt-16">To protect the exam, individual answers aren’t shown.</p>
+        </div>
+        <% } %>
       </div>
-      <p class="small muted mt-16">To protect the exam, individual answers aren't shown.</p>
-    <% } %>
+      <% } %>
+    </div>
   </div>
 </main>
 <%- include('../partials/foot') %>

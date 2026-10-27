@@ -38,12 +38,12 @@
 
   // ---------- Watermark ----------
   const wm = $('[data-watermark]');
-  for (let y = 0; y < 8; y++) {
+  for (let y = 0; y < 6; y++) {
     for (let x = 0; x < 3; x++) {
       const s = document.createElement('span');
       s.textContent = wm.dataset.watermark;
-      s.style.left = `${x * 40 - 10 + (y % 2) * 20}%`;
-      s.style.top = `${y * 14}%`;
+      s.style.left = `${x * 38 - 8 + (y % 2) * 18}%`;
+      s.style.top = `${8 + y * 18}%`;
       wm.appendChild(s);
     }
   }

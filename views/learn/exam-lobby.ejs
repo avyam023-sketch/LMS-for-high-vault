@@ -1,10 +1,13 @@
 <%- include('../partials/head') %>
-<main id="main" class="page">
-  <div class="wrap maxw-720">
-    <div class="page-head">
+<main id="main">
+  <div class="page-band">
+    <div class="wrap">
       <p class="eyebrow"><a href="/learn/<%= course.slug %>"><%= course.title %></a></p>
       <h1>Final exam</h1>
     </div>
+  </div>
+  <div class="page">
+  <div class="wrap wrap-narrow">
     <%- include('../partials/flash') %>
 
     <% if (status.reason === 'certified') { %>
@@ -42,13 +45,13 @@
     <% } else if (status.eligible) { %>
       <div class="card">
         <h2>Before you begin</h2>
-        <table class="spec mb-24">
+        <table class="spec mb-32">
           <tr><th scope="row">Questions</th><td><%= status.questionCount %>, drawn at random</td></tr>
           <tr><th scope="row">Time limit</th><td><%= course.exam_time_limit_minutes %> minutes. The exam submits itself when time runs out.</td></tr>
           <tr><th scope="row">Pass mark</th><td><%= course.pass_mark %>%</td></tr>
           <tr><th scope="row">Attempt</th><td><%= status.attemptsUsed + 1 %> of <%= status.attemptsAllowed %></td></tr>
         </table>
-        <h3>Exam rules</h3>
+        <h3 class="mt-32">Exam rules</h3>
         <ul class="rule-list">
           <li>Work alone. No notes, books, websites, AI tools or other people.</li>
           <% if (course.require_fullscreen) { %><li>The exam runs in full screen. Leaving full screen is recorded.</li><% } %>
@@ -59,14 +62,14 @@
         </ul>
         <form method="post" action="/learn/<%= course.slug %>/exam/start" class="mt-24">
           <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
-          <label class="checkbox mb-16"><input type="checkbox" name="agree" required><span>I'm <strong><%= user.first_name %> <%= user.last_name %></strong>, I'm taking this exam myself, and I agree to the rules above.</span></label>
-          <button class="btn btn-primary btn-lg" type="submit">Start exam</button>
+          <label class="checkbox mb-24"><input type="checkbox" name="agree" required><span>I'm <strong><%= user.first_name %> <%= user.last_name %></strong>, I'm taking this exam myself, and I agree to the rules above.</span></label>
+          <button class="btn btn-primary btn-lg" type="submit">Start the exam <%- include('../partials/icon', { name: 'arrow', cls: 'icon arrow' }) %></button>
         </form>
       </div>
     <% } %>
 
     <% if (status.attempts && status.attempts.length) { %>
-      <h2 class="mt-32">Previous attempts</h2>
+      <h2 class="mt-48 mb-16">Previous attempts</h2>
       <div class="table-wrap">
         <table class="data">
           <thead><tr><th>Date</th><th class="num">Score</th><th>Result</th></tr></thead>
@@ -88,6 +91,7 @@
         </table>
       </div>
     <% } %>
+  </div>
   </div>
 </main>
 <%- include('../partials/foot') %>

@@ -1,18 +1,21 @@
 <%- include('../partials/head') %>
-<main id="main" class="auth">
-  <div class="card">
-    <h1>Sign in</h1>
-    <p class="muted">Welcome back. Pick up where you left off.</p>
-    <%- include('../partials/flash') %>
-    <% if (error) { %><div class="alert alert-error" role="alert"><%= error %></div><% } %>
-    <form method="post" action="/login">
-      <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
-      <%- include('../partials/field', { name: 'email', label: 'Email', type: 'email', value: values.email, autocomplete: 'username' }) %>
-      <%- include('../partials/field', { name: 'password', label: 'Password', type: 'password', value: '', autocomplete: 'current-password' }) %>
-      <p class="small"><a href="/forgot-password">Forgot your password?</a></p>
-      <button class="btn btn-primary btn-block btn-lg" type="submit">Sign in</button>
-    </form>
-    <p class="divider">New here? <a href="/register">Create an account</a></p>
+<main id="main" class="auth-shell">
+  <%- include('../partials/auth-aside', { asideTitle: 'Welcome back. Pick up exactly where you left off.' }) %>
+  <div class="auth-main">
+    <div class="auth-form">
+      <h1>Sign in</h1>
+      <p class="muted">Use the email you registered with.</p>
+      <%- include('../partials/flash') %>
+      <% if (error) { %><div class="alert alert-error" role="alert"><%= error %></div><% } %>
+      <form method="post" action="/login">
+        <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+        <%- include('../partials/field', { name: 'email', label: 'Email', type: 'email', value: values.email, autocomplete: 'username' }) %>
+        <%- include('../partials/field', { name: 'password', label: 'Password', type: 'password', value: '', autocomplete: 'current-password' }) %>
+        <p class="small mb-24"><a href="/forgot-password">Forgot your password?</a></p>
+        <button class="btn btn-primary btn-lg btn-block" type="submit">Sign in</button>
+      </form>
+      <p class="divider">New here? <a href="/register">Create an account</a></p>
+    </div>
   </div>
 </main>
 <%- include('../partials/foot') %>

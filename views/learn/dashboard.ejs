@@ -1,61 +1,73 @@
 <%- include('../partials/head') %>
-<main id="main" class="page">
-  <div class="wrap">
-    <div class="page-head">
+<main id="main">
+  <div class="page-band">
+    <div class="wrap">
       <p class="eyebrow">My learning</p>
-      <h1>Welcome, <%= user.first_name %></h1>
+      <h1>Welcome, <%= user.first_name %>.</h1>
     </div>
-    <%- include('../partials/flash') %>
+  </div>
+  <div class="page">
+    <div class="wrap">
+      <%- include('../partials/flash') %>
 
-    <% if (!enrollments.length) { %>
-      <div class="card">
-        <h2>You're not enrolled yet</h2>
-        <p class="muted">Enrol in the course to start your first lesson.</p>
-      </div>
-    <% } %>
-
-    <% for (const e of enrollments) { %>
-      <div class="card course-card mb-16">
-        <div>
-          <div class="row mb-8">
-            <% if (e.certificate && !e.certificate.revoked_at) { %><span class="badge badge-ok">Certified</span>
-            <% } else if (e.outline.allDone) { %><span class="badge badge-dark">Ready for exam</span>
-            <% } else { %><span class="badge">In progress</span><% } %>
-          </div>
-          <h2 class="mb-8"><%= e.title %></h2>
-          <p class="muted small"><%= e.outline.completed %> of <%= e.outline.total %> lessons complete · <%= e.outline.percent %>%</p>
-          <progress class="bar" max="100" value="<%= e.outline.percent %>" aria-label="Course progress"><%= e.outline.percent %>%</progress>
-          <% if (e.next) { %><p class="small muted mt-16 mb-0">Next up: <strong><%= e.next.title %></strong></p><% } %>
-        </div>
-        <div class="row">
-          <% if (e.certificate && !e.certificate.revoked_at) { %>
-            <a class="btn btn-primary" href="/certificates/<%= e.certificate.code %>.pdf" target="_blank" rel="noopener">Download certificate</a>
-            <a class="btn btn-ghost" href="/learn/<%= e.slug %>">Review course</a>
-          <% } else if (e.outline.allDone) { %>
-            <a class="btn btn-primary" href="/learn/<%= e.slug %>/exam">Go to final exam</a>
-          <% } else if (e.next) { %>
-            <a class="btn btn-primary" href="/learn/<%= e.slug %>/lessons/<%= e.next.id %>"><%= e.outline.completed ? 'Continue' : 'Start course' %></a>
-          <% } %>
-        </div>
-      </div>
-      <% if (e.certificate && !e.certificate.revoked_at) { %>
-        <div class="alert alert-info mb-24">Certificate <strong><%= e.certificate.code %></strong> · valid until <%= e.certificate.expires_at ? fmtDate(e.certificate.expires_at) : 'no expiry' %>. Employers can check it at <a href="/verify/<%= e.certificate.code %>"><%= appUrl.replace(/^https?:\/\//, '') %>/verify/<%= e.certificate.code %></a>.</div>
+      <% if (!enrollments.length && !available.length) { %>
+        <div class="card"><h2>No courses yet</h2><p class="muted mb-0">Check back soon.</p></div>
       <% } %>
-    <% } %>
 
-    <% for (const c of available) { %>
-      <div class="card course-card mb-16">
-        <div>
-          <span class="badge mb-8">Available</span>
-          <h2 class="mb-8"><%= c.title %></h2>
-          <p class="muted mb-0"><%= c.subtitle %></p>
-        </div>
-        <form method="post" action="/enroll/<%= c.slug %>">
-          <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
-          <button class="btn btn-primary" type="submit"><%= c.price_cents ? `Enrol · ${money(c.price_cents, c.currency)}` : 'Enrol now' %></button>
-        </form>
-      </div>
-    <% } %>
+      <% for (const e of enrollments) { const certified = e.certificate && !e.certificate.revoked_at; %>
+        <article class="card mb-24">
+          <div class="course-row">
+            <div>
+              <div class="row mb-16">
+                <% if (certified) { %><span class="badge badge-ok">Certified</span>
+                <% } else if (e.outline.allDone) { %><span class="badge badge-dark">Ready for the exam</span>
+                <% } else { %><span class="badge">In progress</span><% } %>
+              </div>
+              <h2><%= e.title %></h2>
+              <div class="progress-meta"><span><strong><%= e.outline.completed %></strong> of <%= e.outline.total %> lessons</span><span class="mono"><%= e.outline.percent %>%</span></div>
+              <progress class="bar" max="100" value="<%= e.outline.percent %>" aria-label="Course progress"><%= e.outline.percent %>%</progress>
+              <% if (e.next) { %><p class="small muted mt-16 mb-0">Up next: <span class="mono"><%= e.outline.lessons.indexOf(e.next) + 1 %>.</span> <%= e.next.title %></p><% } %>
+            </div>
+            <div class="course-actions">
+              <% if (certified) { %>
+                <a class="btn btn-primary" href="/certificates/<%= e.certificate.code %>.pdf" target="_blank" rel="noopener">Download certificate</a>
+                <a class="btn btn-ghost" href="/learn/<%= e.slug %>">Review the course</a>
+              <% } else if (e.outline.allDone) { %>
+                <a class="btn btn-primary" href="/learn/<%= e.slug %>/exam">Go to the final exam <%- include('../partials/icon', { name: 'arrow', cls: 'icon arrow' }) %></a>
+              <% } else if (e.next) { %>
+                <a class="btn btn-primary" href="/learn/<%= e.slug %>/lessons/<%= e.next.id %>"><%= e.outline.completed ? 'Continue' : 'Start the course' %> <%- include('../partials/icon', { name: 'arrow', cls: 'icon arrow' }) %></a>
+                <a class="btn btn-ghost" href="/learn/<%= e.slug %>">Course outline</a>
+              <% } %>
+            </div>
+          </div>
+          <% if (certified) { %>
+            <dl class="cert-strip">
+              <div><dt>Certificate no.</dt><dd class="mono"><%= e.certificate.code %></dd></div>
+              <div><dt>Issued</dt><dd><%= fmtDate(e.certificate.issued_at) %></dd></div>
+              <div><dt>Valid until</dt><dd><%= e.certificate.expires_at ? fmtDate(e.certificate.expires_at) : 'No expiry' %></dd></div>
+              <div><a class="small" href="/verify/<%= e.certificate.code %>">Public verification page</a></div>
+            </dl>
+          <% } %>
+        </article>
+      <% } %>
+
+      <% for (const c of available) { %>
+        <article class="card mb-24">
+          <div class="course-row">
+            <div>
+              <span class="badge mb-16">Available</span>
+              <h2 class="mt-16"><%= c.title %></h2>
+              <p class="muted mb-0"><%= c.subtitle %></p>
+            </div>
+            <form method="post" action="/enroll/<%= c.slug %>" class="course-actions">
+              <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+              <button class="btn btn-primary" type="submit"><%= c.price_cents ? `Enrol · ${money(c.price_cents, c.currency)}` : 'Enrol now' %> <%- include('../partials/icon', { name: 'arrow', cls: 'icon arrow' }) %></button>
+              <a class="btn btn-ghost" href="/course/<%= c.slug %>">Course details</a>
+            </form>
+          </div>
+        </article>
+      <% } %>
+    </div>
   </div>
 </main>
 <%- include('../partials/foot') %>

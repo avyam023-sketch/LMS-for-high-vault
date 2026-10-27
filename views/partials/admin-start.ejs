@@ -1,15 +1,16 @@
 <%- include('head') %>
+<% const navItem = (href, label, icon, active) => `<a href="${href}"${active ? ' aria-current="page"' : ''}>${include('icon', { name: icon })}<span>${label}</span></a>`; %>
 <div class="admin-shell">
   <aside class="admin-side" aria-label="Admin navigation">
-    <h4>Admin</h4>
-    <a href="/admin" <%- adminNav === 'overview' ? 'aria-current="page"' : '' %>>Overview</a>
-    <a href="/admin/users" <%- adminNav === 'users' ? 'aria-current="page"' : '' %>>Learners</a>
-    <a href="/admin/attempts" <%- adminNav === 'attempts' ? 'aria-current="page"' : '' %>>Exam attempts</a>
-    <a href="/admin/certificates" <%- adminNav.startsWith('certificates') ? 'aria-current="page"' : '' %>>Certificates</a>
+    <h4>Operations</h4>
+    <%- navItem('/admin', 'Overview', 'grid', adminNav === 'overview') %>
+    <%- navItem('/admin/users', 'Learners', 'users', adminNav === 'users') %>
+    <%- navItem('/admin/attempts', 'Exam attempts', 'file', adminNav === 'attempts') %>
+    <%- navItem('/admin/certificates', 'Certificates', 'award', adminNav.startsWith('certificates')) %>
     <h4>Content</h4>
-    <a href="/admin/courses" <%- ['courses', 'lessons', 'questions', 'modules'].includes(adminNav) ? 'aria-current="page"' : '' %>>Courses &amp; exams</a>
+    <%- navItem('/admin/courses', 'Courses &amp; exams', 'book', ['courses', 'lessons', 'questions', 'modules'].includes(adminNav)) %>
     <h4>Security</h4>
-    <a href="/admin/audit" <%- adminNav === 'audit' ? 'aria-current="page"' : '' %>>Audit log</a>
+    <%- navItem('/admin/audit', 'Audit log', 'history', adminNav === 'audit') %>
   </aside>
   <main id="main" class="admin-main">
     <%- include('flash') %>

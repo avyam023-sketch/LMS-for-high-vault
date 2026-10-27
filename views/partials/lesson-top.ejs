@@ -1,0 +1,9 @@
+<div class="lesson-top">
+  <div class="wrap">
+    <a href="/learn/<%= course.slug %>">← <%= course.title %></a>
+    <div class="row">
+      <span class="pos"><%= outline.completed %> / <%= outline.total %> lessons complete</span>
+      <progress class="bar" max="100" value="<%= outline.percent %>" aria-label="Course progress"><%= outline.percent %>%</progress>
+    </div>
+  </div>
+</div>

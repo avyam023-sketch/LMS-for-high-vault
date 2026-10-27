@@ -1,7 +1,8 @@
 <%- include('../partials/head') %>
-<main id="main" class="page">
-  <div class="wrap maxw-720">
-    <div class="page-head"><p class="eyebrow">Account</p><h1>Your account</h1></div>
+<main id="main">
+  <div class="page-band"><div class="wrap"><p class="eyebrow">Account</p><h1>Your account</h1></div></div>
+  <div class="page">
+  <div class="wrap wrap-narrow">
     <%- include('../partials/flash') %>
 
     <section class="card">
@@ -43,6 +44,7 @@
         <a class="btn btn-ghost" href="/account/mfa"><%= user.mfa_enabled_at ? 'Manage' : 'Set up' %></a>
       </div>
     </section>
+  </div>
   </div>
 </main>
 <%- include('../partials/foot') %>
