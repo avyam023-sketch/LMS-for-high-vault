@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>High Vault ads</title>
+<!-- Source for the social ads in this folder. Rebuild the PNGs with: node brand/ads/render.cjs -->
+<style>
+  @font-face { font-family: Jost; font-weight: 300; src: url(../../node_modules/@fontsource/jost/files/jost-latin-300-normal.woff2); }
+  @font-face { font-family: Jost; font-weight: 400; src: url(../../node_modules/@fontsource/jost/files/jost-latin-400-normal.woff2); }
+  @font-face { font-family: Jost; font-weight: 500; src: url(../../node_modules/@fontsource/jost/files/jost-latin-500-normal.woff2); }
+  @font-face { font-family: Plex Mono; font-weight: 400; src: url(../../node_modules/@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-400-normal.woff2); }
+  @font-face { font-family: Plex Mono; font-weight: 500; src: url(../../node_modules/@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-500-normal.woff2); }
+  @font-face { font-family: Plex Sans; font-weight: 400; src: url(../../node_modules/@fontsource/ibm-plex-sans/files/ibm-plex-sans-latin-400-normal.woff2); }
+  :root { --red: #a3162c; --deep: #6e0f1f; --white: #fff; --soft: #f6d6dc; --ink: #241517; }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: #ddd; padding: 40px; display: flex; flex-direction: column; gap: 40px; align-items: flex-start; }
+  .ad { position: relative; overflow: hidden; background: var(--red); color: var(--white); font-family: 'Plex Sans', sans-serif; }
+  .photo { position: absolute; inset: 0; background-size: cover; background-position: center; }
+  .kicker { font-family: 'Plex Mono', monospace; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; color: var(--soft); display: flex; align-items: center; gap: .9em; }
+  .kicker::before { content: ''; width: 2.6em; height: 2px; background: var(--soft); }
+  h1 { font-family: Jost, sans-serif; font-weight: 300; line-height: 1.04; letter-spacing: -.012em; }
+  h1 em { font-style: normal; font-weight: 500; }
+  .facts { display: flex; font-family: 'Plex Mono', monospace; letter-spacing: .06em; color: var(--white); border-top: 1px solid rgba(255,255,255,.28); border-bottom: 1px solid rgba(255,255,255,.28); }
+  .facts span { flex: 1; padding: .95em 0; }
+  .facts span + span { padding-left: 1.1em; border-left: 1px solid rgba(255,255,255,.28); }
+  .facts b { display: block; font-family: Jost, sans-serif; font-weight: 400; font-size: 1.85em; letter-spacing: 0; line-height: 1.1; margin-bottom: .12em; }
+  .foot { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; }
+  .price { font-family: Jost, sans-serif; font-weight: 300; line-height: 1; }
+  .price small { display: block; font-family: 'Plex Mono', monospace; font-weight: 400; letter-spacing: .12em; text-transform: uppercase; color: var(--soft); margin-top: .7em; }
+  .cta { background: var(--white); color: var(--red); font-family: 'Plex Sans', sans-serif; font-weight: 400; border-radius: 6px; white-space: nowrap; display: inline-flex; align-items: center; gap: .6em; }
+  .cta svg { width: 1em; height: 1em; }
+  .url { font-family: 'Plex Mono', monospace; letter-spacing: .08em; color: var(--soft); }
+  .logo { display: block; }
+  .tab { position: absolute; top: 0; background: var(--red); box-shadow: 0 10px 40px rgba(36,21,23,.25); }
+
+  /* ---------- 1080 × 1350 (feed, 4:5) ---------- */
+  .portrait { width: 1080px; height: 1350px; }
+  .portrait .photo { bottom: auto; height: 660px; background-image: url(../../public/img/site/home-audience-1.jpg); background-position: center 30%; }
+  .portrait .photo::after { content: ''; position: absolute; inset: auto 0 0 0; height: 220px; background: linear-gradient(to bottom, rgba(163,22,44,0), var(--red)); }
+  .portrait .tab { left: 64px; padding: 44px 34px 30px; }
+  .portrait .logo { width: 230px; }
+  .portrait .body { position: absolute; left: 64px; right: 64px; top: 610px; bottom: 64px; display: flex; flex-direction: column; }
+  .portrait .kicker { font-size: 19px; }
+  .portrait h1 { font-size: 72px; margin-top: 24px; }
+  .portrait .facts { font-size: 17px; margin-top: auto; }
+  .portrait .foot { margin-top: 40px; }
+  .portrait .price { font-size: 92px; }
+  .portrait .price small { font-size: 17px; }
+  .portrait .cta { font-size: 27px; padding: 22px 30px; }
+
+  /* ---------- 1080 × 1080 (feed, square) ---------- */
+  .square { width: 1080px; height: 1080px; }
+  .square .photo { right: auto; width: 470px; background-image: url(../../public/img/site/signup-aside.jpg); background-position: 40% center; }
+  .square .body { position: absolute; left: 530px; right: 56px; top: 58px; bottom: 58px; display: flex; flex-direction: column; }
+  .square .logo { width: 230px; }
+  .square .kicker { font-size: 16px; margin-top: 64px; }
+  .square h1 { font-size: 66px; margin-top: 22px; }
+  .square .facts { font-size: 14px; margin-top: auto; }
+  .square .facts b { font-size: 1.7em; }
+  .square .foot { margin-top: 32px; flex-direction: column; align-items: flex-start; gap: 26px; }
+  .square .price { font-size: 78px; }
+  .square .price small { font-size: 14px; }
+  .square .cta { font-size: 24px; padding: 19px 26px; }
+
+  /* ---------- 1080 × 1920 (stories and reels, 9:16) ---------- */
+  .story { width: 1080px; height: 1920px; }
+  .story .photo { bottom: auto; height: 1040px; background-image: url(../../public/img/site/home-audience-1.jpg); background-position: center 25%; }
+  .story .photo::after { content: ''; position: absolute; inset: auto 0 0 0; height: 300px; background: linear-gradient(to bottom, rgba(163,22,44,0), var(--red)); }
+  .story .tab { left: 72px; padding: 150px 40px 34px; }
+  .story .logo { width: 260px; }
+  .story .body { position: absolute; left: 72px; right: 72px; top: 1000px; bottom: 300px; display: flex; flex-direction: column; }
+  .story .kicker { font-size: 22px; }
+  .story h1 { font-size: 98px; margin: 30px 0 56px; }
+  .story .facts { font-size: 20px; margin-top: auto; }
+  .story .foot { margin-top: 52px; }
+  .story .price { font-size: 112px; }
+  .story .price small { font-size: 20px; }
+  .story .cta { font-size: 31px; padding: 26px 36px; }
+</style>
+</head>
+<body>
+<template id="logo"><img class="logo" src="../svg/logo-horizontal-white.svg" alt="The High Vault Security"></template>
+<template id="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></template>
+
+<section class="ad portrait" id="portrait">
+  <div class="photo"></div>
+  <div class="tab"><img class="logo" src="../svg/logo-horizontal-white.svg" alt="The High Vault Security"></div>
+  <div class="body">
+    <p class="kicker">Food handler certification · 100% online</p>
+    <h1>Need your food handler certificate?<br><em>Get it from home.</em></h1>
+    <div class="facts"><span><b>10</b>short modules</span><span><b>1 exam</b>proctored online</span><span><b>Seconds</b>to verify for employers</span></div>
+    <div class="foot">
+      <p class="price">$89<small>CAD · everything included</small></p>
+      <span class="cta">Register now <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+    </div>
+  </div>
+</section>
+
+<section class="ad square" id="square">
+  <div class="photo"></div>
+  <div class="body">
+    <img class="logo" src="../svg/logo-horizontal-white.svg" alt="The High Vault Security">
+    <p class="kicker">100% online</p>
+    <h1>Food handler certified. <em>On your schedule.</em></h1>
+    <div class="facts"><span><b>10</b>modules</span><span><b>1 exam</b>proctored</span><span><b>1</b>verifiable certificate</span></div>
+    <div class="foot">
+      <p class="price">$89<small>CAD · everything included</small></p>
+      <span class="cta">Register now <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+    </div>
+  </div>
+</section>
+
+<section class="ad story" id="story">
+  <div class="photo"></div>
+  <div class="tab"><img class="logo" src="../svg/logo-horizontal-white.svg" alt="The High Vault Security"></div>
+  <div class="body">
+    <p class="kicker">Food handler certification</p>
+    <h1>Study at your pace. <em>Certify from home.</em></h1>
+    <div class="facts"><span><b>10</b>short modules</span><span><b>1 exam</b>proctored online</span><span><b>Seconds</b>to verify for employers</span></div>
+    <div class="foot">
+      <p class="price">$89<small>CAD · everything included</small></p>
+      <span class="cta">Register now <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+    </div>
+  </div>
+</section>
+</body>
+</html>
