@@ -64,6 +64,7 @@
           <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
           <input name="position" type="number" value="<%= m.position %>" aria-label="Order" title="Order">
           <input name="title" value="<%= m.title %>" aria-label="Module title" required>
+          <input name="summary" value="<%= m.summary %>" aria-label="One-line summary for the course page" placeholder="One-line summary for the course page" maxlength="300" class="grow">
           <button class="btn btn-ghost btn-sm" type="submit" name="action" value="save">Save</button>
           <button class="btn btn-ghost btn-sm" type="submit" name="action" value="delete" data-confirm="Delete this module and all its lessons?">Delete</button>
         </form>

@@ -13,32 +13,32 @@ const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)
 /** Branded, table-based HTML that renders the same in Gmail, Outlook and Apple Mail. */
 function layout({ heading, body, action, details, footer }) {
   const rows = (details ?? [])
-    .map(([label, value]) => `<tr><td style="padding:8px 0;color:#6a7074;font-size:13px;width:150px;vertical-align:top">${esc(label)}</td>
-      <td style="padding:8px 0;font-size:14px;font-family:'IBM Plex Mono',Menlo,Consolas,monospace;color:#231f20">${esc(value)}</td></tr>`)
+    .map(([label, value]) => `<tr><td style="padding:8px 0;color:#64678a;font-size:13px;width:150px;vertical-align:top">${esc(label)}</td>
+      <td style="padding:8px 0;font-size:14px;font-family:'IBM Plex Mono',Menlo,Consolas,monospace;color:#262263">${esc(value)}</td></tr>`)
     .join('');
   const button = action
-    ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:28px 0 8px"><tr><td style="background:#231f20;border-radius:4px">
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:28px 0 8px"><tr><td style="background:#262263;border-radius:4px">
          <a href="${esc(action.url)}" style="display:inline-block;padding:13px 24px;color:#ffffff;font-weight:600;font-size:15px;text-decoration:none">${esc(action.label)}</a>
        </td></tr></table>
-       <p style="font-size:12px;color:#6a7074;margin:12px 0 0;word-break:break-all">Or paste this link into your browser: ${esc(action.url)}</p>`
+       <p style="font-size:12px;color:#64678a;margin:12px 0 0;word-break:break-all">Or paste this link into your browser: ${esc(action.url)}</p>`
     : '';
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><meta name="color-scheme" content="light"><title>${esc(heading)}</title></head>
-<body style="margin:0;padding:0;background:#f5f6f6">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f6f6;padding:32px 12px"><tr><td align="center">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e3e6e8;border-radius:6px;font-family:Arial,Helvetica,sans-serif;color:#231f20">
-    <tr><td style="background:#231f20;padding:20px 28px;border-radius:6px 6px 0 0">
+<body style="margin:0;padding:0;background:#f4f6fa">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6fa;padding:32px 12px"><tr><td align="center">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e1e4ee;border-radius:6px;font-family:Arial,Helvetica,sans-serif;color:#262263">
+    <tr><td style="background:#262263;padding:20px 28px;border-radius:6px 6px 0 0">
       <span style="color:#b0d7e4;font-size:13px;letter-spacing:.14em">THE HIGH VAULT SECURITY</span>
-      <span style="color:#a9b4b8;font-size:11px;letter-spacing:.1em;padding-left:10px">FOOD HANDLER CERTIFICATION</span>
+      <span style="color:#b3b7da;font-size:11px;letter-spacing:.1em;padding-left:10px">FOOD HANDLER CERTIFICATION</span>
     </td></tr>
     <tr><td style="padding:32px 28px 28px">
       <h1 style="font-size:22px;line-height:1.3;font-weight:600;margin:0 0 16px">${esc(heading)}</h1>
       ${body.map((p) => `<p style="font-size:15px;line-height:1.6;margin:0 0 14px">${esc(p)}</p>`).join('')}
-      ${rows ? `<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin:20px 0 4px;border-top:1px solid #e3e6e8;border-bottom:1px solid #e3e6e8">${rows}</table>` : ''}
+      ${rows ? `<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin:20px 0 4px;border-top:1px solid #e1e4ee;border-bottom:1px solid #e1e4ee">${rows}</table>` : ''}
       ${button}
     </td></tr>
-    <tr><td style="padding:18px 28px;border-top:1px solid #e3e6e8;font-size:12px;line-height:1.6;color:#6a7074">
+    <tr><td style="padding:18px 28px;border-top:1px solid #e1e4ee;font-size:12px;line-height:1.6;color:#64678a">
       ${esc(footer ?? `Questions? Email ${config.SUPPORT_EMAIL} and quote the reference above.`)}<br>
-      The High Vault Security · <a href="${esc(config.appUrl)}" style="color:#2c6a80">${esc(config.appUrl.replace(/^https?:\/\//, ''))}</a>
+      The High Vault Security · <a href="${esc(config.appUrl)}" style="color:#34479a">${esc(config.appUrl.replace(/^https?:\/\//, ''))}</a>
     </td></tr>
   </table>
 </td></tr></table></body></html>`;

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Probe thermometer"><g fill="none" stroke="#262263" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="36" cy="36" r="20" fill="#B0D7E4"/>
+<circle cx="36" cy="36" r="14" fill="#FFFFFF"/>
+<path d="M36 36l7-8"/><circle cx="36" cy="36" r="2" fill="#262263"/>
+<path d="M27 30h0M36 25h0M45 30h0" stroke-width="3.2"/>
+<path d="M51 51l18 18" stroke-width="5"/>
+<path d="M62 86c-2-3 2-5 0-8s2-5 0-8M72 86c-2-3 2-5 0-8s2-5 0-8M82 86c-2-3 2-5 0-8s2-5 0-8"/></g></svg>

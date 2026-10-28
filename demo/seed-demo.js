@@ -100,8 +100,6 @@ async function attempt(u, course, { scorePct, daysOld, status = 'in_progress', e
 
 export async function seedDemo() {
   const course = await one('SELECT * FROM courses LIMIT 1');
-  await query(`UPDATE courses SET price_cents = 4900 WHERE id = $1`, [course.id]);
-  course.price_cents = 4900;
   const total = (await courseOutline(course.id, null)).items.length;
   const people = {};
 

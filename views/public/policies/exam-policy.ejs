@@ -1,0 +1,63 @@
+<%- include('../../partials/policy-start') %>
+<% const c = course || {}; const years = c.certificate_validity_months ? Math.round(c.certificate_validity_months / 12 * 10) / 10 : null; %>
+<p class="lead">The final exam is what makes a certificate worth trusting. These rules keep it fair for everyone, and make sure every certificate belongs to the person named on it.</p>
+
+<h2>The exam at a glance</h2>
+<table>
+  <tr><th scope="row">Format</th><td>100% online, on your own computer</td></tr>
+  <tr><th scope="row">Questions</th><td><%= c.exam_question_count %> multiple-choice questions, drawn at random from a larger bank</td></tr>
+  <tr><th scope="row">Time limit</th><td><%= c.exam_time_limit_minutes %> minutes, starting when you press <em>Begin exam</em></td></tr>
+  <tr><th scope="row">Pass mark</th><td><%= c.pass_mark %>%</td></tr>
+  <tr><th scope="row">Attempts</th><td><%= c.max_attempts %> included<%= c.attempt_cooldown_minutes ? `, with a ${c.attempt_cooldown_minutes >= 60 ? `${Math.round(c.attempt_cooldown_minutes / 60)}-hour` : `${c.attempt_cooldown_minutes}-minute`} wait between attempts` : '' %></td></tr>
+  <tr><th scope="row">Unlocks</th><td>After you complete all ten modules and their quizzes</td></tr>
+</table>
+
+<h2>What you need</h2>
+<ul>
+  <li>A laptop or desktop computer with Google Chrome or Microsoft Edge, a webcam, a microphone and one screen (disconnect any extra monitors).</li>
+  <li>Government-issued photo ID showing the same name as your account.</li>
+  <li>A quiet, private room where you are alone for the whole exam.</li>
+  <li>A reliable internet connection.</li>
+</ul>
+
+<h2>Check-in, before the timer starts</h2>
+<ol>
+  <li>A system check of your camera, microphone, screen and browser.</li>
+  <li>A photo of your face.</li>
+  <li>A photo of your ID.</li>
+  <li>A short video scan of your room, including your desk, under your desk and where your phone is.</li>
+</ol>
+<p>You have 30 minutes to finish check-in. Cancelling check-in doesn’t use an attempt.</p>
+
+<h2>During the exam</h2>
+<ul>
+  <li>Stay in full screen with your camera and microphone on. We take camera snapshots throughout.</li>
+  <li>No notes, books, other people, phones, other devices, other websites or AI tools.</li>
+  <li>Leaving the exam page, exiting full screen, turning off your camera or connecting another screen is recorded as a warning. After <%= c.max_focus_violations || 3 %> warnings, your exam is submitted automatically.</li>
+  <li>Other events, such as another face in view or sustained talking, are logged for the reviewer.</li>
+  <li>Answers save as you go. If time runs out, your exam is submitted with the answers you’ve given.</li>
+</ul>
+
+<h2>Identity review</h2>
+<p>When you pass, a reviewer compares your ID with your face photo and the name on your account, watches your room scan and looks through the snapshots and logged events. Reviews are usually completed within two business days. You’ll get an email either way.</p>
+<p>How we protect these recordings, and when they’re deleted, is explained in our <a href="/privacy">privacy policy</a>.</p>
+
+<h2>If you don’t pass</h2>
+<p>Your result page shows how you did on each topic, so you know what to review. You can try again after the waiting period, up to your included attempts. If you’ve used them all, contact us.</p>
+
+<h2>Certificates</h2>
+<ul>
+  <li>Issued as a PDF after you pass and your review is approved<%= years ? `, valid for ${years} years from the issue date` : '' %>.</li>
+  <li>Each has a unique certificate number and QR code. Anyone can check it on our <a href="/verify">verification page</a>, which shows only the name, course, dates and status.</li>
+  <li>We email you before your certificate expires so you can renew in time.</li>
+</ul>
+
+<h2>Voided attempts and revoked certificates</h2>
+<p>We may void an exam attempt, and revoke any certificate from it, if the rules weren’t followed or your identity couldn’t be confirmed. A voided attempt counts as used. We always tell you the reason by email.</p>
+
+<h2>Appeals and technical problems</h2>
+<p>If you disagree with a decision, or a technical problem on our side affected your exam, email <a href="mailto:<%= supportEmail %>"><%= supportEmail %></a> within 14 days with your exam reference (HV-E-…). Appeals are looked at again, by a different person where possible. If a fault on our side affected your attempt, we restore it.</p>
+
+<h2>Accommodations</h2>
+<p>If a disability or medical condition affects how you can take the exam, contact us before you start. We’ll discuss what we can arrange. See our <a href="/accessibility">accessibility statement</a>.</p>
+<%- include('../../partials/policy-end') %>

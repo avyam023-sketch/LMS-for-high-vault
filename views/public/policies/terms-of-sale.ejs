@@ -1,0 +1,52 @@
+<%- include('../../partials/policy-start') %>
+<% const years = course?.certificate_validity_months ? Math.round(course.certificate_validity_months / 12 * 10) / 10 : null; %>
+<p class="lead">These terms apply when you buy the Food Handler Certification course from The High Vault Security. They work alongside our <a href="/terms">terms of use</a>.</p>
+
+<h2>1. What you’re buying</h2>
+<p>A single-learner licence to the 100% online Food Handler Certification course. It includes:</p>
+<table>
+  <tr><th scope="row">Price</th><td><%= course ? money(course.price_cents, course.currency) : '' %> per learner, paid once. The price shown at checkout is the price you pay.</td></tr>
+  <tr><th scope="row">Course</th><td>All ten modules: chapter videos, written lessons and module quizzes.</td></tr>
+  <tr><th scope="row">Final exam</th><td>Up to <%= course?.max_attempts ?? 3 %> attempts at the proctored online exam, including the identity review.</td></tr>
+  <tr><th scope="row">Certificate</th><td>A PDF certificate once you pass and your exam is reviewed<%= years ? `, valid for ${years} years` : '' %>, with a certificate number and QR code anyone can verify.</td></tr>
+</table>
+<p>Your licence is personal. It can’t be transferred, shared or resold.</p>
+
+<h2>2. Payment</h2>
+<ul>
+  <li>Prices are in <%= course ? course.currency.toUpperCase() : 'USD' %>. If your card is in another currency, your bank converts the amount and may charge a fee.</li>
+  <li>Payments are processed by Stripe. We never see or store your full card details.</li>
+  <li>Applicable sales taxes are added at checkout where required.</li>
+  <li>Each payment has a payment reference (it starts with HV-P). You’ll find it in your enrolment email. Quote it if you contact us about a payment.</li>
+</ul>
+
+<h2>3. Access</h2>
+<ul>
+  <li>The course is delivered online only. Access starts as soon as your payment is confirmed, and we email you to confirm your enrolment.</li>
+  <li>You keep access to the course for as long as we offer it. Your certificate stays verifiable until it expires, even if you later close your account.</li>
+  <li>You need a computer with a webcam, microphone and a current version of Chrome or Edge for the final exam. Lessons and quizzes also work on phones and tablets.</li>
+</ul>
+
+<h2>4. Exam attempts and certificates</h2>
+<ul>
+  <li>Your purchase includes <%= course?.max_attempts ?? 3 %> exam attempts. Further attempts are at our discretion.</li>
+  <li>A certificate is issued only after you pass and your identity and exam conditions are verified. We may withhold, void or revoke a certificate if the <a href="/exam-policy">exam rules</a> weren’t followed.</li>
+  <li>Whether a certificate is accepted for a particular job or inspection is decided by your employer or local public health unit.</li>
+</ul>
+
+<h2>5. Refunds</h2>
+<p>See our <a href="/refunds">refund policy</a>. In short: a full refund within 14 days of purchase, as long as you haven’t started the final exam.</p>
+
+<h2>6. Our responsibilities</h2>
+<ul>
+  <li>We’ll provide the course as described and keep the content accurate and up to date.</li>
+  <li>If a fault on our side stops you completing the exam, we’ll restore the attempt or refund you.</li>
+  <li>To the extent the law allows, our total liability is limited to the amount you paid. Nothing in these terms limits rights you have under consumer protection law.</li>
+</ul>
+
+<h2>7. Changes and governing law</h2>
+<p>We may update these terms for future purchases. The version in force when you paid applies to your purchase. These terms are governed by the laws of the Province of Ontario and the federal laws of Canada that apply there.</p>
+
+<h2>8. Contact</h2>
+<p>Questions about a purchase: <a href="mailto:<%= supportEmail %>"><%= supportEmail %></a>, with your learner ID and payment reference.</p>
+<%- include('../../partials/policy-end') %>

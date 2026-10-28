@@ -7,7 +7,9 @@ const dateTimeFmt = new Intl.DateTimeFormat('en-CA', {
 
 export function money(cents, currency = 'cad') {
   if (!cents) return 'Free';
-  return new Intl.NumberFormat('en-CA', { style: 'currency', currency: currency.toUpperCase() }).format(cents / 100);
+  // Whole amounts read better without cents: US$89 rather than US$89.00.
+  const whole = cents % 100 === 0;
+  return new Intl.NumberFormat('en-CA', { style: 'currency', currency: currency.toUpperCase(), minimumFractionDigits: whole ? 0 : 2 }).format(cents / 100);
 }
 
 export function duration(minutes) {

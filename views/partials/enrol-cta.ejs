@@ -1,6 +1,6 @@
-<%# Primary enrol action, adapted to the visitor's state. Params: cls %>
+<%# Primary enrol action, adapted to the visitor's state. Params: cls, label (for visitors who aren't signed in) %>
 <% if (!user) { %>
-  <a class="btn <%= cls %>" href="/register">Enrol now <%- include('icon', { name: 'arrow', cls: 'icon arrow' }) %></a>
+  <a class="btn <%= cls %>" href="/register"><%= locals.label || 'Enrol now' %> <%- include('icon', { name: 'arrow', cls: 'icon arrow' }) %></a>
 <% } else if (enrollment) { %>
   <a class="btn <%= cls %>" href="/learn/<%= course.slug %>"><%= outline.completed ? 'Continue learning' : 'Start learning' %> <%- include('icon', { name: 'arrow', cls: 'icon arrow' }) %></a>
 <% } else { %>

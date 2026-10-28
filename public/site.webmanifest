@@ -3,8 +3,8 @@
   "short_name": "High Vault",
   "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#231F20",
-  "theme_color": "#231F20",
+  "background_color": "#262263",
+  "theme_color": "#262263",
   "icons": [
     { "src": "/img/favicon.svg", "sizes": "any", "type": "image/svg+xml" },
     { "src": "/img/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" },

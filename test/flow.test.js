@@ -102,6 +102,8 @@ before(async () => {
   await pool.query('DROP SCHEMA public CASCADE; CREATE SCHEMA public;');
   await migrate({ log: () => {} });
   await seed({ log: () => {} });
+  // These tests enrol for free; paid enrolment (Stripe) is covered separately.
+  await query('UPDATE courses SET price_cents = 0');
   app = createApp();
   course = await one('SELECT * FROM courses WHERE slug = $1', [SLUG]);
 });
@@ -116,6 +118,31 @@ test('public course page and security headers', async () => {
   assert.equal(res.headers['x-content-type-options'], 'nosniff');
   assert.equal(res.headers['x-powered-by'], undefined);
   assert.equal(res.headers['set-cookie'], undefined, 'anonymous visitors without forms get no session');
+});
+
+test('about and policy pages; a paid course never enrols for free without Stripe', async () => {
+  for (const path of ['/about', '/policies', '/terms', '/terms-of-sale', '/refunds', '/exam-policy', '/privacy', '/accessibility', '/copyright']) {
+    const res = await request(app).get(path).expect(200);
+    assert.match(res.text, /<h1/, path);
+  }
+  const sitemap = await request(app).get('/sitemap.xml').expect(200);
+  assert.match(sitemap.text, /\/refunds<\/loc>/);
+
+  await query(`UPDATE courses SET price_cents = 8900, currency = 'usd' WHERE id = $1`, [course.id]);
+  try {
+    let res = await request(app).get('/').expect(200);
+    assert.match(res.text, /US\$89(?![.\d])/, 'whole prices show without cents');
+    res = await request(app).get('/terms-of-sale').expect(200);
+    assert.match(res.text, /US\$89 per learner/);
+    const agent = await verifiedLearner('paid@example.com');
+    const token = await csrf(agent, '/');
+    res = await agent.post(`/enroll/${SLUG}`).type('form').send({ _csrf: token }).expect(302);
+    assert.match(res.headers.location, /#pricing$/);
+    const user = await one(`SELECT id FROM users WHERE email = 'paid@example.com'`);
+    assert.equal(await one('SELECT id FROM enrollments WHERE user_id = $1', [user.id]), null, 'no free enrolment');
+  } finally {
+    await query('UPDATE courses SET price_cents = 0 WHERE id = $1', [course.id]);
+  }
 });
 
 test('registration validates input and never reveals existing accounts', async () => {

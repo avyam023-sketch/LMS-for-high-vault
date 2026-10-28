@@ -72,6 +72,8 @@ before(async () => {
   await pool.query('DROP SCHEMA public CASCADE; CREATE SCHEMA public;');
   await migrate({ log: () => {} });
   await seed({ log: () => {} });
+  // These tests enrol for free; paid enrolment (Stripe) is covered separately.
+  await query('UPDATE courses SET price_cents = 0');
   app = createApp();
 });
 after(() => pool.end());

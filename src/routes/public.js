@@ -4,6 +4,7 @@ import { renderMarkdown } from '../lib/markdown.js';
 import { courseOutline } from '../lib/exam.js';
 import { verifyLimiter } from '../lib/limits.js';
 import { config } from '../config.js';
+import { POLICIES, POLICIES_UPDATED } from '../lib/policies.js';
 
 const router = Router();
 
@@ -63,7 +64,6 @@ router.get('/verify/:code', verifyLimiter, async (req, res) => {
   res.render('public/verify', { title: 'Verify a certificate', cert, code, status });
 });
 
-router.get('/terms', (req, res) => res.render('public/terms', { title: 'Terms of use' }));
 
 router.get('/robots.txt', (req, res) => {
   res.type('text/plain').send(
@@ -77,7 +77,7 @@ router.get('/sitemap.xml', async (req, res) => {
   const urls = [
     { loc: '/', lastmod: courses[0]?.updated_at },
     ...courses.slice(1).map((c) => ({ loc: `/course/${c.slug}`, lastmod: c.updated_at })),
-    { loc: '/verify' }, { loc: '/privacy' }, { loc: '/terms' }, { loc: '/register' },
+    { loc: '/about' }, { loc: '/verify' }, { loc: '/register' }, { loc: '/policies' }, ...POLICIES.map((p) => ({ loc: p.path })),
   ];
   res.type('application/xml').send(
     `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls
@@ -94,6 +94,25 @@ router.get('/.well-known/security.txt', (req, res) => {
   );
 });
 
-router.get('/privacy', (req, res) => res.render('public/privacy', { title: 'Privacy', retentionDays: config.PROCTOR_RETENTION_DAYS, decisionDays: config.PROCTOR_RETENTION_AFTER_DECISION_DAYS }));
+// ---------- About and policies ----------
+const flagship = () => one('SELECT * FROM courses WHERE is_published ORDER BY created_at LIMIT 1');
+
+router.get('/about', async (req, res) => res.render('public/about', { title: 'About us', course: await flagship() }));
+
+router.get('/policies', (req, res) => res.render('public/policies/index', { title: 'Policies', policies: POLICIES, updated: POLICIES_UPDATED }));
+
+for (const policy of POLICIES) {
+  router.get(policy.path, async (req, res) =>
+    res.render(`public/policies/${policy.view}`, {
+      title: policy.title,
+      policy,
+      policies: POLICIES,
+      updated: POLICIES_UPDATED,
+      // Exam rules, prices and retention periods come from the live settings, so the policies can't drift from them.
+      course: await flagship(),
+      retentionDays: config.PROCTOR_RETENTION_DAYS,
+      decisionDays: config.PROCTOR_RETENTION_AFTER_DECISION_DAYS,
+    }));
+}
 
 export default router;

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><%= title ? `${title} — The High Vault Security` : 'Food Handler Certification — The High Vault Security' %></title>
   <meta name="description" content="<%= locals.description || 'Online food handler certification from The High Vault Security. Study at your own pace, pass the final exam, and download a certificate employers can verify.' %>">
-  <meta name="theme-color" content="#231F20">
+  <meta name="theme-color" content="#262263">
   <% const pageTitle = title ? `${title} — The High Vault Security` : 'Food Handler Certification — The High Vault Security'; const pageDesc = locals.description || 'Online food handler certification from The High Vault Security. Study at your own pace, pass the final exam, and download a certificate employers can verify.'; %>
   <% if (!user && !path.startsWith('/admin')) { %>
   <link rel="canonical" href="<%= appUrl %><%= path %>">
@@ -57,13 +57,13 @@
         <span class="divider-v" aria-hidden="true"></span>
         <form method="post" action="/logout"><input type="hidden" name="_csrf" value="<%= csrfToken() %>"><button class="link" type="submit">Sign out</button></form>
       <% } else { %>
-        <a href="/#curriculum">Curriculum</a>
-        <a href="/#certificate">Certificate</a>
-        <a href="/#faq">FAQ</a>
+        <a href="/#course">Course</a>
+        <a href="/#pricing">Pricing</a>
+        <a href="/about" <%- path === '/about' ? 'aria-current="page"' : '' %>>About</a>
         <a href="/verify" <%- path.startsWith('/verify') ? 'aria-current="page"' : '' %>>Verify a certificate</a>
         <span class="divider-v" aria-hidden="true"></span>
         <a href="/login" <%- path === '/login' ? 'aria-current="page"' : '' %>>Sign in</a>
-        <a class="btn btn-ice btn-sm" href="/register">Enrol now</a>
+        <a class="btn btn-ice btn-sm" href="/register">Register</a>
       <% } %>
     </nav>
   </div>

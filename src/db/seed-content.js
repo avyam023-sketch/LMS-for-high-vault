@@ -6,9 +6,9 @@
 export const course = {
   "slug": "food-handler-certification",
   "title": "Food Handler Certification",
-  "subtitle": "Learn to prevent foodborne illness in any food business: hygiene, temperature control, cross-contamination, allergens, cleaning and sanitizing. Finish online and download your certificate the day you pass.",
-  "price_cents": 0,
-  "currency": "cad",
+  "subtitle": "A 100% online course: learn to prevent foodborne illness in any food business, from hygiene and temperature control to allergens and sanitizing. Study, take the proctored exam and get your certificate without leaving home.",
+  "price_cents": 8900,
+  "currency": "usd",
   "duration_minutes": 300,
   "language": "English",
   "pass_mark": 70,
@@ -20,9 +20,10 @@ export const course = {
   "require_fullscreen": true,
   "certificate_validity_months": 60,
   "highlights": [
-    "10 chapters with video lessons",
+    "100% online: no classroom, no travel",
+    "10 chapters with video and written lessons",
     "A short quiz after every module",
-    "Proctored final exam (3 attempts)",
+    "Proctored final exam from home (3 attempts)",
     "PDF certificate with QR verification",
     "Study on any device, at your own pace"
   ],
@@ -46,6 +47,18 @@ Ten modules build from the basics of foodborne illness to the systems a food bus
 
 > Food safety rules vary by province and municipality. This course teaches the standards that apply across Canada and uses Ontario's Food Premises Regulation as its reference point. Always follow your local public health unit's requirements.`,
   "faqs": [
+    {
+      "q": "Is the course really 100% online?",
+      "a": "Yes. The lessons, quizzes, final exam and certificate are all online. You take the proctored exam at home on your own computer with a webcam, and download your certificate as a PDF. There is nothing to attend in person."
+    },
+    {
+      "q": "How much does it cost?",
+      "a": "US$89, paid once. That includes all 10 modules, the module quizzes, up to three attempts at the proctored final exam, the identity review and your certificate. There are no subscriptions or extra fees from us."
+    },
+    {
+      "q": "Can I get a refund?",
+      "a": "Yes. You can have a full refund within 14 days of purchase, as long as you haven't started the final exam. See our refund policy for details."
+    },
     {
       "q": "How long does the course take?",
       "a": "About five hours, including the videos and module quizzes. You can stop at any point and pick up where you left off on any device."
@@ -92,6 +105,7 @@ Ten modules build from the basics of foodborne illness to the systems a food bus
 export const modules = [
   {
     title: "Food safety foundations",
+    summary: 'Why food safety matters, who is most at risk, and the responsibilities every food handler shares.',
     lessons: [
       {
         title: "Food safety foundations",
@@ -157,6 +171,7 @@ Proteins in certain foods that trigger a dangerous immune reaction in some peopl
   },
   {
     title: "Microorganisms and foodborne illness",
+    summary: 'How bacteria, viruses and parasites make people sick, and the conditions that let them multiply.',
     lessons: [
       {
         title: "Microorganisms and foodborne illness",
@@ -226,6 +241,7 @@ Dry foods (crackers, uncooked pasta, flour), high-acid foods and high-sugar food
   },
   {
     title: "Handwashing and glove use",
+    summary: 'The correct way to wash your hands, when to do it, and how to use gloves without spreading germs.',
     lessons: [
       {
         title: "Handwashing and glove use",
@@ -270,6 +286,7 @@ Gloves help — but only when used correctly. **Wash your hands before putting g
   },
   {
     title: "Illness, injuries and work attire",
+    summary: 'When you must stay away from food, how to handle cuts and burns, and what to wear on shift.',
     lessons: [
       {
         title: "Illness, injuries and work attire",
@@ -310,6 +327,7 @@ Clean the wound, cover it with a **brightly coloured waterproof bandage**, and w
   },
   {
     title: "The danger zone and safe cooking",
+    summary: 'The 4°C to 60°C danger zone, safe cooking temperatures and how to use a probe thermometer.',
     lessons: [
       {
         title: "The danger zone and safe cooking",
@@ -358,6 +376,7 @@ Colour is not a reliable test. Ground beef can turn brown before it is safe. **A
   },
   {
     title: "Cooling, reheating, holding and thawing",
+    summary: 'Two-stage cooling, reheating to safe temperatures, hot and cold holding, and safe thawing.',
     lessons: [
       {
         title: "Cooling, reheating, holding and thawing",
@@ -412,6 +431,7 @@ Never thaw frozen food on the counter. Safe methods are:
   },
   {
     title: "Receiving, storage and cross-contamination",
+    summary: 'Checking deliveries, storing food in the right order, and keeping raw and ready-to-eat food apart.',
     lessons: [
       {
         title: "Receiving, storage and cross-contamination",
@@ -478,6 +498,7 @@ Store **ready-to-eat foods on top** and raw foods below, in order of the tempera
   },
   {
     title: "Food allergens",
+    summary: 'Canada’s priority allergens, preventing cross-contact, and answering customers’ allergy questions accurately.',
     lessons: [
       {
         title: "Food allergens",
@@ -525,6 +546,7 @@ If a customer has a reaction, **call 911**. If they carry an epinephrine auto-in
   },
   {
     title: "Cleaning and sanitizing",
+    summary: 'The difference between cleaning and sanitizing, sanitizer strength and contact time, and dishwashing.',
     lessons: [
       {
         title: "Cleaning and sanitizing",
@@ -576,6 +598,7 @@ Always follow the manufacturer's label, and **check concentration with test stri
   },
   {
     title: "Pest control and food safety systems",
+    summary: 'Spotting and preventing pests, and the basics of HACCP and food safety plans.',
     lessons: [
       {
         title: "Pest control and food safety systems",

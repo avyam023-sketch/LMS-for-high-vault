@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Clipboard with a checklist"><g fill="none" stroke="#262263" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+<rect x="20" y="16" width="56" height="68" rx="7" fill="#B0D7E4"/>
+<rect x="34" y="10" width="28" height="13" rx="4" fill="#FFFFFF"/>
+<rect x="28" y="32" width="40" height="44" rx="3" fill="#FFFFFF"/>
+<path d="M33 41l3.5 3.5L43 38"/><path d="M49 41h13"/>
+<path d="M33 53l3.5 3.5L43 50"/><path d="M49 53h13"/>
+<path d="M33 65l3.5 3.5L43 62"/><path d="M49 65h9"/></g></svg>

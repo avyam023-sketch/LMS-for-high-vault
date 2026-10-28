@@ -1,5 +1,7 @@
 <%- include('../partials/head', { motion: true }) %>
 <% const years = course.certificate_validity_months ? Math.round(course.certificate_validity_months / 12 * 10) / 10 : null; %>
+<% const price = money(course.price_cents, course.currency); %>
+<% const ICONS = ['01-foundations', '02-microorganisms', '03-handwashing', '04-attire', '05-cooking', '06-cooling', '07-storage', '08-allergens', '09-cleaning', '10-pest-control']; %>
 <script type="application/ld+json"><%- JSON.stringify({
   '@context': 'https://schema.org',
   '@type': 'Course',
@@ -9,44 +11,48 @@
   provider: { '@type': 'Organization', name: 'The High Vault Security', url: 'https://thehighvaultsecurity.ca' },
   hasCourseInstance: { '@type': 'CourseInstance', courseMode: 'online', courseWorkload: `PT${Math.round(course.duration_minutes / 60)}H` },
   offers: { '@type': 'Offer', category: course.price_cents ? 'Paid' : 'Free', price: (course.price_cents / 100).toFixed(2), priceCurrency: course.currency.toUpperCase() },
-}).replace(/</g, '\u003c') %></script>
+}).replace(/</g, '<') %></script>
 <main id="main">
   <% if (locals.deletedNotice) { %><div class="wrap"><div class="alert alert-success mt-24">Your account has been deleted.</div></div><% } %>
 
-  <section class="hero dark" data-hero>
+  <section class="hero hero-ice" data-hero>
     <div class="hero-glow" aria-hidden="true"></div>
     <div class="wrap">
       <div class="hero-grid">
-        <div>
-          <p class="kicker" data-intro>Online certification course</p>
+        <div class="hero-copy">
+          <p class="kicker" data-intro>100% online certification</p>
           <h1 data-split><%= course.title %>, <em>completed online.</em></h1>
-          <p class="lead" data-intro>One careless shortcut can make a customer sick and shut a kitchen down. Ten short modules teach the rules that prevent it. A proctored exam proves you know them.</p>
+          <p class="lead" data-intro>One careless shortcut can make a customer sick and shut a kitchen down. Ten short modules teach the rules that prevent it. A proctored exam, taken from home, proves you know them.</p>
           <div class="hero-actions" data-intro>
-            <%- include('../partials/enrol-cta', { cls: 'btn-ice btn-lg' }) %>
-            <a class="btn btn-ghost btn-lg" href="#curriculum">See the curriculum</a>
+            <%- include('../partials/enrol-cta', { cls: 'btn-primary btn-lg', label: course.price_cents ? `Register now · ${price}` : 'Register now' }) %>
+            <a class="btn btn-ghost btn-lg" href="#course">See what’s inside</a>
           </div>
+          <ul class="hero-trust" data-intro>
+            <li><%- include('../partials/icon', { name: 'devices' }) %>Study on any device</li>
+            <li><%- include('../partials/icon', { name: 'home' }) %>Exam from home</li>
+            <li><%- include('../partials/icon', { name: 'qr' }) %>Verifiable certificate</li>
+          </ul>
         </div>
 
-        <aside class="enrol" id="enroll" aria-label="Enrol" data-intro="card">
-          <div class="enrol-head">
-            <p class="eyebrow">Course, final exam &amp; certificate</p>
-            <div class="price"><%= money(course.price_cents, course.currency) %><% if (course.price_cents) { %><small><%= course.currency.toUpperCase() %> + tax</small><% } %></div>
+        <div class="hero-visual" data-intro="card" aria-hidden="true">
+          <div class="device-laptop">
+            <div class="screen"><img src="/img/screens/lesson.webp" alt="" width="1280" height="800" fetchpriority="high"></div>
+            <div class="base"></div>
           </div>
-          <div class="enrol-body">
-            <ul class="enrol-list">
-              <% for (const h of course.highlights) { %><li><%- include('../partials/icon', { name: 'check' }) %><span><%= h %></span></li><% } %>
-            </ul>
-            <%- include('../partials/enrol-cta', { cls: 'btn-primary btn-lg btn-block' }) %>
-            <% if (!user) { %><p class="enrol-foot">Already registered? <a href="/login">Sign in</a></p>
-            <% } else if (enrollment) { %><p class="enrol-foot"><%= outline.completed %> of <%= outline.total %> lessons complete</p><% } %>
+          <div class="device-phone">
+            <div class="screen"><img src="/img/screens/quiz-phone.webp" alt="" width="390" height="844"></div>
           </div>
-        </aside>
+          <div class="float-badge">
+            <%- include('../partials/icon', { name: 'shield' }) %>
+            <div><strong>Certificate verified</strong><span class="mono">HV-2026-K3SQ-C9JT</span></div>
+          </div>
+        </div>
       </div>
 
       <dl class="spec-bar" data-reveal-stagger>
-        <div><dt>Study time</dt><dd>About <%= duration(course.duration_minutes) %></dd></div>
-        <div><dt>Format</dt><dd>Online, self-paced</dd></div>
-        <div><dt>Structure</dt><dd><%= outline.modules.length %> modules + exam</dd></div>
+        <div><dt>Format</dt><dd>100% online</dd></div>
+        <div><dt>Study time</dt><dd>About <%= duration(course.duration_minutes) %>, at your own pace</dd></div>
+        <div><dt>Structure</dt><dd><%= outline.modules.length %> modules + final exam</dd></div>
         <div><dt>Certificate</dt><dd><%= years ? `Valid ${years} years` : 'No expiry' %></dd></div>
       </dl>
     </div>
@@ -55,9 +61,9 @@
   <section class="assurance" aria-label="Why this course">
     <div class="wrap">
       <div class="assurance-grid" data-reveal-stagger>
+        <div><%- include('../partials/icon', { name: 'home' }) %><h3>Nothing in person</h3><p>Study, take the exam and download your certificate without leaving home.</p></div>
         <div><%- include('../partials/icon', { name: 'qr' }) %><h3>Verifiable in seconds</h3><p>Every certificate has a unique number and QR code that employers can check online.</p></div>
         <div><%- include('../partials/icon', { name: 'book' }) %><h3>Built on Canadian standards</h3><p>Content follows Health Canada guidance and Ontario’s Food Premises Regulation.</p></div>
-        <div><%- include('../partials/icon', { name: 'devices' }) %><h3>Learn on any device</h3><p>Phone, tablet or computer. Your progress saves as you go.</p></div>
         <div><%- include('../partials/icon', { name: 'shield' }) %><h3>A proctored final exam</h3><p>ID check, room scan and camera monitoring keep every certificate credible.</p></div>
       </div>
     </div>
@@ -78,58 +84,123 @@
   </section>
   <% } %>
 
-  <section class="section section-white section-rule" id="curriculum">
-    <div class="wrap split">
-      <div class="split-head" data-reveal>
-        <p class="kicker">02 — Curriculum</p>
-        <h2><%= outline.modules.length %> modules, one clear path</h2>
-        <p>Each module is a chapter — a video and a written lesson — followed by a short quiz. About <%= duration(course.duration_minutes) %> in total. Modules unlock in order, so nothing important gets skipped.</p>
+  <section class="section section-white section-rule" id="course">
+    <div class="wrap">
+      <div class="split mb-48">
+        <div class="split-head" data-reveal>
+          <p class="kicker">02 — The course</p>
+          <h2><%= outline.modules.length %> modules, one clear path</h2>
+        </div>
+        <div data-reveal>
+          <p class="lead mb-0">Each module is a chapter (a short video and a written lesson) followed by a quiz you answer until you get it right. About <%= duration(course.duration_minutes) %> in total. Modules unlock in order, so nothing important gets skipped.</p>
+        </div>
       </div>
-      <div>
-        <div class="curriculum-wrap">
-        <span class="curriculum-rail" aria-hidden="true" data-rail></span>
-        <div class="curriculum" data-reveal-stagger>
-          <% outline.modules.forEach((m, i) => { %>
-          <details <%= i === 0 ? 'open' : '' %>>
-            <summary>
-              <span class="mod-n"><%= String(i + 1).padStart(2, '0') %></span>
-              <span class="mod-title">Module <%= i + 1 %>: Chapter <%= m.lessons.map((l) => l.chapterNumber).join(', ') %> <span class="mod-topic">— <%= m.title %></span></span>
-              <span class="mod-meta">Chapter<%= m.quiz ? ' + quiz' : '' %></span>
-            </summary>
-            <ol>
-              <% m.lessons.forEach((l) => { %><li><span>Ch. <%= l.chapterNumber %></span><%= l.title %><%= l.has_video ? ' — video and reading' : '' %></li><% }) %>
-              <% if (m.quiz) { %><li><span>Quiz</span>Module <%= i + 1 %> quiz · <%= m.quiz.total %> questions</li><% } %>
-            </ol>
-          </details>
-          <% }) %>
-          <div class="curriculum-final">
-            <span class="mod-n">—</span>
-            <span class="mod-title">Final exam</span>
-            <span class="mod-meta"><%= examQuestions %> questions · proctored</span>
-          </div>
+      <ol class="module-cards" data-reveal-stagger id="curriculum">
+        <% outline.modules.forEach((m, i) => { %>
+        <li class="module-card">
+          <img src="/img/illustrations/<%= ICONS[i] || ICONS[0] %>.svg" alt="" width="72" height="72" loading="lazy">
+          <p class="module-n">Module <%= i + 1 %></p>
+          <h3><%= m.title %></h3>
+          <% if (m.summary) { %><p><%= m.summary %></p><% } %>
+          <p class="module-meta"><%= m.lessons.some((l) => l.has_video) ? 'Video + reading' : 'Reading' %><%= m.quiz ? ` · ${m.quiz.total}-question quiz` : '' %></p>
+        </li>
+        <% }) %>
+        <li class="module-card module-card-final">
+          <%- include('../partials/icon', { name: 'award' }) %>
+          <p class="module-n">Final step</p>
+          <h3>Proctored final exam</h3>
+          <p><%= examQuestions %> questions in <%= course.exam_time_limit_minutes %> minutes, taken from home on camera. Pass with <%= course.pass_mark %>% to earn your certificate.</p>
+        </li>
+      </ol>
+      <% if (descriptionHtml) { %><div class="prose mt-48" data-reveal><%- descriptionHtml %></div><% } %>
+    </div>
+  </section>
+
+  <section class="section" id="inside">
+    <div class="wrap">
+      <div class="split mb-48">
+        <div class="split-head" data-reveal>
+          <p class="kicker">03 — Inside the course</p>
+          <h2>See exactly what you get.</h2>
         </div>
-        </div>
-        <% if (descriptionHtml) { %><div class="prose mt-48"><%- descriptionHtml %></div><% } %>
+        <p class="lead mb-0" data-reveal>These are real screens from the course. Everything happens in your browser: no downloads, no classroom, no paper forms.</p>
+      </div>
+      <div class="screens" data-reveal-stagger>
+        <figure class="screen-card screen-wide">
+          <div class="browser-frame"><span aria-hidden="true"></span><img src="/img/screens/lesson.webp" alt="A chapter page with the video, written lesson and the list of modules" width="1280" height="800" loading="lazy"></div>
+          <figcaption><strong>Chapters</strong> A short video and a written lesson you can read on any device.</figcaption>
+        </figure>
+        <figure class="screen-card">
+          <div class="browser-frame"><span aria-hidden="true"></span><img src="/img/screens/quiz.webp" alt="A module quiz question with four answer choices" width="1280" height="800" loading="lazy"></div>
+          <figcaption><strong>Module quizzes</strong> Answer until you get it right, with an explanation for each answer.</figcaption>
+        </figure>
+        <figure class="screen-card">
+          <div class="browser-frame"><span aria-hidden="true"></span><img src="/img/screens/checkin.webp" alt="The exam check-in steps: system check, face photo, ID photo and room scan" width="1280" height="800" loading="lazy"></div>
+          <figcaption><strong>Exam check-in</strong> A guided ID check and room scan before the timer starts.</figcaption>
+        </figure>
       </div>
     </div>
   </section>
 
-  <section class="section" id="how">
+  <section class="section section-white section-rule" id="how">
     <div class="wrap">
       <div class="split mb-32">
-        <div><p class="kicker" data-reveal>03 — How it works</p></div>
+        <div><p class="kicker" data-reveal>04 — How it works</p></div>
         <h2 class="mb-0" data-split>From sign-up to certificate, without leaving your browser.</h2>
       </div>
       <ol class="steps" data-steps>
-        <li><h3>Create your account</h3><p>Register with your legal name. It’s printed on your certificate.</p></li>
-        <li><h3>Study each module</h3><p>Watch the chapter video, read the lesson, then pass the short module quiz to unlock the next one.</p></li>
-        <li><h3>Pass the proctored exam</h3><p><%= examQuestions %> questions in <%= course.exam_time_limit_minutes %> minutes, on camera, with your ID. <%= course.pass_mark %>% to pass.</p></li>
+        <li><h3>Register online</h3><p>Create your account with your legal name. It’s printed on your certificate.</p></li>
+        <li><h3>Study each module</h3><p>Watch the chapter video, read the lesson, then pass the short quiz to unlock the next one.</p></li>
+        <li><h3>Take the exam from home</h3><p><%= examQuestions %> questions in <%= course.exam_time_limit_minutes %> minutes, on camera, with your ID. <%= course.pass_mark %>% to pass.</p></li>
         <li><h3>Download your certificate</h3><p>Issued as a PDF once your exam is reviewed, with a QR code employers can scan.</p></li>
       </ol>
     </div>
   </section>
 
-  <section class="section dark" id="certificate">
+  <section class="section" id="requirements">
+    <div class="wrap split">
+      <div class="split-head" data-reveal>
+        <p class="kicker">05 — What you need</p>
+        <h2>Everything happens on your own computer.</h2>
+        <p>Lessons and quizzes work on any device. For the final exam, have these ready.</p>
+      </div>
+      <ul class="needs" data-reveal-stagger>
+        <li><%- include('../partials/icon', { name: 'monitor' }) %><div><h3>A laptop or desktop</h3><p>With one screen. Disconnect any extra monitors before the exam.</p></div></li>
+        <li><%- include('../partials/icon', { name: 'camera' }) %><div><h3>Webcam and microphone</h3><p>Built-in is fine. They stay on during the exam.</p></div></li>
+        <li><%- include('../partials/icon', { name: 'browser' }) %><div><h3>Chrome or Edge</h3><p>A current version of Google Chrome or Microsoft Edge.</p></div></li>
+        <li><%- include('../partials/icon', { name: 'idcard' }) %><div><h3>Government photo ID</h3><p>With the same name as your account.</p></div></li>
+        <li><%- include('../partials/icon', { name: 'quiet' }) %><div><h3>A quiet, private room</h3><p>Where you can be alone for about an hour.</p></div></li>
+        <li><%- include('../partials/icon', { name: 'wifi' }) %><div><h3>A steady connection</h3><p>Your answers save as you go, so a short drop won’t lose your work.</p></div></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="section dark" id="pricing">
+    <div class="wrap pricing">
+      <div data-reveal>
+        <p class="kicker">06 — Pricing</p>
+        <h2>One price. Everything included.</h2>
+        <p class="lead">No subscription and no hidden fees. Pay once, study at your own pace, and keep your certificate for <%= years ? `${years} years` : 'as long as it’s valid' %>.</p>
+        <p class="pricing-note">Training a team? Email <a href="mailto:<%= supportEmail %>"><%= supportEmail %></a>.</p>
+      </div>
+      <aside class="enrol" id="enroll" aria-label="Enrol" data-reveal>
+        <div class="enrol-head">
+          <p class="eyebrow">Course, final exam &amp; certificate</p>
+          <div class="price"><%= price %><% if (course.price_cents) { %><small>one-time · <%= course.currency.toUpperCase() %></small><% } %></div>
+        </div>
+        <div class="enrol-body">
+          <ul class="enrol-list">
+            <% for (const h of course.highlights) { %><li><%- include('../partials/icon', { name: 'check' }) %><span><%= h %></span></li><% } %>
+          </ul>
+          <%- include('../partials/enrol-cta', { cls: 'btn-primary btn-lg btn-block', label: 'Register now' }) %>
+          <% if (!user) { %><p class="enrol-foot">Already registered? <a href="/login">Sign in</a> · <a href="/refunds">14-day refund policy</a></p>
+          <% } else if (enrollment) { %><p class="enrol-foot"><%= outline.completed %> of <%= outline.total %> steps complete</p><% } %>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <section class="section section-white" id="certificate">
     <div class="wrap showcase">
       <figure data-tilt>
         <picture>
@@ -139,7 +210,7 @@
         <figcaption>Sample certificate</figcaption>
       </figure>
       <div>
-        <p class="kicker" data-reveal>04 — Exam &amp; certificate</p>
+        <p class="kicker" data-reveal>07 — Exam &amp; certificate</p>
         <h2 data-split>A certificate employers can check.</h2>
         <p class="lead" data-reveal>The final exam is taken on camera, with your ID checked and your room shown before you begin. Each certificate carries a unique number and QR code anyone can verify.</p>
         <dl class="facts-list" data-reveal-stagger>
@@ -156,10 +227,10 @@
   </section>
 
   <% if (course.faqs.length) { %>
-  <section class="section section-white" id="faq">
+  <section class="section" id="faq">
     <div class="wrap split">
       <div class="split-head" data-reveal>
-        <p class="kicker">05 — Questions</p>
+        <p class="kicker">08 — Questions</p>
         <h2>Before you enrol</h2>
         <p class="contact-line">Still have a question? Email <a href="mailto:<%= supportEmail %>"><%= supportEmail %></a>.</p>
       </div>
@@ -172,11 +243,11 @@
   </section>
   <% } %>
 
-  <section class="closing dark">
+  <section class="closing hero-ice">
     <div class="wrap closing-grid">
       <h2 data-split>Start today. Ten modules, one exam, a certificate that holds up.</h2>
       <div class="closing-actions" data-reveal>
-        <%- include('../partials/enrol-cta', { cls: 'btn-ice btn-lg' }) %>
+        <%- include('../partials/enrol-cta', { cls: 'btn-primary btn-lg', label: course.price_cents ? `Register now · ${price}` : 'Register now' }) %>
       </div>
     </div>
   </section>

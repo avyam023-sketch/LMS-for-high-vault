@@ -51,9 +51,9 @@ export async function courseOutline(courseId, userId) {
     [courseId, uid],
   );
   const quizByModule = new Map(quizRows.map((r) => [r.module_id, r]));
-  const allModules = await many('SELECT id, title FROM modules WHERE course_id = $1 ORDER BY position, title', [courseId]);
+  const allModules = await many('SELECT id, title, summary FROM modules WHERE course_id = $1 ORDER BY position, title', [courseId]);
 
-  const modules = allModules.map((m, i) => ({ id: m.id, title: m.title, number: i + 1, lessons: [], quiz: null }));
+  const modules = allModules.map((m, i) => ({ id: m.id, title: m.title, summary: m.summary, number: i + 1, lessons: [], quiz: null }));
   const byId = new Map(modules.map((m) => [m.id, m]));
   let chapter = 0;
   for (const r of lessonRows) byId.get(r.module_id).lessons.push({ ...r, type: 'lesson', chapterNumber: ++chapter, done: Boolean(r.completed_at) });

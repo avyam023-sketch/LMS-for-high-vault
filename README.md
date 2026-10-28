@@ -59,6 +59,12 @@ Notes for the preview:
 - **Self-registration** with email verification, password reset and optional two-step verification (authenticator app).
 - **Course structure**: Module 1 → Chapter 1 → Module 1 quiz → Module 2 → … → Module 10 quiz → final exam. Everything unlocks strictly in order.
 - **Chapters**: a video plus a written lesson, with a minimum study time tracked on the server. Videos are hosted on **Bunny Stream**. Each playback link is signed and expires after 6 hours, so it can't be shared. The learner must watch to the end (skipping ahead doesn't count) before continuing. A direct MP4/WebM link is tracked the same way. YouTube and Vimeo links play but can't be tracked.
+- **Public site**: an ice-blue and indigo design taken from the logo.
+  - The homepage shows real course screens on laptop and phone mockups.
+  - Ten illustrated module cards, each with a summary that can be edited in Admin → Courses.
+  - A *What you need* section and a pricing section (US$89, one-time).
+  - An About page, and a policies hub covering terms of use, terms of sale, refunds, exam and certificate rules, privacy (including cookies), accessibility, and copyright.
+  - Exam rules and prices on the policy pages are read from the live course settings, so they always match.
 - **Homepage motion**: built with GSAP and ScrollTrigger, self-hosted so the strict security policy stays intact.
   - The hero settles in on load and headlines rise into place.
   - A rail fills down the curriculum as you read.
@@ -212,16 +218,22 @@ Rate-limit counters are kept in memory, which suits one app instance. If you run
 
 - [ ] **Review the course content and question bank** with whoever is accountable for food safety training. The starter content follows Health Canada guidance and Ontario's Food Premises Regulation (O. Reg. 493/17), but provincial and municipal requirements vary.
 - [ ] **Confirm recognition status.** If the course must be approved or recognised by a provincial program or local public health unit, get that confirmation first, then add it to the course page and FAQ. Until then, the FAQ deliberately tells learners to check with their employer or health unit.
-- [ ] Set the price (Admin → Courses), support email (`SUPPORT_EMAIL`) and sending address (`MAIL_FROM`).
+- [ ] **Connect Stripe** (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`). The course is priced at US$89. Until Stripe is connected, *Register* still works but enrolling is refused with a polite message, so nobody gets the paid course for free.
+- [ ] If the business is registered for GST/HST, turn on Stripe Tax so tax is added at checkout. The terms of sale say taxes are added where required.
+- [ ] Set the support email (`SUPPORT_EMAIL`) and sending address (`MAIL_FROM`). The price can be changed in Admin → Courses.
 - [ ] **Add the 10 chapter videos.**
   1. Upload them to a Bunny Stream library.
   2. In the library's Security settings, turn on *Embed view token authentication* and copy the key into `BUNNY_STREAM_TOKEN_KEY`.
   3. Add your domain under *Allowed domains*.
   4. For each chapter, paste the video's embed link (`https://iframe.mediadelivery.net/embed/<library>/<video>`) into Admin → Courses → the chapter → *Chapter video*.
 - [ ] Grow the final-exam bank to at least about 60 questions (twice the 30-question exam) to reduce answer sharing.
-- [ ] Decide who reviews exam recordings and how quickly, and tell learners (the result page says the certificate is issued after review).
-- [ ] Have the terms of use (`views/public/terms.ejs`) reviewed: refunds are currently "email us", and no governing-law clause is set.
-- [ ] Have the privacy page (`views/public/privacy.ejs`) and the exam recording consent reviewed for your obligations under PIPEDA or provincial privacy law. **Collecting ID images and room video is sensitive.** Confirm the retention period and who may access recordings.
+- [ ] Decide who reviews exam recordings. The policies promise reviews "usually within two business days" and replies to refund and accessibility emails within two business days.
+- [ ] **Have a lawyer review the policy pages** in `views/public/policies/`: terms of use, terms of sale, refund policy, exam and certificate policy, privacy, accessibility, and copyright. Confirm the defaults:
+  - **Governing law:** Ontario.
+  - **Refunds:** a full refund within 14 days if the final exam hasn't been started.
+  - **Appeals:** within 14 days.
+  - **Data residency:** the privacy policy says learner data is stored in Canada, which is true once the app is hosted in AWS Canada (Montreal). Update `POLICIES_UPDATED` in `src/lib/policies.js` whenever the wording changes.
+- [ ] Have the privacy page (`views/public/policies/privacy.ejs`) and the exam recording consent reviewed for your obligations under PIPEDA or provincial privacy law. **Collecting ID images and room video is sensitive.** Confirm the retention period and who may access recordings.
 
 ---
 

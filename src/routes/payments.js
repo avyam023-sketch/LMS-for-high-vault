@@ -16,8 +16,15 @@ router.post('/enroll/:slug', requireAuth, async (req, res) => {
   const existing = await one('SELECT id FROM enrollments WHERE user_id = $1 AND course_id = $2', [req.user.id, course.id]);
   if (existing) return res.redirect(`/learn/${course.slug}`);
 
-  // Paid course with Stripe configured: send the learner to Stripe Checkout.
-  if (course.price_cents > 0 && stripe) {
+  // A paid course must never enrol for free just because payments aren't configured yet.
+  if (course.price_cents > 0 && !stripe) {
+    console.error('[payments] paid course but STRIPE_SECRET_KEY / STRIPE_WEBHOOK_SECRET are not set');
+    flash(req, 'warn', `Online payment isn’t available right now. Please try again later or email ${config.SUPPORT_EMAIL}.`);
+    return res.redirect(`/course/${course.slug}#pricing`);
+  }
+
+  // Paid course: send the learner to Stripe Checkout.
+  if (course.price_cents > 0) {
     const checkout = await stripe.checkout.sessions.create({
       mode: 'payment',
       customer_email: req.user.email,

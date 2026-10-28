@@ -1,0 +1,19 @@
+<%# Shared layout for policy pages: title band, a sidebar listing every policy, then the page's own text. %>
+<%- include('head') %>
+<main id="main">
+  <div class="page-band">
+    <div class="wrap">
+      <p class="eyebrow"><a href="/policies">Policies</a></p>
+      <h1><%= policy.title %></h1>
+      <p class="muted small mt-16 mb-0">Last updated <%= fmtDate(updated) %></p>
+    </div>
+  </div>
+  <div class="page">
+    <div class="wrap policy-layout">
+      <nav class="policy-nav" aria-label="Policies">
+        <ul>
+          <% for (const p of policies) { %><li><a href="<%= p.path %>" <%- p.path === policy.path ? 'aria-current="page"' : '' %>><%= p.title %></a></li><% } %>
+        </ul>
+        <p class="small muted">Questions about any policy: <a href="mailto:<%= supportEmail %>"><%= supportEmail %></a></p>
+      </nav>
+      <article class="prose policy-body">

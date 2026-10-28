@@ -43,7 +43,7 @@ export async function seed({ log = console.log, reset = false } = {}) {
     const courseId = rows[0].id;
     const moduleIds = [];
     for (const [mi, m] of modules.entries()) {
-      const { rows: mr } = await db.query('INSERT INTO modules (course_id, title, position) VALUES ($1, $2, $3) RETURNING id', [courseId, m.title, mi + 1]);
+      const { rows: mr } = await db.query('INSERT INTO modules (course_id, title, summary, position) VALUES ($1, $2, $3, $4) RETURNING id', [courseId, m.title, m.summary ?? '', mi + 1]);
       moduleIds.push(mr[0].id);
       for (const [li, l] of m.lessons.entries()) {
         await db.query('INSERT INTO lessons (module_id, title, content_md, video_url, min_seconds, position) VALUES ($1, $2, $3, $4, $5, $6)', [

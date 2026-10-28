@@ -1,0 +1,21 @@
+<%- include('../../partials/head') %>
+<main id="main">
+  <div class="page-band">
+    <div class="wrap">
+      <p class="eyebrow">Policies</p>
+      <h1>Policies and terms</h1>
+      <p class="muted mt-16 mb-0">Plain-language rules for using the site, buying the course, taking the exam and protecting your information. Last updated <%= fmtDate(updated) %>.</p>
+    </div>
+  </div>
+  <div class="page">
+    <div class="wrap">
+      <ul class="policy-cards">
+        <% for (const p of policies) { %>
+          <li><a href="<%= p.path %>"><h2><%= p.title %></h2><p><%= p.summary %></p><span class="link-arrow">Read <%- include('../../partials/icon', { name: 'arrow', cls: 'icon arrow' }) %></span></a></li>
+        <% } %>
+      </ul>
+      <p class="muted mt-32">Questions about any of these: <a href="mailto:<%= supportEmail %>"><%= supportEmail %></a>.</p>
+    </div>
+  </div>
+</main>
+<%- include('../../partials/foot') %>

@@ -340,12 +340,16 @@ router.post('/courses/:id', async (req, res) => {
 });
 
 // ---------- Modules ----------
-const moduleSchema = z.object({ title: z.string().trim().min(1).max(140), position: z.coerce.number().int().min(0).max(1000).default(0) });
+const moduleSchema = z.object({
+  title: z.string().trim().min(1).max(140),
+  summary: z.string().trim().max(300).default(''),
+  position: z.coerce.number().int().min(0).max(1000).default(0),
+});
 
 router.post('/courses/:id/modules', async (req, res) => {
   const { data, errors } = parse(moduleSchema, req.body);
   if (errors) return flash(req, 'error', 'Module title is required.'), res.redirect(`/admin/courses/${req.params.id}`);
-  const m = await one('INSERT INTO modules (course_id, title, position) VALUES ($1, $2, $3) RETURNING id', [req.params.id, data.title, data.position]);
+  const m = await one('INSERT INTO modules (course_id, title, summary, position) VALUES ($1, $2, $3, $4) RETURNING id', [req.params.id, data.title, data.summary, data.position]);
   await audit(req, 'admin.module.create', { entity: 'module', entityId: m.id });
   res.redirect(`/admin/courses/${req.params.id}#modules`);
 });
@@ -359,7 +363,7 @@ router.post('/modules/:id', async (req, res) => {
     flash(req, 'success', 'Module deleted.');
   } else {
     const { data, errors } = parse(moduleSchema, req.body);
-    if (!errors) await query('UPDATE modules SET title = $2, position = $3 WHERE id = $1', [mod.id, data.title, data.position]);
+    if (!errors) await query('UPDATE modules SET title = $2, summary = $3, position = $4 WHERE id = $1', [mod.id, data.title, data.summary, data.position]);
     await audit(req, 'admin.module.update', { entity: 'module', entityId: mod.id });
   }
   res.redirect(`/admin/courses/${mod.course_id}#modules`);
