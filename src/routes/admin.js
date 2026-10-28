@@ -58,7 +58,11 @@ router.get('/', async (req, res) => {
       (SELECT count(*)::int FROM certificates WHERE revoked_at IS NULL) AS certificates,
       (SELECT count(*)::int FROM exam_attempts WHERE (focus_violations > 0 OR auto_submitted = 'integrity') AND started_at > now() - interval '30 days') AS flagged_30d,
       (SELECT count(*)::int FROM exam_attempts WHERE status = 'in_progress') AS live_exams,
-      (SELECT count(*)::int FROM exam_attempts WHERE review_status = 'pending') AS pending_reviews`);
+      (SELECT count(*)::int FROM exam_attempts WHERE review_status = 'pending') AS pending_reviews,
+      (SELECT currency FROM courses WHERE is_published ORDER BY created_at LIMIT 1) AS currency,
+      (SELECT coalesce(sum(coalesce(amount_paid_cents, amount_cents)), 0)::int FROM payments
+        WHERE status = 'paid' AND paid_at > now() - interval '30 days'
+          AND currency = (SELECT currency FROM courses WHERE is_published ORDER BY created_at LIMIT 1)) AS revenue_30d`);
   const recentAttempts = await many(
     `SELECT a.id, a.reference, a.status, a.score_percent, a.passed, a.focus_violations, a.auto_submitted, a.started_at,
             u.first_name, u.last_name, u.email

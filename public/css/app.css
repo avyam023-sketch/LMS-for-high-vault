@@ -192,6 +192,8 @@ code, kbd { font-family: var(--mono); font-size: .9em; }
 .enrol-list li { display: grid; grid-template-columns: 18px 1fr; gap: 12px; align-items: start; }
 .enrol-list svg { width: 18px; height: 18px; color: var(--accent); margin-top: 3px; }
 .enrol-foot { margin: 16px 0 0; font-size: .85rem; color: var(--muted); text-align: center; }
+.test-card { margin: 16px 0 0; padding: 10px 12px; border: 1px dashed var(--brand); border-radius: 8px; background: var(--tint-3); font-size: .82rem; color: var(--ink); line-height: 1.5; }
+.test-card code { font-weight: 600; white-space: nowrap; }
 @media (max-width: 980px) {
   .hero-grid { grid-template-columns: 1fr; }
   .enrol { position: static; }

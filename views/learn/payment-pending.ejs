@@ -3,6 +3,7 @@
   <div class="panel">
     <h1>Confirming your payment</h1>
     <p class="muted">This usually takes a few seconds. Refresh this page, or open your course from My learning.</p>
+    <% if (paymentsTestMode) { %><%- include('../partials/test-card') %><% } %>
     <div class="row mt-24">
       <a class="btn btn-primary" href="/payments/success?session_id=<%= encodeURIComponent(locals.sessionId || '') %>">Refresh</a>
       <a class="btn btn-ghost" href="/dashboard">My learning</a>

@@ -104,8 +104,9 @@
     <tbody>
       <% for (const p of payments) { %>
       <tr><td><%= fmtDateTime(p.paid_at ?? p.created_at) %></td><td><span class="ref small"><%= p.reference %></span></td><td><%= p.course_title %></td>
-        <td class="num"><%= money(p.amount_cents, p.currency) %></td>
-        <td><span class="badge <%= p.status === 'paid' ? 'badge-ok' : p.status === 'failed' ? 'badge-bad' : '' %>"><%= p.status === 'paid' ? 'Paid' : p.status === 'failed' ? 'Failed' : 'Not completed' %></span></td></tr>
+        <td class="num"><%= money(p.amount_paid_cents ?? p.amount_cents, p.currency) %></td>
+        <% const label = { paid: 'Paid', failed: 'Failed', refunded: `Refunded ${fmtDate(p.refunded_at)}`, pending: 'Not completed' }[p.status]; %>
+        <td><span class="badge <%= p.status === 'paid' ? 'badge-ok' : p.status === 'failed' ? 'badge-bad' : '' %>"><%= label %></span></td></tr>
       <% } %>
     </tbody>
   </table>

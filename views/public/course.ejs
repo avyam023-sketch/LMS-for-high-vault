@@ -211,6 +211,7 @@
             <% for (const h of course.highlights) { %><li><%- include('../partials/icon', { name: 'check' }) %><span><%= h %></span></li><% } %>
           </ul>
           <%- include('../partials/enrol-cta', { cls: 'btn-primary btn-lg btn-block', label: 'Register now' }) %>
+          <% if (paymentsTestMode && course.price_cents && !enrollment) { %><%- include('../partials/test-card') %><% } %>
           <% if (!user) { %><p class="enrol-foot">Already registered? <a href="/login">Sign in</a> · <a href="/refunds">14-day refund policy</a></p>
           <% } else if (enrollment) { %><p class="enrol-foot"><%= outline.completed %> of <%= outline.total %> steps complete</p><% } %>
         </div>

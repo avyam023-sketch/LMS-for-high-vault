@@ -41,6 +41,8 @@ const schema = z.object({
   BUNNY_STREAM_TOKEN_KEY: z.string().optional(),
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  // Let Stripe work out and add sales tax at checkout (turn on Stripe Tax in the Stripe dashboard first).
+  STRIPE_AUTOMATIC_TAX: bool,
   SUPPORT_EMAIL: z.string().default('info@thehighvaultsecurity.ca'),
   // Days to keep exam ID photos, room scans and snapshots before they are deleted automatically.
   PROCTOR_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(90),
@@ -66,7 +68,9 @@ export const config = {
   isProd: env.NODE_ENV === 'production',
   isTest: env.NODE_ENV === 'test',
   appUrl: env.APP_URL.replace(/\/$/, ''),
-  paymentsEnabled: Boolean(env.STRIPE_SECRET_KEY && env.STRIPE_WEBHOOK_SECRET),
+  paymentsEnabled: Boolean(env.STRIPE_SECRET_KEY),
+  // A Stripe test key: checkout takes the test card 4242 4242 4242 4242 and no real money moves.
+  paymentsTestMode: Boolean(env.STRIPE_SECRET_KEY?.startsWith('sk_test_') || env.STRIPE_SECRET_KEY?.startsWith('rk_test_')),
   // On by default in production; set CHECK_BREACHED_PASSWORDS=false to opt out.
   CHECK_BREACHED_PASSWORDS: env.CHECK_BREACHED_PASSWORDS ? ['true', '1'].includes(env.CHECK_BREACHED_PASSWORDS) : env.NODE_ENV === 'production',
 };

@@ -138,6 +138,32 @@ export async function enrolmentEmail(userId, courseId, paymentId = null) {
   });
 }
 
+export async function refundEmail(paymentId) {
+  const p = await one(
+    `SELECT p.reference, p.amount_cents, p.amount_paid_cents, p.currency, p.user_id, u.email, u.first_name, u.reference AS learner_ref, c.title
+       FROM payments p JOIN users u ON u.id = p.user_id JOIN courses c ON c.id = p.course_id WHERE p.id = $1`,
+    [paymentId],
+  );
+  if (!p) return false;
+  return sendMail({
+    to: p.email,
+    subject: subject('Your refund is on its way'),
+    heading: `Hi ${p.first_name}, your payment has been refunded`,
+    body: [
+      `We’ve refunded your payment for ${p.title}. Banks usually take 5 to 10 business days to show it on your statement.`,
+      'Your access to the course has ended. If you’d like to come back later, you can enrol again at any time.',
+    ],
+    details: [
+      ['Learner ID', p.learner_ref],
+      ['Payment reference', p.reference],
+      ['Refunded', money(p.amount_paid_cents ?? p.amount_cents, p.currency)],
+    ],
+    footer: `Questions? Email ${config.SUPPORT_EMAIL} and quote your payment reference.`,
+    idempotencyKey: `refund/${paymentId}`,
+    category: 'refund',
+  });
+}
+
 export async function extraAttemptEmail(userId, courseId) {
   const u = await one('SELECT email, first_name, reference FROM users WHERE id = $1', [userId]);
   const c = await one('SELECT title, slug FROM courses WHERE id = $1', [courseId]);

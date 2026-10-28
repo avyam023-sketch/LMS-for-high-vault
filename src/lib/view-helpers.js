@@ -25,6 +25,7 @@ export function viewHelpers(req, res, next) {
   res.locals.path = req.path;
   res.locals.appUrl = config.appUrl;
   res.locals.supportEmail = config.SUPPORT_EMAIL;
+  res.locals.paymentsTestMode = config.paymentsTestMode;
   res.locals.fmtDate = (d) => (d ? dateFmt.format(new Date(d)) : '—');
   res.locals.fmtDateTime = (d) => (d ? dateTimeFmt.format(new Date(d)) : '—');
   res.locals.money = money;

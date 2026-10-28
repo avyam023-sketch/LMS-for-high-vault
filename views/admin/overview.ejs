@@ -5,10 +5,13 @@
 </div>
 <div class="tiles">
   <div class="tile"><p class="label">Learners</p><div class="value"><%= stats.learners %></div><div class="sub">+<%= stats.learners_7d %> in the last 7 days</div></div>
-  <div class="tile"><p class="label">Enrolments</p><div class="value"><%= stats.enrollments %></div><div class="sub"><%= stats.live_exams %> exam<%= stats.live_exams === 1 ? '' : 's' %> in progress now</div></div>
+  <div class="tile"><p class="label">Enrolments</p><div class="value"><%= stats.enrollments %></div><div class="sub"><%= money(stats.revenue_30d, stats.currency || 'usd') %> paid in the last 30 days</div></div>
   <div class="tile"><p class="label">Certificates issued</p><div class="value"><%= stats.certificates %></div><div class="sub">active (not revoked)</div></div>
   <div class="tile"><p class="label">Pass rate · 30 days</p><div class="value"><%= stats.pass_rate_30d == null ? '—' : stats.pass_rate_30d + '%' %></div><div class="sub"><%= stats.attempts_30d %> exam<%= stats.attempts_30d === 1 ? '' : 's' %> submitted</div></div>
 </div>
+<% if (stats.live_exams) { %>
+  <div class="alert alert-info"><strong><%= stats.live_exams %></strong> exam<%= stats.live_exams === 1 ? ' is' : 's are' %> in progress right now. <a href="/admin/attempts?filter=live">See live attempts</a></div>
+<% } %>
 <% if (stats.pending_reviews) { %>
   <div class="alert alert-info"><strong><%= stats.pending_reviews %></strong> passed exam<%= stats.pending_reviews === 1 ? ' is' : 's are' %> waiting for identity review. Certificates are issued when you approve them. <a href="/admin/attempts?filter=review">Start reviewing</a></div>
 <% } %>
