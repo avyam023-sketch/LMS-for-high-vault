@@ -1,20 +1,27 @@
-// Image slots on the public site. Admins upload a photo for each slot in Admin → Site images;
-// until then the page shows a branded placeholder of the same shape, so the layout never jumps.
+// Image slots on the public site. Each ships with a default photo (public/img/site/, AI-generated for
+// The High Vault Security); an admin can replace it in Admin → Site images, and removing the upload
+// brings the default back. A slot without either shows a branded placeholder of the same shape.
 import { many, one, query } from '../db/pool.js';
 
 export const SLOTS = [
   { key: 'home-audience-1', label: 'Who it’s for: cooks', where: 'Homepage, “Who it’s for” (left)', ratio: '4:5', size: '1200 × 1500', icon: 'users',
-    suggestion: 'A cook at work in a clean commercial kitchen.' },
+    suggestion: 'A cook at work in a clean commercial kitchen.',
+    fallback: { url: '/img/site/home-audience-1.jpg', width: 1200, height: 1500, alt: 'A cook in a red apron plating a dish in a clean commercial kitchen' } },
   { key: 'home-audience-2', label: 'Who it’s for: servers and baristas', where: 'Homepage, “Who it’s for” (middle)', ratio: '4:5', size: '1200 × 1500', icon: 'users',
-    suggestion: 'A server or barista behind a café counter.' },
+    suggestion: 'A server or barista behind a café counter.',
+    fallback: { url: '/img/site/home-audience-2.jpg', width: 1200, height: 1500, alt: 'A smiling barista handing a takeaway coffee across a café counter' } },
   { key: 'home-audience-3', label: 'Who it’s for: prep, catering and owners', where: 'Homepage, “Who it’s for” (right)', ratio: '4:5', size: '1200 × 1500', icon: 'users',
-    suggestion: 'Food prep with gloves, or an owner in their kitchen.' },
+    suggestion: 'Food prep with gloves, or an owner in their kitchen.',
+    fallback: { url: '/img/site/home-audience-3.jpg', width: 1200, height: 1500, alt: 'Gloved hands slicing red peppers on a green cutting board for vegetables' } },
   { key: 'home-study', label: 'Studying from home', where: 'Homepage, “What you need”', ratio: '3:2', size: '1600 × 1067', icon: 'devices',
-    suggestion: 'Someone studying on a laptop at home.' },
+    suggestion: 'Someone studying on a laptop at home.',
+    fallback: { url: '/img/site/home-study.jpg', width: 1600, height: 1067, alt: 'A learner taking notes beside a laptop at a kitchen table in the evening' } },
   { key: 'about-story', label: 'About: our story', where: 'About page, “Why we built it”', ratio: '3:2', size: '1600 × 1067', icon: 'book',
-    suggestion: 'A busy, well-run kitchen or a team at work.' },
+    suggestion: 'A busy, well-run kitchen or a team at work.',
+    fallback: { url: '/img/site/about-story.jpg', width: 1600, height: 1067, alt: 'Three cooks with covered hair working side by side on a busy kitchen line' } },
   { key: 'signup-aside', label: 'Sign-up page', where: 'Register and sign-in pages, left panel', ratio: '4:5', size: '1200 × 1500', icon: 'shield',
-    suggestion: 'Hands being washed, or a chef checking a thermometer.' },
+    suggestion: 'Hands being washed, or a chef checking a thermometer.',
+    fallback: { url: '/img/site/signup-aside.jpg', width: 1200, height: 1500, alt: 'A chef checking a roast chicken with a probe thermometer' } },
 ];
 export const SLOT_KEYS = new Set(SLOTS.map((s) => s.key));
 export const MAX_BYTES = 4 * 1024 * 1024;
@@ -61,7 +68,8 @@ export async function siteImages() {
   if (!cache || Date.now() - cachedAt > 60_000) {
     cachedAt = Date.now();
     const rows = await many('SELECT slot, width, height, alt, updated_at FROM site_images');
-    cache = new Map(rows.map((r) => [r.slot, { ...r, url: `/site-images/${r.slot}?v=${new Date(r.updated_at).getTime().toString(36)}` }]));
+    const uploaded = new Map(rows.map((r) => [r.slot, { ...r, url: `/site-images/${r.slot}?v=${new Date(r.updated_at).getTime().toString(36)}` }]));
+    cache = new Map(SLOTS.map((s) => [s.key, uploaded.get(s.key) ?? (s.fallback && { ...s.fallback, isDefault: true })]).filter(([, img]) => img));
   }
   return cache;
 }

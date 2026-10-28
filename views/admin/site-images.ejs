@@ -2,7 +2,7 @@
 <div class="page-head">
   <div>
     <h1>Site images</h1>
-    <p class="muted mb-0">Photos for the public website. Until a photo is added, each slot shows a branded placeholder. Use JPEG, PNG or WebP, at least 1200 pixels wide and under <%= maxMb %> MB. Only use photos you own or have a licence for.</p>
+    <p class="muted mb-0">Photos for the public website. Each slot starts with a default photo; upload your own to replace it. Use JPEG, PNG or WebP, at least 1200 pixels wide and under <%= maxMb %> MB. Only use photos you own or have a licence for.</p>
   </div>
   <a class="btn btn-ghost" href="/" target="_blank" rel="noopener">View site</a>
 </div>
@@ -19,18 +19,19 @@
         <dt>Appears on</dt><dd><%= s.where %></dd>
         <dt>Best size</dt><dd><%= s.size %> px (<%= s.ratio %>)</dd>
         <dt>Idea</dt><dd><%= s.suggestion %></dd>
-        <% if (img) { %><dt>Current</dt><dd><%= img.width %> × <%= img.height %> px · updated <%= fmtDate(img.updated_at) %></dd><% } %>
+        <% if (img?.isDefault) { %><dt>Current</dt><dd>Default photo · <%= img.width %> × <%= img.height %> px</dd>
+        <% } else if (img) { %><dt>Current</dt><dd>Your upload · <%= img.width %> × <%= img.height %> px · updated <%= fmtDate(img.updated_at) %></dd><% } %>
       </dl>
       <label class="small" for="alt-<%= s.key %>">Description for screen readers <% if (img && !img.alt) { %><span class="badge badge-warn">Missing</span><% } %></label>
       <form method="post" action="/admin/site-images/<%= s.key %>/alt" class="row mt-8">
         <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
         <input id="alt-<%= s.key %>" name="alt" value="<%= img ? img.alt : '' %>" maxlength="200" class="grow" placeholder="e.g. A cook checks chicken with a probe thermometer" data-alt-for="<%= s.key %>">
-        <% if (img) { %><button class="btn btn-ghost btn-sm" type="submit">Save</button><% } %>
+        <% if (img && !img.isDefault) { %><button class="btn btn-ghost btn-sm" type="submit">Save</button><% } %>
       </form>
       <div class="row mt-16">
         <label class="btn btn-primary btn-sm file-btn"><input type="file" accept="image/jpeg,image/png,image/webp" data-upload="<%= s.key %>"><%= img ? 'Replace photo' : 'Upload photo' %></label>
-        <% if (img) { %>
-        <form method="post" action="/admin/site-images/<%= s.key %>/delete" class="inline-form" data-confirm="Remove this photo? The slot will show its placeholder again.">
+        <% if (img && !img.isDefault) { %>
+        <form method="post" action="/admin/site-images/<%= s.key %>/delete" class="inline-form" data-confirm="Remove your photo? The slot goes back to <%= s.fallback ? 'its default photo' : 'a placeholder' %>.">
           <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
           <button class="btn btn-ghost btn-sm" type="submit">Remove</button>
         </form>

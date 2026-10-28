@@ -729,11 +729,11 @@ test('admin area: hidden from learners, requires MFA, manages certificates', asy
     Buffer.from([0xff, 0xc0, 0x00, 0x11, 0x08, h >> 8, h & 255, w >> 8, w & 255]), Buffer.alloc(40, 7),
   ]);
   res = await request(app).get('/').expect(200);
-  assert.ok(!res.text.includes('/site-images/home-study'), 'empty slot shows a placeholder');
-  assert.ok(!res.text.includes('Image slot:'), 'slot labels are for admins only');
-  res = await fresh.get('/').expect(200);
-  assert.match(res.text, /Image slot: Studying from home/, 'admins see what each empty slot is for');
-  await fresh.get('/admin/site-images').expect(200);
+  assert.match(res.text, /src="\/img\/site\/home-study\.jpg" alt="A learner taking notes[^"]*" width="1600" height="1067"/, 'each slot starts with its default photo');
+  assert.ok(!res.text.includes('Image slot:'), 'no empty slots to label');
+  await request(app).get('/img/site/home-study.jpg').expect(200).expect('content-type', /image\/jpeg/);
+  res = await fresh.get('/admin/site-images').expect(200);
+  assert.match(res.text, /Default photo · 1600 × 1067 px/);
   token = await csrf(fresh, '/admin/site-images');
   res = await fresh.post('/admin/site-images/home-study?alt=Studying%20at%20home').set('x-csrf-token', token).set('Content-Type', 'image/jpeg').send(jpeg(1600, 1067)).expect(200);
   res = await fresh.post('/admin/site-images/home-study').set('x-csrf-token', token).set('Content-Type', 'image/jpeg').send(jpeg(300, 200)).expect(400);
@@ -751,6 +751,7 @@ test('admin area: hidden from learners, requires MFA, manages certificates', asy
   token = await csrf(fresh, '/admin/site-images');
   await fresh.post('/admin/site-images/home-study/delete').type('form').send({ _csrf: token }).expect(302);
   await request(app).get(src).expect(404);
+  assert.match((await request(app).get('/').expect(200)).text, /src="\/img\/site\/home-study\.jpg"/, 'removing an upload brings the default back');
 
   // A used MFA code can't be replayed (this sign-in also ends the session above: one device at a time).
   const replay = request.agent(app);
