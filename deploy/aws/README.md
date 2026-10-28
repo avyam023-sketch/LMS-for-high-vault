@@ -1,9 +1,9 @@
 # Production on AWS Lightsail (Montreal)
 
-One small server and a managed PostgreSQL database, both in **Canada (Montreal), ca-central-1**, so learner data and ID photos stay in Canada. Caddy handles HTTPS automatically.
+One small server and a managed PostgreSQL database, both in **Canada (Montreal), ca-central-1**, so learner data and ID photos stay in Canada. The app runs as a locked-down system service that only listens on the server itself; Caddy is the only thing reachable from the internet and handles HTTPS automatically.
 
 ```
-learner ──HTTPS──▶ Caddy ──▶ app (Docker) ──TLS, verified──▶ Lightsail PostgreSQL
+learner ──HTTPS──▶ Caddy ──▶ app (Node.js service) ──TLS, verified──▶ Lightsail PostgreSQL
                    (Lightsail instance, static IP)             (automatic daily backups)
 ```
 
@@ -37,28 +37,39 @@ Open the instance's browser terminal (**Connect using SSH**) and run:
 ```bash
 git clone https://github.com/avyam023-sketch/LMS-for-high-vault.git
 cd LMS-for-high-vault
-bash deploy/aws/setup.sh
-newgrp docker
-nano deploy/aws/.env
+sudo bash deploy/aws/install.sh
 ```
 
-In `.env`, fill in:
+The first run installs Node.js and Caddy, creates the settings file `/etc/high-vault/env` with new secrets, and stops. Open the settings:
 
-- `DOMAIN`: the address from step 3, without `https://`.
+```bash
+sudo nano /etc/high-vault/env
+```
+
+Fill in:
+
+- `APP_URL`: `https://` plus the address from step 3.
 - `DATABASE_URL`: `postgres://dbmasteruser:PASSWORD@ENDPOINT:5432/highvault`, using the endpoint and password from step 1. If the password has symbols like `@`, `/` or `#`, URL-encode them. Don't add `?sslmode=…`: the app always uses TLS and checks the certificate against AWS's bundle.
 - `ADMIN_EMAIL` and `ADMIN_PASSWORD`: the first administrator.
 - `RESEND_API_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` and `BUNNY_STREAM_TOKEN_KEY` as you have them.
 
-Save (Ctrl+O, Enter, Ctrl+X), then start it:
+Save (Ctrl+O, Enter, Ctrl+X), then run the installer again. This time it installs the app, starts it and sets up HTTPS:
 
 ```bash
-docker compose -f deploy/aws/docker-compose.yml up -d --build
-docker compose -f deploy/aws/docker-compose.yml logs -f app
+sudo bash deploy/aws/install.sh
 ```
 
-When the log says `listening`, open `https://your-domain`. Sign in as the admin and set up two-step verification. Then remove `ADMIN_PASSWORD` from `.env` and run the `up -d` command again.
+When it says `Running`, open `https://your-domain`. Sign in as the admin and set up two-step verification. Then delete the `ADMIN_PASSWORD` line from `/etc/high-vault/env` and run the installer once more.
 
-**Back up `ENCRYPTION_KEY`** (in `.env`) in a password manager. Without it, the encrypted ID photos, exam evidence and two-step secrets in the database can't be read.
+**Back up `ENCRYPTION_KEY`** (in `/etc/high-vault/env`) in a password manager. Without it, the encrypted ID photos, exam evidence and two-step secrets in the database can't be read.
+
+Useful commands:
+
+| To | Run |
+|---|---|
+| Watch the logs | `sudo journalctl -u high-vault -f` |
+| Restart after changing settings | `sudo systemctl restart high-vault` |
+| Check it's running | `systemctl status high-vault` |
 
 ## 5. Connect the services
 
@@ -73,7 +84,7 @@ Admin → Overview shows a *Before going live* list until each of these is conne
 ```bash
 cd LMS-for-high-vault
 git pull
-docker compose -f deploy/aws/docker-compose.yml up -d --build
+sudo bash deploy/aws/install.sh
 ```
 
 Database changes run automatically when the app starts.
@@ -81,4 +92,4 @@ Database changes run automatically when the app starts.
 ## Backups and restore
 
 - The database has automatic daily backups (Lightsail keeps 7 days). Restore from **Databases → highvault-db → Snapshots & restore**, which creates a new database; point `DATABASE_URL` at it.
-- Instance snapshots cover the server itself, including `.env`.
+- Instance snapshots cover the server itself, including `/etc/high-vault/env`.

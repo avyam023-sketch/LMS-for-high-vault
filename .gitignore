@@ -6,4 +6,3 @@ node_modules/
 coverage/
 .DS_Store
 demo/dist/
-deploy/aws/certs/

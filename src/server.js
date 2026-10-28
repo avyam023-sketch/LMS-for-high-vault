@@ -9,7 +9,7 @@ await migrate();
 await bootstrap();
 await runMaintenance();
 setInterval(runMaintenance, 6 * 60 * 60 * 1000).unref();
-const server = createApp().listen(config.PORT, () => {
+const server = createApp().listen(config.PORT, config.HOST, () => {
   console.log(`High Vault Academy listening on ${config.appUrl} (port ${config.PORT})`);
 });
 

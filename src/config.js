@@ -8,6 +8,8 @@ const bool = z
 const schema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().int().positive().default(3000),
+  // Address to listen on. Behind a reverse proxy on the same server (AWS + Caddy), use 127.0.0.1.
+  HOST: z.string().default('0.0.0.0'),
   // On Render, the public URL is provided automatically.
   APP_URL: z.url().default(process.env.RENDER_EXTERNAL_URL || 'http://localhost:3000'),
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
@@ -65,7 +67,7 @@ if (!parsed.success) {
 }
 
 const env = parsed.data;
-// The local preview (docker-compose.preview.yml) uses public placeholder keys. Never in production.
+// The local preview (preview.env) uses public placeholder keys. Never in production.
 if (env.NODE_ENV === 'production' && (env.SESSION_SECRET.startsWith('local-preview-only') || env.ENCRYPTION_KEY === 'bG9jYWwtcHJldmlldy1vbmx5LW5vdC1zZWNyZXQhIQA=')) {
   console.error('Refusing to start: the local-preview keys must not be used in production. Generate new SESSION_SECRET and ENCRYPTION_KEY values.');
   process.exit(1);

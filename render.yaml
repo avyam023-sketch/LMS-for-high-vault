@@ -5,8 +5,10 @@
 services:
   - type: web
     name: high-vault-lms
-    runtime: docker
+    runtime: node
     plan: free
+    buildCommand: npm ci --omit=dev
+    startCommand: node src/server.js
     healthCheckPath: /healthz
     envVars:
       - key: NODE_ENV

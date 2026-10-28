@@ -10,18 +10,23 @@ These are the app's real pages, generated with fictional sample learners. There 
 
 The [`Preview site`](.github/workflows/pages.yml) workflow rebuilds it on every push (`node demo/build.js`, sample data in [`src/db/sample-data.js`](src/db/sample-data.js)). The preview includes the question bank and answers, as the admin pages do. Turn the workflow off once real exam questions are in use.
 
-## Try it on your computer (5 minutes)
+## Try it on your computer (10 minutes)
 
-1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/) and open it.
-2. Download this repo: **Code → Download ZIP**, then unzip it.
-3. Open a terminal in the unzipped folder (on Windows: open the folder, click the address bar, type `cmd`, press Enter) and run:
+The quickest way to show the site to someone is the [working demo](DEMO.md). To run it on your own computer instead:
+
+1. Install [Node.js 22](https://nodejs.org/) (the LTS download) and [PostgreSQL 16](https://www.postgresql.org/download/). On a Mac, [Postgres.app](https://postgresapp.com/) is the easiest. During the PostgreSQL install, note the password you set for the `postgres` user.
+2. Create an empty database called `highvault_preview` (in pgAdmin: Databases → Create; or run `createdb highvault_preview`).
+3. Download this repo (**Code → Download ZIP**, then unzip it) and open a terminal in the folder. On Windows: open the folder, click the address bar, type `cmd`, press Enter.
+4. If your PostgreSQL password isn't `postgres`, open `preview.env` and change it in `DATABASE_URL`.
+5. Run:
    ```
-   docker compose -f docker-compose.preview.yml up --build
+   npm install
+   npm run preview
    ```
-4. When you see `listening on http://localhost:3000`, open **http://localhost:3000**.
+6. When you see `listening`, open **http://localhost:3000**.
    - Admin: `admin@example.com` / `vault-preview-2026`
-   - Or click **Enrol now** and sign up as a learner (no email confirmation in the preview).
-5. Stop with `Ctrl+C`. To wipe the preview data: `docker compose -f docker-compose.preview.yml down -v`
+   - Or register as a learner (no email confirmation in the preview). Paying needs a Stripe test key in `preview.env`.
+7. Stop with `Ctrl+C`. To start over, delete and re-create the `highvault_preview` database.
 
 The preview turns off email confirmation and admin two-step verification and uses public placeholder keys, so it's only for your own computer. The app refuses to start in production with those keys.
 
@@ -39,7 +44,7 @@ For the real site, use [`deploy/aws/`](deploy/aws/README.md): one Lightsail serv
 
 ---
 
-**Stack:** Node.js 22 · Express 5 · PostgreSQL 16 · server-rendered EJS · no front-end framework. It's a small, auditable codebase that runs anywhere Docker or Node runs.
+**Stack:** Node.js 22 · Express 5 · PostgreSQL 16 · server-rendered EJS · no front-end framework. It's a small, auditable codebase that runs anywhere Node.js runs.
 
 | Course page | Module quiz | Exam check-in | Proctored exam | Identity review |
 |---|---|---|---|---|
@@ -188,15 +193,16 @@ npm test
 
 ## Deploying
 
-The app is a single stateless container plus a PostgreSQL database.
+The app is a single stateless Node.js process plus a PostgreSQL database. It writes nothing to disk, so any number of copies can run side by side.
 
 ```bash
-docker compose up -d --build
-docker compose exec app npm run seed
-docker compose exec app npm run create-admin -- you@yourdomain.ca "First" "Last"
+npm ci --omit=dev
+npm start            # runs database migrations, then serves on PORT (default 3000)
+npm run seed         # load the course content (or set SEED_ON_START=true)
+npm run create-admin -- you@yourdomain.ca "First" "Last"
 ```
 
-Any host that runs a container and managed Postgres works (Render, Railway, Fly.io, DigitalOcean App Platform, AWS, Azure). Checklist:
+Any host that runs Node.js 22 with a managed PostgreSQL works (Render, Railway, Fly.io, DigitalOcean App Platform, AWS, Azure). Checklist:
 
 1. `NODE_ENV=production` and `APP_URL=https://your-domain`.
 2. Generate fresh `SESSION_SECRET` and `ENCRYPTION_KEY` values. **Back up `ENCRYPTION_KEY`**: losing it means admins must re-enrol their two-step verification.
@@ -205,7 +211,7 @@ Any host that runs a container and managed Postgres works (Render, Railway, Fly.
 5. Serve over HTTPS only. The app sends HSTS in production.
 6. Schedule daily database backups. Proctoring files live in the database, so allow roughly 2 MB per exam (deleted after the retention period).
 7. To charge for the course, set `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`, and point a Stripe webhook at `https://your-domain/webhooks/stripe` with events `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired` and `charge.refunded`. Learners are enrolled as soon as they return from checkout; the webhook covers slow payment methods and records refunds (a full refund ends access). Set `STRIPE_AUTOMATIC_TAX=true` after turning on Stripe Tax. The price is set in Admin → Courses.
-8. Managed databases with their own certificate authority: set `DATABASE_CA_FILE` to the CA file (AWS RDS and Lightsail; `deploy/aws/setup.sh` downloads it) or paste the certificate into `DATABASE_CA_CERT` (Supabase). The connection is always verified. On Supabase, the app also locks every table away from Supabase's public Data API roles.
+8. Managed databases with their own certificate authority: set `DATABASE_CA_FILE` to the CA file (AWS RDS and Lightsail; `deploy/aws/install.sh` downloads it) or paste the certificate into `DATABASE_CA_CERT` (Supabase). The connection is always verified. On Supabase, the app also locks every table away from Supabase's public Data API roles.
 
 Rate-limit counters are kept in memory, which suits one app instance. If you run several instances, switch to a shared store (`rate-limit-postgresql` or Redis).
 
