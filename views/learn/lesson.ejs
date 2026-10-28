@@ -10,6 +10,8 @@
         <h1 class="lesson-title"><%= lesson.title %></h1>
         <% if (video && video.kind === 'file') { %>
           <div class="video"><video src="<%= video.src %>" controls preload="metadata" playsinline controlslist="nodownload" data-lesson-video></video></div>
+        <% } else if (video && video.kind === 'bunny') { %>
+          <div class="video"><iframe src="<%= video.src %>" title="<%= lesson.title %> video" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin" data-lesson-player></iframe></div>
         <% } else if (video) { %>
           <div class="video"><iframe src="<%= video.src %>" title="<%= lesson.title %> video" loading="lazy" allow="encrypted-media; picture-in-picture; fullscreen" referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
         <% } %>

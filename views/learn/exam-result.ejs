@@ -4,6 +4,7 @@
     <div class="wrap">
       <p class="eyebrow"><a href="/learn/<%= attempt.course_slug %>"><%= attempt.course_title %></a> · Final exam</p>
       <h1><%= attempt.status === 'voided' ? 'Attempt voided' : attempt.passed ? 'You passed.' : 'Not this time.' %></h1>
+      <p class="muted small mt-16 mb-0">Exam reference <span class="ref"><%= attempt.reference %></span></p>
     </div>
   </div>
   <div class="page">

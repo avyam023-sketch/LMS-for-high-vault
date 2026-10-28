@@ -1,7 +1,7 @@
 import { one, query } from '../db/pool.js';
 import { config } from '../config.js';
 
-const USER_COLUMNS = `id, email, first_name, last_name, role, email_verified_at, mfa_enabled_at,
+const USER_COLUMNS = `id, reference, email, first_name, last_name, role, email_verified_at, mfa_enabled_at,
   active_session_id, disabled_at, created_at`;
 
 /** Loads req.user from the session and enforces one active session per account. */

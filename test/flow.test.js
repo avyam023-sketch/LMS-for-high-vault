@@ -150,6 +150,11 @@ test('CSRF token is required for state-changing requests', async () => {
 test('full learner journey: chapters + quizzes → proctored exam → review → certificate', async () => {
   const email = 'pass@example.com';
   const agent = await verifiedLearner(email, { first: 'Amélie', last: "O'Neil" });
+  const me = await one('SELECT reference FROM users WHERE email = $1', [email]);
+  assert.match(me.reference, /^HV-L-[2-9A-HJ-NP-Z]{4}-[2-9A-HJ-NP-Z]{4}$/);
+  const welcome = lastMailTo(email);
+  assert.match(welcome.subject, /Welcome/);
+  assert.ok(welcome.text.includes(me.reference), 'welcome email quotes the learner ID');
   let token = await csrf(agent, '/dashboard');
   await agent.post(`/enroll/${SLUG}`).type('form').send({ _csrf: token }).expect(302);
 
@@ -212,6 +217,12 @@ test('full learner journey: chapters + quizzes → proctored exam → review →
 
   // Proctored pass: the certificate waits for identity review.
   assert.match(res.text, /Certificate pending review/);
+  const examRef = (await one('SELECT reference FROM exam_attempts WHERE id = $1', [attemptId])).reference;
+  assert.match(examRef, /^HV-E-/);
+  assert.ok(res.text.includes(examRef), 'result page shows the exam reference');
+  const resultMail = lastMailTo(email);
+  assert.match(resultMail.subject, /You passed/);
+  assert.ok(resultMail.text.includes(examRef) && /checks your ID/.test(resultMail.text));
   assert.equal((await one('SELECT count(*)::int AS n FROM certificates WHERE attempt_id = $1', [attemptId])).n, 0);
   assert.equal((await one('SELECT review_status FROM exam_attempts WHERE id = $1', [attemptId])).review_status, 'pending');
   res = await agent.get(`/learn/${SLUG}/exam`).expect(200);
@@ -588,7 +599,25 @@ test('admin area: hidden from learners, requires MFA, manages certificates', asy
   await fresh.post(`/admin/attempts/${pendingAttempt.id}/review`).type('form').send({ _csrf: token, decision: 'approve', note: 'ID matches' }).expect(302);
   const issued = await one('SELECT code FROM certificates WHERE attempt_id = $1', [pendingAttempt.id]);
   assert.ok(issued, 'approval issues the certificate');
-  assert.match(lastMailTo('checkin@example.com').subject, /certificate is ready/);
+  const certMail = lastMailTo('checkin@example.com');
+  assert.match(certMail.subject, /certificate is ready/);
+  assert.ok(certMail.text.includes(issued.code) && certMail.html.includes(issued.code));
+
+  // One search box finds any reference code.
+  const refs = await one(
+    `SELECT u.reference AS learner, a.reference AS exam FROM exam_attempts a JOIN users u ON u.id = a.user_id WHERE a.id = $1`,
+    [pendingAttempt.id],
+  );
+  res = await fresh.get(`/admin/find?code=${encodeURIComponent(refs.exam.toLowerCase())}`).expect(302);
+  assert.equal(res.headers.location, `/admin/attempts/${pendingAttempt.id}`);
+  res = await fresh.get(`/admin/find?code=${refs.learner}`).expect(302);
+  assert.equal(res.headers.location, `/admin/users/${pendingUser.id}`);
+  res = await fresh.get(`/admin/find?code=${issued.code}`).expect(302);
+  assert.match(res.headers.location, /^\/admin\/certificates\?q=/);
+  res = await fresh.get('/admin/find?code=HV-E-2222-2222').expect(302);
+  assert.equal(res.headers.location, '/admin');
+  res = await fresh.get('/admin/users?q=' + refs.learner).expect(200);
+  assert.ok(res.text.includes(`/admin/users/${pendingUser.id}`));
 
   // Revoking a certificate shows on the public verification page.
   const cert = await one('SELECT * FROM certificates LIMIT 1');

@@ -5,7 +5,8 @@ import { config } from '../config.js';
 import { answerQuiz, courseOutline, examStatus, itemUrl, quizState, startAttempt } from '../lib/exam.js';
 import { renderCertificate } from '../lib/certificate.js';
 import { apiLimiter } from '../lib/limits.js';
-import { renderMarkdown, videoSource } from '../lib/markdown.js';
+import { renderMarkdown } from '../lib/markdown.js';
+import { videoSource } from '../lib/video.js';
 import { flash } from '../lib/view-helpers.js';
 
 const router = Router();

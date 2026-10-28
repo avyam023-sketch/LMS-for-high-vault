@@ -27,12 +27,16 @@ const schema = z.object({
   REQUIRE_ADMIN_MFA: z.enum(['true', 'false']).default('true').transform((v) => v === 'true'),
   REQUIRE_EMAIL_VERIFICATION: z.enum(['true', 'false']).default('true').transform((v) => v === 'true'),
   CHECK_BREACHED_PASSWORDS: z.enum(['true', 'false', '1', '0', '']).optional(),
+  // Email: Resend's API (recommended) or any SMTP server. Without either, emails print to the console.
+  RESEND_API_KEY: z.string().optional(),
   SMTP_URL: z.string().optional(),
   MAIL_FROM: z.string().default('The High Vault Security Academy <no-reply@thehighvaultsecurity.ca>'),
   // First-run bootstrap for one-click deploys: load the course and create the first admin.
   SEED_ON_START: bool,
   ADMIN_EMAIL: z.string().email().optional().or(z.literal('')),
   ADMIN_PASSWORD: z.string().optional(),
+  // Bunny Stream → Video library → Security → Token authentication key. Signs chapter video links.
+  BUNNY_STREAM_TOKEN_KEY: z.string().optional(),
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
   SUPPORT_EMAIL: z.string().default('info@thehighvaultsecurity.ca'),

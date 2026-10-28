@@ -6,7 +6,7 @@
 <div class="page-head">
   <div>
     <h1 class="mb-8"><% if (user.role === 'admin') { %><a href="/admin/users/<%= attempt.user_id %>"><%= attempt.first_name %> <%= attempt.last_name %></a><% } else { %><%= attempt.first_name %> <%= attempt.last_name %><% } %></h1>
-    <div class="row"><span class="muted"><%= attempt.course_title %></span><%- include('../partials/attempt-badge', { a: attempt }) %></div>
+    <div class="row"><span class="ref"><%= attempt.reference %></span><span class="muted"><%= attempt.course_title %></span><%- include('../partials/attempt-badge', { a: attempt }) %></div>
   </div>
   <% if (attempt.score_percent != null) { %><div class="score"><%= attempt.score_percent %>%</div><% } %>
 </div>

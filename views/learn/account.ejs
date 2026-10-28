@@ -9,7 +9,7 @@
       <h2>Profile</h2>
       <% if (nameLocked) { %>
         <p class="muted">Your name appears on an issued certificate, so it can't be changed here. Email <a href="mailto:<%= supportEmail %>"><%= supportEmail %></a> to correct it.</p>
-        <dl class="meta"><dt>Name</dt><dd><%= user.first_name %> <%= user.last_name %></dd><dt>Email</dt><dd><%= user.email %></dd></dl>
+        <dl class="meta"><dt>Name</dt><dd><%= user.first_name %> <%= user.last_name %></dd><dt>Email</dt><dd><%= user.email %></dd><dt>Learner ID</dt><dd><span class="ref"><%= user.reference %></span></dd></dl>
       <% } else { %>
         <form method="post" action="/account/profile">
           <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
@@ -18,7 +18,7 @@
             <%- include('../partials/field', { name: 'last_name', label: 'Last name', type: 'text', value: values.last_name, error: errors.last_name, autocomplete: 'family-name' }) %>
           </div>
           <p class="small muted">Use your legal name. It's printed on your certificate and locks once a certificate is issued.</p>
-          <dl class="meta mb-16"><dt>Email</dt><dd><%= user.email %></dd></dl>
+          <dl class="meta mb-16"><dt>Email</dt><dd><%= user.email %></dd><dt>Learner ID</dt><dd><span class="ref"><%= user.reference %></span> <span class="small muted">Quote this if you contact us.</span></dd></dl>
           <button class="btn btn-primary" type="submit">Save profile</button>
         </form>
       <% } %>

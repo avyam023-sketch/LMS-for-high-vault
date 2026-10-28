@@ -100,7 +100,7 @@ function legacyOpen(iv, tag, ct) {
 // Unambiguous alphabet (no 0/O, 1/I/L) so codes can be read over the phone.
 const ALPHABET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
 export function certificateCode(date = new Date()) {
-  const pick = (n) => Array.from(crypto.randomBytes(n), (b) => ALPHABET[b % ALPHABET.length]).join('');
+  const pick = (n) => Array.from({ length: n }, () => ALPHABET[crypto.randomInt(ALPHABET.length)]).join('');
   return `HV-${date.getUTCFullYear()}-${pick(4)}-${pick(4)}`;
 }
 

@@ -3,17 +3,18 @@
   <h1>Learners</h1>
   <form method="get" class="row" role="search">
     <label class="sr-only" for="q">Search</label>
-    <input id="q" type="search" name="q" value="<%= q %>" placeholder="Name or email">
+    <input id="q" type="search" name="q" value="<%= q %>" placeholder="Name, email or learner ID">
     <button class="btn btn-primary btn-sm" type="submit">Search</button>
   </form>
 </div>
 <div class="table-wrap">
   <table class="data">
-    <thead><tr><th>Name</th><th>Email</th><th>Status</th><th>Joined</th><th>Last sign-in</th><th class="num">Certificates</th></tr></thead>
+    <thead><tr><th>Name</th><th>Learner ID</th><th>Email</th><th>Status</th><th>Joined</th><th>Last sign-in</th><th class="num">Certificates</th></tr></thead>
     <tbody>
       <% for (const u of users) { %>
       <tr>
         <td><a href="/admin/users/<%= u.id %>"><%= u.first_name %> <%= u.last_name %></a> <% if (u.role === 'admin') { %><span class="badge badge-dark">Admin</span><% } %></td>
+        <td><span class="ref small"><%= u.reference %></span></td>
         <td><%= u.email %></td>
         <td><% if (u.disabled_at) { %><span class="badge badge-bad">Disabled</span><% } else if (!u.email_verified_at) { %><span class="badge badge-warn">Unverified</span><% } else { %><span class="badge badge-ok">Active</span><% } %></td>
         <td><%= fmtDate(u.created_at) %></td>
@@ -21,7 +22,7 @@
         <td class="num"><%= u.certs %></td>
       </tr>
       <% } %>
-      <% if (!users.length) { %><tr><td colspan="6" class="muted">No learners found.</td></tr><% } %>
+      <% if (!users.length) { %><tr><td colspan="7" class="muted">No learners found.</td></tr><% } %>
     </tbody>
   </table>
 </div>

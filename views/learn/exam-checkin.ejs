@@ -7,7 +7,10 @@
         <p class="eyebrow"><%= attempt.course_title %> · Final exam</p>
         <h1>Exam check-in</h1>
       </div>
-      <p class="muted small maxw-360 mb-0">The exam timer hasn’t started. Finish check-in within <%= checkinMinutes %> minutes. Your exam begins when you press <strong>Begin exam</strong>.</p>
+      <div class="maxw-360">
+        <p class="muted small mb-8">The exam timer hasn’t started. Finish check-in within <%= checkinMinutes %> minutes. Your exam begins when you press <strong>Begin exam</strong>.</p>
+        <p class="muted small mb-0">Exam reference <span class="ref"><%= attempt.reference %></span></p>
+      </div>
     </div>
   </div>
   <div class="page">

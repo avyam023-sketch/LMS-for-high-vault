@@ -8,9 +8,12 @@ import { flash } from '../lib/view-helpers.js';
 import { parseCsv } from '../lib/csv.js';
 import { decryptBuffer } from '../lib/crypto.js';
 import { reviewAttempt } from '../lib/exam.js';
-import { sendMail } from '../lib/mailer.js';
+import { parseBunny } from '../lib/video.js';
 import { config } from '../config.js';
-import { securityNotice } from '../lib/notify.js';
+import {
+  attemptVoidedEmail, certificateIssuedEmail, certificateRevokedEmail, enrolmentEmail, extraAttemptEmail, reviewRejectedEmail,
+  roleChangedEmail, securityNotice,
+} from '../lib/notify.js';
 
 const router = Router();
 router.use(requireStaff);
@@ -56,7 +59,7 @@ router.get('/', async (req, res) => {
       (SELECT count(*)::int FROM exam_attempts WHERE status = 'in_progress') AS live_exams,
       (SELECT count(*)::int FROM exam_attempts WHERE review_status = 'pending') AS pending_reviews`);
   const recentAttempts = await many(
-    `SELECT a.id, a.status, a.score_percent, a.passed, a.focus_violations, a.auto_submitted, a.started_at,
+    `SELECT a.id, a.reference, a.status, a.score_percent, a.passed, a.focus_violations, a.auto_submitted, a.started_at,
             u.first_name, u.last_name, u.email
        FROM exam_attempts a JOIN users u ON u.id = a.user_id ORDER BY a.started_at DESC LIMIT 8`,
   );
@@ -66,14 +69,44 @@ router.get('/', async (req, res) => {
   res.render('admin/overview', { title: 'Admin overview', stats, recentAttempts, recentUsers });
 });
 
+// ---------- Find by reference ----------
+// One box for every code a learner might quote: learner ID, exam reference, payment or certificate number.
+const REFERENCE = /^HV-(L|E|P|\d{4})-[2-9A-HJ-NP-Z]{4}-[2-9A-HJ-NP-Z]{4}$/;
+router.get('/find', async (req, res) => {
+  const raw = String(req.query.code ?? '').trim().slice(0, 100);
+  const code = raw.toUpperCase().replace(/\s+/g, '');
+  const kind = code.match(REFERENCE)?.[1];
+  // Not a reference: treat it as a name or email search.
+  if (!kind) return res.redirect(raw ? `/admin/users?q=${encodeURIComponent(raw)}` : '/admin');
+  let url = null;
+  if (kind === 'L') {
+    const u = await one('SELECT id FROM users WHERE reference = $1', [code]);
+    if (u) url = `/admin/users/${u.id}`;
+  } else if (kind === 'E') {
+    const a = await one('SELECT id FROM exam_attempts WHERE reference = $1', [code]);
+    if (a) url = `/admin/attempts/${a.id}`;
+  } else if (kind === 'P') {
+    const p = await one('SELECT user_id FROM payments WHERE reference = $1', [code]);
+    if (p) url = `/admin/users/${p.user_id}#payments`;
+  } else {
+    const c = await one('SELECT code FROM certificates WHERE code = $1', [code]);
+    if (c) url = `/admin/certificates?q=${encodeURIComponent(c.code)}`;
+  }
+  if (!url) {
+    flash(req, 'warn', `Nothing matches ${code}. Check the code and try again.`);
+    return res.redirect('/admin');
+  }
+  res.redirect(url);
+});
+
 // ---------- Learners ----------
 router.get('/users', async (req, res) => {
   const q = String(req.query.q ?? '').trim().slice(0, 100);
   const page = pageOf(req);
-  const where = q ? `WHERE email ILIKE $1 OR (first_name || ' ' || last_name) ILIKE $1` : '';
+  const where = q ? `WHERE email ILIKE $1 OR (first_name || ' ' || last_name) ILIKE $1 OR reference ILIKE $1` : '';
   const params = q ? [`%${q.replace(/[%_\\]/g, '\\$&')}%`] : [];
   const users = await many(
-    `SELECT u.id, u.email, u.first_name, u.last_name, u.role, u.email_verified_at, u.disabled_at, u.created_at, u.last_login_at,
+    `SELECT u.id, u.reference, u.email, u.first_name, u.last_name, u.role, u.email_verified_at, u.disabled_at, u.created_at, u.last_login_at,
             (SELECT count(*) FROM certificates c WHERE c.user_id = u.id AND c.revoked_at IS NULL)::int AS certs
        FROM users u ${where} ORDER BY u.created_at DESC LIMIT ${PAGE + 1} OFFSET ${(page - 1) * PAGE}`,
     params,
@@ -97,12 +130,16 @@ router.get('/users/:id', async (req, res) => {
     [member.id],
   );
   const certificates = await many('SELECT * FROM certificates WHERE user_id = $1 ORDER BY issued_at DESC', [member.id]);
+  const payments = await many(
+    'SELECT p.*, c.title AS course_title FROM payments p JOIN courses c ON c.id = p.course_id WHERE p.user_id = $1 ORDER BY p.created_at DESC',
+    [member.id],
+  );
   const courses = await many('SELECT id, title FROM courses ORDER BY created_at');
   const activity = await many(
     `SELECT action, ip, created_at FROM audit_log WHERE actor_id = $1 OR entity_id = $2 ORDER BY created_at DESC LIMIT 20`,
     [member.id, String(member.id)],
   );
-  res.render('admin/user', { title: `${member.first_name} ${member.last_name}`, member, enrollments, attempts, certificates, courses, activity });
+  res.render('admin/user', { title: `${member.first_name} ${member.last_name}`, member, enrollments, attempts, certificates, payments, courses, activity });
 });
 
 router.post('/users/:id/action', async (req, res) => {
@@ -138,17 +175,7 @@ router.post('/users/:id/action', async (req, res) => {
       await query('UPDATE users SET active_session_id = NULL WHERE id = $1', [member.id]);
       await query(`DELETE FROM session WHERE sess->>'userId' = $1`, [member.id]);
       const target = await one('SELECT email, first_name FROM users WHERE id = $1', [member.id]);
-      await sendMail({
-        to: target.email,
-        subject: 'Your account access changed — The High Vault Security',
-        heading: `Hi ${target.first_name}`,
-        body: [
-          role === 'student' ? 'Your staff access has been removed.' : `You now have ${role === 'admin' ? 'administrator' : 'identity reviewer'} access.`,
-          role === 'student' ? '' : 'Sign in again. You’ll be asked to set up two-step verification if you haven’t already.',
-          `If you didn’t expect this change, contact ${config.SUPPORT_EMAIL} right away.`,
-        ].filter(Boolean),
-        action: { label: 'Sign in', url: `${config.appUrl}/login` },
-      });
+      await roleChangedEmail(target, role);
       break;
     }
     case 'reset_mfa': {
@@ -165,12 +192,17 @@ router.post('/users/:id/action', async (req, res) => {
     }
     case 'enroll': {
       if (!UUID.test(String(req.body.course_id))) return back();
-      await query(`INSERT INTO enrollments (user_id, course_id, source) VALUES ($1, $2, 'admin') ON CONFLICT DO NOTHING`, [member.id, req.body.course_id]);
+      const added = await one(
+        `INSERT INTO enrollments (user_id, course_id, source) VALUES ($1, $2, 'admin') ON CONFLICT DO NOTHING RETURNING id`,
+        [member.id, req.body.course_id],
+      );
+      if (added) await enrolmentEmail(member.id, req.body.course_id);
       break;
     }
     case 'extra_attempt': {
       if (!UUID.test(String(req.body.course_id))) return back();
-      await query('UPDATE enrollments SET extra_attempts = extra_attempts + 1 WHERE user_id = $1 AND course_id = $2', [member.id, req.body.course_id]);
+      const { rowCount } = await query('UPDATE enrollments SET extra_attempts = extra_attempts + 1 WHERE user_id = $1 AND course_id = $2', [member.id, req.body.course_id]);
+      if (rowCount) await extraAttemptEmail(member.id, req.body.course_id);
       break;
     }
     default:
@@ -337,7 +369,16 @@ router.post('/modules/:id', async (req, res) => {
 const lessonSchema = z.object({
   title: z.string().trim().min(1).max(160),
   content_md: z.string().max(100_000).default(''),
-  video_url: z.union([z.literal(''), z.url().max(500).refine((u) => u.startsWith('https://'), 'Use an https:// link.')]).default(''),
+  video_url: z
+    .union([
+      z.literal(''),
+      z
+        .url()
+        .max(500)
+        .refine((u) => u.startsWith('https://'), 'Use an https:// link.')
+        .refine((u) => !/mediadelivery\.net$/.test(new URL(u).hostname) || parseBunny(u), 'Use the Bunny Stream embed link: https://iframe.mediadelivery.net/embed/<library ID>/<video ID>.'),
+    ])
+    .default(''),
   min_seconds: z.coerce.number().int().min(0).max(36_000),
   position: z.coerce.number().int().min(0).max(1000).default(0),
   module_id: z.uuid(),
@@ -590,7 +631,7 @@ router.get('/attempts', async (req, res) => {
     voided: `a.status = 'voided'`,
   }[filter];
   const attempts = await many(
-    `SELECT a.id, a.status, a.score_percent, a.passed, a.focus_violations, a.auto_submitted, a.started_at, a.submitted_at, a.ip, a.review_status,
+    `SELECT a.id, a.reference, a.status, a.score_percent, a.passed, a.focus_violations, a.auto_submitted, a.started_at, a.submitted_at, a.ip, a.review_status,
             u.id AS user_id, u.first_name, u.last_name, u.email, c.title AS course_title,
             (SELECT count(*) FROM integrity_events e WHERE e.attempt_id = a.id)::int AS events
        FROM exam_attempts a JOIN users u ON u.id = a.user_id JOIN courses c ON c.id = a.course_id
@@ -650,7 +691,8 @@ router.post('/attempts/:id/void', async (req, res) => {
     await db.query(`UPDATE certificates SET revoked_at = now(), revoke_reason = $2 WHERE attempt_id = $1 AND revoked_at IS NULL`, [req.params.id, `Exam voided: ${reason}`]);
   });
   await audit(req, 'admin.attempt.void', { entity: 'attempt', entityId: req.params.id, meta: { reason } });
-  flash(req, 'success', 'Attempt voided. Any certificate from it is revoked.');
+  await attemptVoidedEmail(req.params.id, reason);
+  flash(req, 'success', 'Attempt voided. Any certificate from it is revoked. The learner was emailed.');
   res.redirect(`/admin/attempts/${req.params.id}`);
 });
 
@@ -665,23 +707,8 @@ router.post('/attempts/:id/review', async (req, res) => {
     flash(req, 'warn', 'This attempt is no longer waiting for review.');
     return res.redirect(`/admin/attempts/${req.params.id}`);
   }
-  const learner = await one('SELECT email, first_name FROM users WHERE id = $1', [result.attempt.user_id]);
-  if (decision === 'approve') {
-    await sendMail({
-      to: learner.email,
-      subject: 'Your certificate is ready — The High Vault Security',
-      heading: `Congratulations, ${learner.first_name}`,
-      body: [`Your exam review is complete and your certificate (${result.certificate.code}) has been issued.`, 'You can download it from your dashboard at any time.'],
-      action: { label: 'Download your certificate', url: `${config.appUrl}/dashboard` },
-    });
-  } else {
-    await sendMail({
-      to: learner.email,
-      subject: 'About your exam — The High Vault Security',
-      heading: 'We couldn’t verify your exam',
-      body: [`Reason: ${note}`, `If you think this is a mistake, reply to ${config.SUPPORT_EMAIL}.`],
-    });
-  }
+  if (decision === 'approve') await certificateIssuedEmail(req.params.id);
+  else await reviewRejectedEmail(req.params.id, note);
   await audit(req, `admin.attempt.${decision}`, { entity: 'attempt', entityId: req.params.id, meta: { note } });
   flash(req, 'success', decision === 'approve' ? `Approved. Certificate ${result.certificate.code} issued and the learner was emailed.` : 'Rejected. The learner was emailed.');
   // Move straight on to the next attempt waiting for review.
@@ -746,7 +773,7 @@ router.get('/certificates', async (req, res) => {
 
 router.get('/certificates.csv', async (req, res) => {
   const rows = await many(
-    `SELECT c.code, c.full_name, u.email, c.course_title, c.score_percent, c.issued_at, c.expires_at, c.revoked_at, c.revoke_reason
+    `SELECT c.code, c.full_name, u.reference, u.email, c.course_title, c.score_percent, c.issued_at, c.expires_at, c.revoked_at, c.revoke_reason
        FROM certificates c JOIN users u ON u.id = c.user_id ORDER BY c.issued_at DESC`,
   );
   // Prefix risky leading characters so spreadsheet apps don't execute them as formulas.
@@ -755,7 +782,7 @@ router.get('/certificates.csv', async (req, res) => {
     if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
     return `"${s.replace(/"/g, '""')}"`;
   };
-  const header = ['code', 'name', 'email', 'course', 'score', 'issued_at', 'expires_at', 'revoked_at', 'revoke_reason'];
+  const header = ['code', 'name', 'learner_id', 'email', 'course', 'score', 'issued_at', 'expires_at', 'revoked_at', 'revoke_reason'];
   const csv = [header.join(','), ...rows.map((r) => Object.values(r).map(cell).join(','))].join('\r\n');
   await audit(req, 'admin.certificates.export', { meta: { rows: rows.length } });
   res.set({ 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': 'attachment; filename="certificates.csv"' });
@@ -765,9 +792,10 @@ router.get('/certificates.csv', async (req, res) => {
 router.post('/certificates/:id', async (req, res) => {
   if (req.body.action === 'revoke') {
     const reason = String(req.body.reason ?? '').trim().slice(0, 300) || 'Revoked by administrator';
-    await query('UPDATE certificates SET revoked_at = now(), revoke_reason = $2 WHERE id = $1 AND revoked_at IS NULL', [req.params.id, reason]);
+    const { rowCount } = await query('UPDATE certificates SET revoked_at = now(), revoke_reason = $2 WHERE id = $1 AND revoked_at IS NULL', [req.params.id, reason]);
     await audit(req, 'admin.certificate.revoke', { entity: 'certificate', entityId: req.params.id, meta: { reason } });
-    flash(req, 'success', 'Certificate revoked.');
+    if (rowCount) await certificateRevokedEmail(req.params.id, reason);
+    flash(req, 'success', 'Certificate revoked. The holder was emailed.');
   } else if (req.body.action === 'reinstate') {
     await query('UPDATE certificates SET revoked_at = NULL, revoke_reason = NULL WHERE id = $1', [req.params.id]);
     await audit(req, 'admin.certificate.reinstate', { entity: 'certificate', entityId: req.params.id });

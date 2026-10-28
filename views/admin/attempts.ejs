@@ -11,7 +11,7 @@
     <tbody>
       <% for (const a of attempts) { %>
       <tr>
-        <td><a href="/admin/attempts/<%= a.id %>"><%= a.first_name %> <%= a.last_name %></a><div class="small muted"><%= a.email %></div></td>
+        <td><a href="/admin/attempts/<%= a.id %>"><%= a.first_name %> <%= a.last_name %></a><div class="small muted"><span class="ref"><%= a.reference %></span> · <%= a.email %></div></td>
         <td><%= a.course_title %></td>
         <td><%= fmtDateTime(a.started_at) %></td>
         <td class="num"><%= a.score_percent ?? '—' %></td>

@@ -1,30 +1,120 @@
 import nodemailer from 'nodemailer';
 import { config } from '../config.js';
 
-const transport = config.SMTP_URL ? nodemailer.createTransport(config.SMTP_URL) : null;
+// Email delivery. Resend's HTTP API when RESEND_API_KEY is set (recommended), any SMTP server
+// when SMTP_URL is set, otherwise messages are kept in `outbox` and printed (development/tests).
+const smtp = !config.RESEND_API_KEY && config.SMTP_URL ? nodemailer.createTransport(config.SMTP_URL) : null;
 
-/** Messages captured when no SMTP server is configured (dev/test). */
+/** Messages captured when no email service is configured (dev/test). */
 export const outbox = [];
 
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
-function layout({ heading, body, action }) {
+/** Branded, table-based HTML that renders the same in Gmail, Outlook and Apple Mail. */
+function layout({ heading, body, action, details, footer }) {
+  const rows = (details ?? [])
+    .map(([label, value]) => `<tr><td style="padding:8px 0;color:#6a7074;font-size:13px;width:150px;vertical-align:top">${esc(label)}</td>
+      <td style="padding:8px 0;font-size:14px;font-family:'IBM Plex Mono',Menlo,Consolas,monospace;color:#231f20">${esc(value)}</td></tr>`)
+    .join('');
   const button = action
-    ? `<p style="margin:28px 0"><a href="${esc(action.url)}" style="background:#B0D7E4;color:#231F20;padding:12px 22px;border-radius:6px;text-decoration:none;font-weight:600">${esc(action.label)}</a></p>
-       <p style="font-size:13px;color:#666">Or paste this link into your browser:<br>${esc(action.url)}</p>`
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:28px 0 8px"><tr><td style="background:#231f20;border-radius:4px">
+         <a href="${esc(action.url)}" style="display:inline-block;padding:13px 24px;color:#ffffff;font-weight:600;font-size:15px;text-decoration:none">${esc(action.label)}</a>
+       </td></tr></table>
+       <p style="font-size:12px;color:#6a7074;margin:12px 0 0;word-break:break-all">Or paste this link into your browser: ${esc(action.url)}</p>`
     : '';
-  return `<div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#231F20">
-    <div style="background:#231F20;color:#B0D7E4;padding:18px 24px;letter-spacing:.12em;font-size:14px">THE HIGH VAULT SECURITY ACADEMY</div>
-    <div style="padding:24px"><h1 style="font-size:20px">${esc(heading)}</h1>${body.map((p) => `<p>${esc(p)}</p>`).join('')}${button}</div></div>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><meta name="color-scheme" content="light"><title>${esc(heading)}</title></head>
+<body style="margin:0;padding:0;background:#f5f6f6">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f6f6;padding:32px 12px"><tr><td align="center">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e3e6e8;border-radius:6px;font-family:Arial,Helvetica,sans-serif;color:#231f20">
+    <tr><td style="background:#231f20;padding:20px 28px;border-radius:6px 6px 0 0">
+      <span style="color:#b0d7e4;font-size:13px;letter-spacing:.14em">THE HIGH VAULT SECURITY</span>
+      <span style="color:#a9b4b8;font-size:11px;letter-spacing:.1em;padding-left:10px">FOOD HANDLER CERTIFICATION</span>
+    </td></tr>
+    <tr><td style="padding:32px 28px 28px">
+      <h1 style="font-size:22px;line-height:1.3;font-weight:600;margin:0 0 16px">${esc(heading)}</h1>
+      ${body.map((p) => `<p style="font-size:15px;line-height:1.6;margin:0 0 14px">${esc(p)}</p>`).join('')}
+      ${rows ? `<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin:20px 0 4px;border-top:1px solid #e3e6e8;border-bottom:1px solid #e3e6e8">${rows}</table>` : ''}
+      ${button}
+    </td></tr>
+    <tr><td style="padding:18px 28px;border-top:1px solid #e3e6e8;font-size:12px;line-height:1.6;color:#6a7074">
+      ${esc(footer ?? `Questions? Email ${config.SUPPORT_EMAIL} and quote the reference above.`)}<br>
+      The High Vault Security · <a href="${esc(config.appUrl)}" style="color:#2c6a80">${esc(config.appUrl.replace(/^https?:\/\//, ''))}</a>
+    </td></tr>
+  </table>
+</td></tr></table></body></html>`;
 }
 
-export async function sendMail({ to, subject, heading, body, action }) {
-  const text = [heading, '', ...body, action ? `\n${action.label}: ${action.url}` : ''].join('\n');
-  const message = { from: config.MAIL_FROM, to, subject, text, html: layout({ heading, body, action }) };
-  if (!transport) {
-    outbox.push(message);
-    if (!config.isTest) console.log(`[mail] to=${to} subject="${subject}"\n${text}\n`);
-    return;
+function plainText({ heading, body, action, details, footer }) {
+  return [
+    heading, '',
+    ...body,
+    ...(details?.length ? ['', ...details.map(([l, v]) => `${l}: ${v}`)] : []),
+    ...(action ? ['', `${action.label}: ${action.url}`] : []),
+    '', footer ?? `Questions? Email ${config.SUPPORT_EMAIL} and quote the reference above.`,
+  ].join('\n');
+}
+
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/** Resend's HTTP API. Retries rate limits and server errors; the idempotency key stops duplicates. */
+async function sendWithResend(message, { idempotencyKey, category }) {
+  const payload = {
+    from: message.from,
+    to: [message.to],
+    subject: message.subject,
+    html: message.html,
+    text: message.text,
+    ...(config.SUPPORT_EMAIL ? { reply_to: [config.SUPPORT_EMAIL] } : {}),
+    ...(category ? { tags: [{ name: 'category', value: category.replace(/[^\w-]/g, '_') }] } : {}),
+  };
+  for (let attempt = 1; ; attempt++) {
+    let res;
+    try {
+      res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${config.RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+          ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey.slice(0, 256) } : {}),
+        },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(10_000),
+      });
+    } catch (err) {
+      if (attempt >= 4) throw err;
+      await wait(500 * 2 ** attempt);
+      continue;
+    }
+    if (res.ok) return;
+    if ((res.status === 429 || res.status >= 500) && attempt < 4) {
+      const retryAfter = Number(res.headers.get('retry-after')) * 1000;
+      await wait(retryAfter > 0 ? Math.min(retryAfter, 10_000) : 500 * 2 ** attempt);
+      continue;
+    }
+    // A repeat of an already-sent message (same idempotency key) is not a failure.
+    if (res.status === 409 && idempotencyKey) return;
+    const detail = await res.text().catch(() => '');
+    throw new Error(`Resend ${res.status}: ${detail.slice(0, 300)}`);
   }
-  await transport.sendMail(message);
+}
+
+/**
+ * Sends one email. Never throws: a failed email is logged and reported as false, so it can't break
+ * the page that triggered it. `idempotencyKey` (e.g. "exam-result/<id>") makes retries safe.
+ */
+export async function sendMail({ to, subject, heading, body, action, details, footer, idempotencyKey, category }) {
+  const parts = { heading, body, action, details, footer };
+  const message = { from: config.MAIL_FROM, to, subject, text: plainText(parts), html: layout(parts), category };
+  try {
+    if (config.RESEND_API_KEY) await sendWithResend(message, { idempotencyKey, category });
+    else if (smtp) await smtp.sendMail(message);
+    else {
+      outbox.push(message);
+      if (!config.isTest) console.log(`[mail] to=${to} subject="${subject}"\n${message.text}\n`);
+    }
+    return true;
+  } catch (err) {
+    console.error(`[mail] failed: subject="${subject}" category=${category ?? '-'}: ${err.message}`);
+    return false;
+  }
 }

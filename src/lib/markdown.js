@@ -12,38 +12,3 @@ export function renderMarkdown(md = '') {
     transformTags: { a: sanitizeHtml.simpleTransform('a', { rel: 'noopener noreferrer', target: '_blank' }) },
   });
 }
-
-/**
- * Describes how to play a lesson video: { kind: 'file', src } for a direct .mp4/.webm/.mov link
- * (played natively, so viewing can be tracked), { kind: 'embed', src } for YouTube/Vimeo, or null.
- */
-export function videoSource(url) {
-  if (!url) return null;
-  try {
-    const u = new URL(url);
-    if (u.protocol === 'https:' && /\.(mp4|webm|mov|m4v)$/i.test(u.pathname)) return { kind: 'file', src: u.href };
-  } catch {
-    return null;
-  }
-  const src = embedUrl(url);
-  return src ? { kind: 'embed', src } : null;
-}
-
-/** Converts a YouTube/Vimeo URL into a privacy-friendly embed URL, or null. */
-export function embedUrl(url) {
-  if (!url) return null;
-  try {
-    const u = new URL(url);
-    const host = u.hostname.replace(/^www\./, '');
-    if (host === 'youtu.be') return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(u.pathname.slice(1))}`;
-    if (host === 'youtube.com' || host === 'm.youtube.com') {
-      const id = u.searchParams.get('v') ?? u.pathname.split('/').pop();
-      return id ? `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}` : null;
-    }
-    if (host === 'vimeo.com') return `https://player.vimeo.com/video/${encodeURIComponent(u.pathname.split('/').pop())}`;
-    if (host === 'player.vimeo.com' || host === 'youtube-nocookie.com') return u.href;
-  } catch {
-    /* invalid URL */
-  }
-  return null;
-}

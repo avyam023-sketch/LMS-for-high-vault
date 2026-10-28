@@ -33,12 +33,12 @@ The fastest way to get a public URL is **Render** (free tier is fine for a previ
 
 1. Sign in at [render.com](https://render.com) with GitHub and allow access to this repository (it's private).
 2. **New → Blueprint**, pick `avyam023-sketch/LMS-for-high-vault`, then **Apply**. Or use the button: [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/avyam023-sketch/LMS-for-high-vault)
-3. When asked, enter `ADMIN_EMAIL` and a strong `ADMIN_PASSWORD` (12+ characters). Leave `SMTP_URL` blank for now if you don't have one.
+3. When asked, enter `ADMIN_EMAIL` and a strong `ADMIN_PASSWORD` (12+ characters). Leave `RESEND_API_KEY` blank for now if you don't have one.
 4. Wait for the first deploy (about 5 minutes). Your site is at `https://high-vault-lms.onrender.com` (or similar — Render shows the URL).
 5. Sign in with the admin email. You'll set up two-step verification on first sign-in. Then **delete `ADMIN_PASSWORD`** in Render → Environment.
 
 Notes for the preview:
-- **Email**: without `SMTP_URL`, sign-up confirmation emails aren't sent. As admin, open Learners → the person → *Mark email verified*, or add an SMTP provider (Postmark, Resend, Amazon SES) to `SMTP_URL`.
+- **Email**: without `RESEND_API_KEY` (or `SMTP_URL`), sign-up confirmation emails aren't sent. As admin, open Learners → the person → *Mark email verified*, or add a Resend API key.
 - **Custom domain** (e.g. `learn.thehighvaultsecurity.ca`): add it in Render → Settings → Custom Domains, then set `APP_URL=https://learn.thehighvaultsecurity.ca`. Forms are refused from any other address, so this step matters.
 - **Free tier**: the app sleeps after inactivity (first visit takes ~30 seconds) and Render's free database is time-limited. Move both to paid plans before real learners use it.
 
@@ -58,7 +58,9 @@ Notes for the preview:
 - **Course page** laid out like a product page: price box, what you'll learn, how it works, course outline, exam and certificate details, FAQ.
 - **Self-registration** with email verification, password reset and optional two-step verification (authenticator app).
 - **Course structure**: Module 1 → Chapter 1 → Module 1 quiz → Module 2 → … → Module 10 quiz → final exam. Everything unlocks strictly in order.
-- **Chapters**: a video plus a written lesson, with a minimum study time tracked on the server. With a hosted MP4/WebM video, the learner must watch to the end before continuing. YouTube and Vimeo links also work, but viewing can't be tracked.
+- **Chapters**: a video plus a written lesson, with a minimum study time tracked on the server. Videos are hosted on **Bunny Stream**. Each playback link is signed and expires after 6 hours, so it can't be shared. The learner must watch to the end (skipping ahead doesn't count) before continuing. A direct MP4/WebM link is tracked the same way. YouTube and Vimeo links play but can't be tracked.
+- **Reference codes on everything**: every account gets a learner ID (`HV-L-7K3M-Q9TX`), every exam attempt an exam reference (`HV-E-…`), every payment a payment reference (`HV-P-…`), and every certificate a certificate number (`HV-2026-…`). They appear on the learner's screens and in every email. Admins can paste any of them into the *Find* box to jump straight to the record. The alphabet leaves out look-alike characters (0/O, 1/I/L) so codes can be read over the phone.
+- **Automatic emails** (sent through Resend): email confirmation, welcome with learner ID, enrolment/payment confirmation, exam result (passed and in review, passed with certificate, or not passed with attempts left and the retake time), certificate issued, review rejected, attempt voided, certificate revoked, extra attempt granted, certificate expiring in 60 days, security alerts, and a *new exam to review* alert for staff. Each one has an idempotency key, so a retry never sends a duplicate.
 - **Module quizzes**: not timed or monitored. The learner must answer each question correctly to move on. A wrong answer is marked and they try again; a correct answer shows the explanation.
 - **Proctored final exam**: a check-in before the timer starts (system check, face photo, ID photo, room-scan video). The camera and microphone stay on throughout, with snapshots, face monitoring, one-screen enforcement, full screen and focus monitoring. Questions are drawn at random, with autosave and a navigator.
 - **Results** with a score and a per-topic breakdown. Individual answers are never shown, so they can't leak. A passed, proctored exam shows "certificate pending review" until an admin approves it.
@@ -159,7 +161,7 @@ npm run create-admin -- you@yourdomain.ca "First" "Last"   # prints a one-time p
 npm run dev                     # http://localhost:3000
 ```
 
-Without `SMTP_URL`, verification and reset emails print to the server console.
+Without `RESEND_API_KEY` or `SMTP_URL`, verification and reset emails print to the server console.
 
 The first time an admin signs in, they're asked to set up two-step verification before the dashboard opens.
 
@@ -190,7 +192,7 @@ Any host that runs a container and managed Postgres works (Render, Railway, Fly.
 1. `NODE_ENV=production` and `APP_URL=https://your-domain`.
 2. Generate fresh `SESSION_SECRET` and `ENCRYPTION_KEY` values. **Back up `ENCRYPTION_KEY`**: losing it means admins must re-enrol their two-step verification.
 3. Set `TRUST_PROXY=1` (or the number of proxy hops) when behind a load balancer, so rate limits and logs see real client IPs.
-4. Configure `SMTP_URL` with a transactional email provider (Postmark, SES, Mailgun, Resend…).
+4. Set `RESEND_API_KEY` (verify your sending domain in Resend first, and set `MAIL_FROM` to an address on it). Any SMTP provider also works via `SMTP_URL`. Set `BUNNY_STREAM_TOKEN_KEY` from your Bunny Stream library's security settings.
 5. Serve over HTTPS only. The app sends HSTS in production.
 6. Schedule daily database backups. Proctoring files live in the database, so allow roughly 2 MB per exam (deleted after the retention period).
 7. Optional: to charge for the course, set `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`, point a Stripe webhook at `https://your-domain/webhooks/stripe` (event `checkout.session.completed`), and set a price in Admin → Courses. Without Stripe, enrolment is free.
@@ -204,7 +206,11 @@ Rate-limit counters are kept in memory, which suits one app instance. If you run
 - [ ] **Review the course content and question bank** with whoever is accountable for food safety training. The starter content follows Health Canada guidance and Ontario's Food Premises Regulation (O. Reg. 493/17), but provincial and municipal requirements vary.
 - [ ] **Confirm recognition status.** If the course must be approved or recognised by a provincial program or local public health unit, get that confirmation first, then add it to the course page and FAQ. Until then, the FAQ deliberately tells learners to check with their employer or health unit.
 - [ ] Set the price (Admin → Courses), support email (`SUPPORT_EMAIL`) and sending address (`MAIL_FROM`).
-- [ ] **Add the 10 chapter videos.** Admin → Courses → each chapter → *Chapter video*. A direct `.mp4` link (for example from Cloudflare R2, Bunny Stream or S3) lets the platform require watching to the end; YouTube/Vimeo links play but can't be tracked.
+- [ ] **Add the 10 chapter videos.**
+  1. Upload them to a Bunny Stream library.
+  2. In the library's Security settings, turn on *Embed view token authentication* and copy the key into `BUNNY_STREAM_TOKEN_KEY`.
+  3. Add your domain under *Allowed domains*.
+  4. For each chapter, paste the video's embed link (`https://iframe.mediadelivery.net/embed/<library>/<video>`) into Admin → Courses → the chapter → *Chapter video*.
 - [ ] Grow the final-exam bank to at least about 60 questions (twice the 30-question exam) to reduce answer sharing.
 - [ ] Decide who reviews exam recordings and how quickly, and tell learners (the result page says the certificate is issued after review).
 - [ ] Have the terms of use (`views/public/terms.ejs`) reviewed: refunds are currently "email us", and no governing-law clause is set.

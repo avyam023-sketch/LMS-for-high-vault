@@ -1,6 +1,6 @@
 import { pool } from '../db/pool.js';
 import { config } from '../config.js';
-import { sendMail } from './mailer.js';
+import { expiryReminderEmail } from './notify.js';
 
 /**
  * Deletes exam evidence (ID photo, face photo, room scan, snapshots):
@@ -31,20 +31,9 @@ export async function sendExpiryReminders() {
        FROM users u
       WHERE u.id = c.user_id AND u.deleted_at IS NULL AND c.revoked_at IS NULL AND c.expiry_reminder_sent_at IS NULL
         AND c.expires_at BETWEEN now() AND now() + interval '60 days'
-      RETURNING c.code, c.course_title, c.expires_at, u.email, u.first_name`,
+      RETURNING c.code, c.course_title, c.expires_at, u.email, u.first_name, u.reference`,
   );
-  for (const r of rows) {
-    await sendMail({
-      to: r.email,
-      subject: 'Your food handler certificate expires soon — The High Vault Security',
-      heading: `Hi ${r.first_name}, time to renew`,
-      body: [
-        `Your ${r.course_title} certificate (${r.code}) expires on ${new Date(r.expires_at).toLocaleDateString('en-CA', { dateStyle: 'long' })}.`,
-        'Renew before it lapses so you stay certified at work.',
-      ],
-      action: { label: 'Renew your certification', url: `${config.appUrl}/` },
-    }).catch((err) => console.error('reminder email failed', err));
-  }
+  for (const r of rows) await expiryReminderEmail(r);
   return rows.length;
 }
 

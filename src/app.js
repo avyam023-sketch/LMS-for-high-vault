@@ -68,7 +68,7 @@ export function createApp() {
           mediaSrc: ["'self'", 'blob:', 'https:'],
           fontSrc: ["'self'"],
           connectSrc: ["'self'"],
-          frameSrc: ['https://www.youtube-nocookie.com', 'https://player.vimeo.com'],
+          frameSrc: ['https://iframe.mediadelivery.net', 'https://player.mediadelivery.net', 'https://www.youtube-nocookie.com', 'https://player.vimeo.com'],
           formAction: ["'self'", 'https://checkout.stripe.com'],
           frameAncestors: ["'none'"],
           baseUri: ["'none'"],

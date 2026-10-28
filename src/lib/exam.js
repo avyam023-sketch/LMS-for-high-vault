@@ -1,4 +1,5 @@
 import { many, one, query, tx } from '../db/pool.js';
+import { examResultEmail, reviewQueuedAlert } from './notify.js';
 import { certificateCode, shuffle } from './crypto.js';
 
 /** Seconds of leeway after the deadline for answers already in flight. */
@@ -130,7 +131,7 @@ export async function examStatus(user, course) {
 
   const certificate = await validCertificate(user.id, course.id);
   const attempts = await many(
-    `SELECT id, status, score_percent, passed, submitted_at, started_at, auto_submitted, review_status
+    `SELECT id, reference, status, score_percent, passed, submitted_at, started_at, auto_submitted, review_status
        FROM exam_attempts WHERE user_id = $1 AND course_id = $2 ORDER BY started_at DESC`,
     [user.id, course.id],
   );
@@ -307,7 +308,8 @@ async function issueCertificate(db, attemptId) {
  * or, when the course requires identity review, once an administrator approves the attempt.
  */
 export async function finalizeAttempt(attemptId, autoReason = null) {
-  return tx(async (db) => {
+  let submittedNow = false;
+  const result = await tx(async (db) => {
     const { rows } = await db.query(
       `SELECT a.*, c.pass_mark, c.identity_review_required, c.proctoring_required
          FROM exam_attempts a JOIN courses c ON c.id = a.course_id
@@ -343,8 +345,15 @@ export async function finalizeAttempt(attemptId, autoReason = null) {
       [attemptId, score, correct, passed, autoReason, needsReview ? 'pending' : 'not_required'],
     );
     if (passed && !needsReview) await issueCertificate(db, attemptId);
+    submittedNow = true;
     return updated[0];
   });
+  // Emails go out after the commit, once per attempt, whichever path submitted it.
+  if (submittedNow) {
+    await examResultEmail(attemptId);
+    if (result.review_status === 'pending') await reviewQueuedAlert(attemptId);
+  }
+  return result;
 }
 
 /** Administrator decision on a passed, proctored attempt. Approval issues the certificate. */

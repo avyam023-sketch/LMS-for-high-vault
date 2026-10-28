@@ -5,12 +5,11 @@ import QRCode from 'qrcode';
 import { many, one, query, tx } from '../db/pool.js';
 import { config } from '../config.js';
 import { audit } from '../lib/audit.js';
-import { sendMail } from '../lib/mailer.js';
 import { requireAuth, signOut } from '../lib/auth.js';
 import { decrypt, encrypt, randomToken } from '../lib/crypto.js';
 import { checkPasswordPolicy, hashPassword, verifyPassword } from '../lib/passwords.js';
 import { parse, personName } from '../lib/validate.js';
-import { securityNotice } from '../lib/notify.js';
+import { accountDeletedEmail, securityNotice } from '../lib/notify.js';
 import { sensitiveLimiter } from '../lib/limits.js';
 import { flash } from '../lib/view-helpers.js';
 
@@ -126,7 +125,7 @@ router.get('/account/export', requireAuth, async (req, res) => {
   const data = {
     exported_at: new Date().toISOString(),
     profile: await one(
-      'SELECT email, first_name, last_name, role, email_verified_at, mfa_enabled_at, created_at, last_login_at FROM users WHERE id = $1',
+      'SELECT reference AS learner_id, email, first_name, last_name, role, email_verified_at, mfa_enabled_at, created_at, last_login_at FROM users WHERE id = $1',
       [id],
     ),
     enrollments: await many(
@@ -143,7 +142,7 @@ router.get('/account/export', requireAuth, async (req, res) => {
       [id],
     ),
     exam_attempts: await many(
-      `SELECT a.id, c.title AS course, a.status, a.started_at, a.submitted_at, a.score_percent, a.passed, a.review_status,
+      `SELECT a.reference, c.title AS course, a.status, a.started_at, a.submitted_at, a.score_percent, a.passed, a.review_status,
               a.focus_violations, a.ip, a.user_agent,
               (SELECT json_agg(json_build_object('kind', e.kind, 'at', e.occurred_at, 'detail', e.detail) ORDER BY e.occurred_at)
                  FROM integrity_events e WHERE e.attempt_id = a.id) AS integrity_events,
@@ -156,7 +155,7 @@ router.get('/account/export', requireAuth, async (req, res) => {
       'SELECT code, full_name, course_title, score_percent, issued_at, expires_at, revoked_at FROM certificates WHERE user_id = $1',
       [id],
     ),
-    payments: await many('SELECT amount_cents, currency, status, created_at, paid_at FROM payments WHERE user_id = $1', [id]),
+    payments: await many('SELECT reference, amount_cents, currency, status, created_at, paid_at FROM payments WHERE user_id = $1', [id]),
     account_activity: await many(
       'SELECT action, ip, created_at FROM audit_log WHERE actor_id = $1 ORDER BY created_at DESC LIMIT 500',
       [id],
@@ -204,12 +203,7 @@ router.post('/account/delete', requireAuth, sensitiveLimiter, async (req, res) =
     await db.query(`DELETE FROM session WHERE sess->>'userId' = $1`, [id]);
   });
   await audit(req, 'user.account_deleted', { entity: 'user', entityId: id, actorId: id });
-  await sendMail({
-    to: email,
-    subject: 'Your account has been deleted — The High Vault Security',
-    heading: 'Account deleted',
-    body: ['Your account and personal data have been deleted.', 'Any certificate already issued remains verifiable by its number until it expires, as described in our privacy policy.'],
-  }).catch(() => {});
+  await accountDeletedEmail(email);
   await signOut(req);
   res.redirect('/?deleted=1');
 });

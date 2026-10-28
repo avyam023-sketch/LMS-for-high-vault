@@ -93,6 +93,8 @@ code, kbd { font-family: var(--mono); font-size: .9em; }
 .muted { color: var(--muted); }
 .small { font-size: .875rem; }
 .mono { font-family: var(--mono); }
+/* Reference codes (HV-L-…, HV-E-…): one click selects the whole code for copying. */
+.ref { font-family: var(--mono); font-size: .92em; letter-spacing: .04em; white-space: nowrap; user-select: all; }
 .num, .tabular { font-variant-numeric: tabular-nums; }
 
 /* ---------- Header ---------- */
@@ -515,6 +517,11 @@ table.data .num, table.data th.num { text-align: right; font-variant-numeric: ta
 .admin-side a:hover { background: var(--charcoal-3); color: #fff; }
 .admin-side a[aria-current="page"] { background: var(--charcoal-3); color: var(--ice); }
 .admin-side a[aria-current="page"] svg { opacity: 1; }
+.admin-find { margin: 0 4px 24px; }
+.admin-find input { width: 100%; background: var(--charcoal); border: 1px solid var(--line-dark); color: var(--on-dark); font: 400 .82rem/1.2 var(--mono); padding: 9px 10px; border-radius: var(--r); }
+.admin-find input::placeholder { color: #8f9a9e; }
+.admin-find input:focus { outline: 2px solid var(--ice); outline-offset: 1px; border-color: transparent; }
+.admin-side h4:first-of-type { margin-top: 0; }
 .admin-main { padding: 36px clamp(20px, 3.5vw, 48px) 80px; min-width: 0; }
 .admin-main .page-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 28px; padding-bottom: 24px; border-bottom: 1px solid var(--line); }
 .admin-main .page-head h1 { font-size: clamp(1.7rem, 2.6vw, 2.2rem); margin: 0; }
@@ -529,6 +536,7 @@ table.data .num, table.data th.num { text-align: right; font-variant-numeric: ta
   .admin-side { display: flex; overflow-x: auto; gap: 4px; padding: 8px var(--gutter); border-right: 0; border-bottom: 1px solid var(--line-dark); }
   .admin-side h4 { display: none; }
   .admin-side a { white-space: nowrap; }
+  .admin-find { margin: 0; flex: 0 0 210px; }
 }
 .tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 32px; background: var(--white); border: 1px solid var(--line); border-radius: var(--r-lg); }
 .tile { padding: 24px; }

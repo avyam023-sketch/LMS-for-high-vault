@@ -4,6 +4,7 @@ import { one, query } from '../db/pool.js';
 import { config } from '../config.js';
 import { audit } from '../lib/audit.js';
 import { requireAuth } from '../lib/auth.js';
+import { enrolmentEmail } from '../lib/notify.js';
 import { flash } from '../lib/view-helpers.js';
 
 const router = Router();
@@ -40,6 +41,7 @@ router.post('/enroll/:slug', requireAuth, async (req, res) => {
 
   await query('INSERT INTO enrollments (user_id, course_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [req.user.id, course.id]);
   await audit(req, 'enrollment.created', { entity: 'course', entityId: course.id });
+  await enrolmentEmail(req.user.id, course.id);
   flash(req, 'success', `You're enrolled in ${course.title}. Start with the first lesson below.`);
   res.redirect(`/learn/${course.slug}`);
 });
@@ -74,7 +76,8 @@ export async function stripeWebhook(req, res) {
         `INSERT INTO enrollments (user_id, course_id, source, payment_ref) VALUES ($1, $2, 'payment', $3) ON CONFLICT DO NOTHING`,
         [payment.user_id, payment.course_id, s.payment_intent ?? s.id],
       );
-      await audit(null, 'payment.completed', { entity: 'payment', entityId: payment.id, actorId: payment.user_id, meta: { amount: payment.amount_cents } });
+      await audit(null, 'payment.completed', { entity: 'payment', entityId: payment.id, actorId: payment.user_id, meta: { amount: payment.amount_cents, reference: payment.reference } });
+      await enrolmentEmail(payment.user_id, payment.course_id, payment.id);
     }
   }
   res.json({ received: true });

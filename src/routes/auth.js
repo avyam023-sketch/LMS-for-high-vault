@@ -7,7 +7,7 @@ import { audit } from '../lib/audit.js';
 import { activateSession, signIn, signOut } from '../lib/auth.js';
 import { decrypt, randomToken, sha256 } from '../lib/crypto.js';
 import { emailLimiter, loginLimiter, registerLimiter } from '../lib/limits.js';
-import { sendMail } from '../lib/mailer.js';
+import { accountExistsEmail, passwordResetEmail, verificationEmail, welcomeEmail } from '../lib/notify.js';
 import { burnTime, checkPasswordPolicy, hashPassword, verifyPassword } from '../lib/passwords.js';
 import { email, parse, personName } from '../lib/validate.js';
 import { flash } from '../lib/view-helpers.js';
@@ -38,13 +38,7 @@ async function consumeToken(token, purpose) {
 
 export async function sendVerification(user) {
   const token = await issueToken(user.id, 'verify', 48);
-  await sendMail({
-    to: user.email,
-    subject: 'Confirm your email — The High Vault Security',
-    heading: `Welcome, ${user.first_name}`,
-    body: ['Confirm your email address to start your course. This link expires in 48 hours.'],
-    action: { label: 'Confirm email', url: `${config.appUrl}/verify-email/${token}` },
-  });
+  await verificationEmail(user, `${config.appUrl}/verify-email/${token}`);
 }
 
 function afterLogin(req, res) {
@@ -96,18 +90,13 @@ router.post('/register', registerLimiter, async (req, res) => {
 
   if (!user) {
     // Don't reveal which emails are registered. Tell the real owner instead.
-    await sendMail({
-      to: data.email,
-      subject: 'Sign-in help — The High Vault Security',
-      heading: 'You already have an account',
-      body: ['Someone (hopefully you) tried to register with this email. If you forgot your password, reset it below.'],
-      action: { label: 'Reset password', url: `${config.appUrl}/forgot-password` },
-    });
+    await accountExistsEmail(data.email);
     return res.render('auth/check-email', { title: 'Check your email', email: data.email });
   }
 
   await audit(req, 'user.register', { entity: 'user', entityId: user.id, actorId: user.id });
   if (!config.REQUIRE_EMAIL_VERIFICATION) {
+    await welcomeEmail(user.id);
     await signIn(req, user);
     req.user = user;
     return res.redirect('/dashboard');
@@ -140,6 +129,7 @@ router.get('/verify-email/:token', async (req, res) => {
   }
   await query('UPDATE users SET email_verified_at = coalesce(email_verified_at, now()) WHERE id = $1', [row.user_id]);
   await audit(req, 'user.email_verified', { entity: 'user', entityId: row.user_id, actorId: row.user_id });
+  await welcomeEmail(row.user_id);
   flash(req, 'success', 'Email confirmed. You can start your course.');
   res.redirect(req.user ? '/dashboard' : '/login');
 });
@@ -239,13 +229,7 @@ router.post('/forgot-password', emailLimiter, async (req, res) => {
     const user = await one('SELECT id, email, first_name FROM users WHERE email = $1 AND disabled_at IS NULL', [data.email]);
     if (user) {
       const token = await issueToken(user.id, 'reset', 1);
-      await sendMail({
-        to: user.email,
-        subject: 'Reset your password — The High Vault Security',
-        heading: 'Reset your password',
-        body: ['Use the button below to choose a new password. The link expires in 1 hour.', "If you didn't ask for this, ignore this email."],
-        action: { label: 'Choose a new password', url: `${config.appUrl}/reset-password/${token}` },
-      });
+      await passwordResetEmail(user, `${config.appUrl}/reset-password/${token}`);
       await audit(req, 'auth.reset_requested', { entity: 'user', entityId: user.id, actorId: user.id });
     }
   }
