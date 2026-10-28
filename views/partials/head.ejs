@@ -28,6 +28,11 @@
   <link rel="preload" href="/fonts/plex-sans/ibm-plex-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/fonts/jost/jost-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/css/app.css">
+  <% if (locals.motion || locals.cards) { %><script src="/js/motion-init.js"></script><% } %>
+  <% if (locals.motion) { %><script src="/vendor/gsap/gsap.min.js" defer></script>
+  <script src="/vendor/gsap/ScrollTrigger.min.js" defer></script>
+  <script src="/js/motion.js" defer></script>
+  <% } %>
   <script src="/js/site.js" defer></script>
   <% if (locals.scripts) { for (const s of scripts) { %><script src="<%= s %>" defer></script>
   <% } } %>

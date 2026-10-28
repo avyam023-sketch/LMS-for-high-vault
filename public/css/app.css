@@ -686,3 +686,73 @@ svg.icon { width: 1.1em; height: 1.1em; display: inline-block; vertical-align: -
 .curriculum-final .mod-meta { font-size: .85rem; color: var(--muted); white-space: nowrap; }
 @media (max-width: 560px) { .curriculum-final { grid-template-columns: 40px minmax(0, 1fr); } .curriculum-final .mod-meta { display: none; } }
 .curriculum .mod-topic { color: var(--muted); }
+
+/* ==========================================================================
+   Motion (homepage; driven by /js/motion.js). Without JavaScript, or with
+   reduced motion, none of this applies and the page is fully visible.
+   ========================================================================== */
+.motion [data-intro], .motion [data-reveal], .motion [data-reveal-stagger], .motion [data-split], .motion [data-steps], .motion [data-tilt] { visibility: hidden; }
+.hero { position: relative; overflow: clip; }
+.hero > .wrap { position: relative; }
+.hero-glow { position: absolute; top: -30%; right: -20%; width: min(1100px, 120vw); aspect-ratio: 1; pointer-events: none;
+  background: radial-gradient(closest-side, rgba(176, 215, 228, .14), rgba(176, 215, 228, .05) 45%, transparent 70%); }
+/* Headline words rise out of a mask. */
+[data-split] .w { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: .1em; margin-bottom: -.1em; }
+[data-split] .wi { display: inline-block; will-change: transform; }
+/* "How it works": a bar draws across each step as it becomes active. */
+.motion .steps li { position: relative; }
+.motion .steps li::after { content: ''; position: absolute; left: 0; right: 0; top: -1px; height: 2px; background: var(--steel); transform: scaleX(var(--fill, 0)); transform-origin: left; }
+/* Curriculum: a rail fills alongside the modules as you scroll. */
+.curriculum-wrap { position: relative; }
+.curriculum-rail { display: none; }
+@media (min-width: 1100px) {
+  .motion .curriculum-rail { display: block; position: absolute; left: -32px; top: 0; bottom: 0; width: 2px; background: var(--steel); transform-origin: top; }
+}
+.showcase { perspective: 1400px; }
+[data-tilt] { transform-origin: 50% 100%; will-change: transform; }
+.site-header { transition: box-shadow .3s ease; }
+.site-header.scrolled { box-shadow: 0 10px 30px -18px rgba(0, 0, 0, .7); }
+
+/* ---------- Sign-up as a deck of cards (driven by /js/signup.js) ---------- */
+.su-card { border: 0; margin: 0; padding: 0; min-width: 0; }
+/* A legend normally sits on the fieldset border; floating it puts it inside the card. */
+.su-q { float: left; width: 100%; display: flex; gap: 12px; align-items: baseline; padding: 0; margin: 0 0 6px; font-family: var(--display); font-size: 1.4rem; line-height: 1.25; color: var(--ink); }
+.su-n { font-family: var(--mono); font-size: .75rem; color: var(--steel); }
+.su-help { clear: both; color: var(--muted); font-size: .9rem; margin: 0 0 22px; }
+.su-q + :not(.su-help) { clear: both; }
+.su-nav { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 8px; }
+.su-summary { margin: 10px 0 20px; }
+.su-meter { display: flex; align-items: center; gap: 12px; margin: -10px 0 20px; }
+.su-meter span { flex: 1; height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; }
+.su-meter i { display: block; height: 100%; width: 0; background: var(--bad); transition: width .3s ease, background-color .3s ease; }
+.su-meter[data-score="2"] i { background: var(--warn); }
+.su-meter[data-score="3"] i { background: var(--ok); }
+.su-meter small { min-width: 120px; text-align: right; font-size: .8rem; color: var(--muted); }
+.su-dots { display: flex; gap: 6px; list-style: none; margin: 0 0 22px; padding: 0; }
+.su-dots li { width: 32px; height: 3px; border-radius: 2px; background: var(--line-2); transition: background-color .3s ease; }
+.su-dots li.done { background: var(--steel); }
+.su-dots li.current { background: var(--ink); }
+/* Without JavaScript: one ordinary form. */
+html:not(.js) .su-dots, html:not(.js) [data-next], html:not(.js) [data-back] { display: none; }
+html:not(.js) .su-card + .su-card { margin-top: 28px; padding-top: 28px; border-top: 1px solid var(--line); }
+/* With JavaScript: the cards stack; the next two peek out behind the one in front. */
+.js .su-deck { display: grid; padding-bottom: 26px; }
+.js .su-card { grid-area: 1 / 1; display: flex; flex-direction: column; background: var(--white); border: 1px solid var(--line); border-radius: var(--r-lg);
+  padding: 28px 28px 24px; box-shadow: 0 22px 44px -28px rgba(35, 31, 32, .45); transform-origin: 50% 100%;
+  transition: transform .6s cubic-bezier(.2, .8, .2, 1), opacity .45s ease, visibility 0s linear .6s; }
+.js .su-card .su-nav { margin-top: auto; padding-top: 12px; }
+.js .su-card > * { transition: opacity .2s ease; }
+.js .su-card:not(.is-active) > * { opacity: 0; }
+.js .su-card.is-active { z-index: 4; transition-delay: 0s; }
+.js .su-card.is-active > * { opacity: 1; transition: opacity .35s ease .18s; }
+.js .su-card.is-next { z-index: 3; transform: translateY(13px) scale(.955); background: var(--ice-3); }
+.js .su-card.is-next2 { z-index: 2; transform: translateY(26px) scale(.91); background: var(--ice-2); }
+.js .su-card.is-later { z-index: 1; transform: translateY(26px) scale(.91); opacity: 0; }
+.js .su-card.is-done { z-index: 5; transform: translate(-115%, -10px) rotate(-7deg); opacity: 0; visibility: hidden; pointer-events: none; }
+.su-card.shake { animation: su-shake .38s ease; }
+@keyframes su-shake { 20% { transform: translateX(-8px); } 45% { transform: translateX(7px); } 70% { transform: translateX(-4px); } 100% { transform: translateX(0); } }
+@media (prefers-reduced-motion: reduce) {
+  .js .su-card, .js .su-card > *, .su-dots li { transition: none; }
+  .su-card.shake { animation: none; }
+}
+@media (max-width: 520px) { .js .su-card { padding: 22px 18px 18px; } }

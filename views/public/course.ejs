@@ -1,4 +1,4 @@
-<%- include('../partials/head') %>
+<%- include('../partials/head', { motion: true }) %>
 <% const years = course.certificate_validity_months ? Math.round(course.certificate_validity_months / 12 * 10) / 10 : null; %>
 <script type="application/ld+json"><%- JSON.stringify({
   '@context': 'https://schema.org',
@@ -13,20 +13,21 @@
 <main id="main">
   <% if (locals.deletedNotice) { %><div class="wrap"><div class="alert alert-success mt-24">Your account has been deleted.</div></div><% } %>
 
-  <section class="hero dark">
+  <section class="hero dark" data-hero>
+    <div class="hero-glow" aria-hidden="true"></div>
     <div class="wrap">
       <div class="hero-grid">
         <div>
-          <p class="kicker">Online certification course</p>
-          <h1><%= course.title %>, <em>completed online.</em></h1>
-          <p class="lead">One careless shortcut can make a customer sick and shut a kitchen down. Ten short modules teach the rules that prevent it. A proctored exam proves you know them.</p>
-          <div class="hero-actions">
+          <p class="kicker" data-intro>Online certification course</p>
+          <h1 data-split><%= course.title %>, <em>completed online.</em></h1>
+          <p class="lead" data-intro>One careless shortcut can make a customer sick and shut a kitchen down. Ten short modules teach the rules that prevent it. A proctored exam proves you know them.</p>
+          <div class="hero-actions" data-intro>
             <%- include('../partials/enrol-cta', { cls: 'btn-ice btn-lg' }) %>
             <a class="btn btn-ghost btn-lg" href="#curriculum">See the curriculum</a>
           </div>
         </div>
 
-        <aside class="enrol" id="enroll" aria-label="Enrol">
+        <aside class="enrol" id="enroll" aria-label="Enrol" data-intro="card">
           <div class="enrol-head">
             <p class="eyebrow">Course, final exam &amp; certificate</p>
             <div class="price"><%= money(course.price_cents, course.currency) %><% if (course.price_cents) { %><small><%= course.currency.toUpperCase() %> + tax</small><% } %></div>
@@ -42,7 +43,7 @@
         </aside>
       </div>
 
-      <dl class="spec-bar">
+      <dl class="spec-bar" data-reveal-stagger>
         <div><dt>Study time</dt><dd>About <%= duration(course.duration_minutes) %></dd></div>
         <div><dt>Format</dt><dd>Online, self-paced</dd></div>
         <div><dt>Structure</dt><dd><%= outline.modules.length %> modules + exam</dd></div>
@@ -53,7 +54,7 @@
 
   <section class="assurance" aria-label="Why this course">
     <div class="wrap">
-      <div class="assurance-grid">
+      <div class="assurance-grid" data-reveal-stagger>
         <div><%- include('../partials/icon', { name: 'qr' }) %><h3>Verifiable in seconds</h3><p>Every certificate has a unique number and QR code that employers can check online.</p></div>
         <div><%- include('../partials/icon', { name: 'book' }) %><h3>Built on Canadian standards</h3><p>Content follows Health Canada guidance and Ontario’s Food Premises Regulation.</p></div>
         <div><%- include('../partials/icon', { name: 'devices' }) %><h3>Learn on any device</h3><p>Phone, tablet or computer. Your progress saves as you go.</p></div>
@@ -65,12 +66,12 @@
   <% if (course.outcomes.length) { %>
   <section class="section" id="outcomes">
     <div class="wrap split">
-      <div class="split-head">
+      <div class="split-head" data-reveal>
         <p class="kicker">01 — Outcomes</p>
         <h2>What you’ll be able to do</h2>
         <p>Practical rules you’ll use on every shift, explained plainly.</p>
       </div>
-      <ol class="index-list">
+      <ol class="index-list" data-reveal-stagger>
         <% for (const o of course.outcomes) { %><li><%= o %></li><% } %>
       </ol>
     </div>
@@ -79,13 +80,15 @@
 
   <section class="section section-white section-rule" id="curriculum">
     <div class="wrap split">
-      <div class="split-head">
+      <div class="split-head" data-reveal>
         <p class="kicker">02 — Curriculum</p>
         <h2><%= outline.modules.length %> modules, one clear path</h2>
         <p>Each module is a chapter — a video and a written lesson — followed by a short quiz. About <%= duration(course.duration_minutes) %> in total. Modules unlock in order, so nothing important gets skipped.</p>
       </div>
       <div>
-        <div class="curriculum">
+        <div class="curriculum-wrap">
+        <span class="curriculum-rail" aria-hidden="true" data-rail></span>
+        <div class="curriculum" data-reveal-stagger>
           <% outline.modules.forEach((m, i) => { %>
           <details <%= i === 0 ? 'open' : '' %>>
             <summary>
@@ -105,6 +108,7 @@
             <span class="mod-meta"><%= examQuestions %> questions · proctored</span>
           </div>
         </div>
+        </div>
         <% if (descriptionHtml) { %><div class="prose mt-48"><%- descriptionHtml %></div><% } %>
       </div>
     </div>
@@ -113,10 +117,10 @@
   <section class="section" id="how">
     <div class="wrap">
       <div class="split mb-32">
-        <div><p class="kicker">03 — How it works</p></div>
-        <h2 class="mb-0">From sign-up to certificate, without leaving your browser.</h2>
+        <div><p class="kicker" data-reveal>03 — How it works</p></div>
+        <h2 class="mb-0" data-split>From sign-up to certificate, without leaving your browser.</h2>
       </div>
-      <ol class="steps">
+      <ol class="steps" data-steps>
         <li><h3>Create your account</h3><p>Register with your legal name. It’s printed on your certificate.</p></li>
         <li><h3>Study each module</h3><p>Watch the chapter video, read the lesson, then pass the short module quiz to unlock the next one.</p></li>
         <li><h3>Pass the proctored exam</h3><p><%= examQuestions %> questions in <%= course.exam_time_limit_minutes %> minutes, on camera, with your ID. <%= course.pass_mark %>% to pass.</p></li>
@@ -127,7 +131,7 @@
 
   <section class="section dark" id="certificate">
     <div class="wrap showcase">
-      <figure>
+      <figure data-tilt>
         <picture>
           <source srcset="/img/certificate-sample.webp" type="image/webp">
           <img src="/img/certificate-sample.jpg" alt="Sample High Vault Security food handler certificate showing the learner’s name, course, score, issue and expiry dates, certificate number and QR code" width="1400" height="1082" loading="lazy" decoding="async">
@@ -135,10 +139,10 @@
         <figcaption>Sample certificate</figcaption>
       </figure>
       <div>
-        <p class="kicker">04 — Exam &amp; certificate</p>
-        <h2>A certificate employers can check.</h2>
-        <p class="lead">The final exam is taken on camera, with your ID checked and your room shown before you begin. Each certificate carries a unique number and QR code anyone can verify.</p>
-        <dl class="facts-list">
+        <p class="kicker" data-reveal>04 — Exam &amp; certificate</p>
+        <h2 data-split>A certificate employers can check.</h2>
+        <p class="lead" data-reveal>The final exam is taken on camera, with your ID checked and your room shown before you begin. Each certificate carries a unique number and QR code anyone can verify.</p>
+        <dl class="facts-list" data-reveal-stagger>
           <div><dt>Final exam</dt><dd><%= examQuestions %> multiple-choice questions</dd></div>
           <div><dt>Time limit</dt><dd><%= course.exam_time_limit_minutes %> minutes</dd></div>
           <div><dt>Pass mark</dt><dd><%= course.pass_mark %>%</dd></div>
@@ -154,12 +158,12 @@
   <% if (course.faqs.length) { %>
   <section class="section section-white" id="faq">
     <div class="wrap split">
-      <div class="split-head">
+      <div class="split-head" data-reveal>
         <p class="kicker">05 — Questions</p>
         <h2>Before you enrol</h2>
         <p class="contact-line">Still have a question? Email <a href="mailto:<%= supportEmail %>"><%= supportEmail %></a>.</p>
       </div>
-      <div class="faq">
+      <div class="faq" data-reveal-stagger>
         <% for (const f of course.faqs) { %>
           <details><summary><%= f.q %></summary><p><%= f.a %></p></details>
         <% } %>
@@ -170,8 +174,8 @@
 
   <section class="closing dark">
     <div class="wrap closing-grid">
-      <h2>Start today. Ten modules, one exam, a certificate that holds up.</h2>
-      <div class="closing-actions">
+      <h2 data-split>Start today. Ten modules, one exam, a certificate that holds up.</h2>
+      <div class="closing-actions" data-reveal>
         <%- include('../partials/enrol-cta', { cls: 'btn-ice btn-lg' }) %>
       </div>
     </div>

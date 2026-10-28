@@ -291,6 +291,9 @@ await cp(path.join(faceApi, 'dist', 'face-api.esm.js'), path.join(OUT, 'vendor',
 for (const f of ['tiny_face_detector_model-weights_manifest.json', 'tiny_face_detector_model.bin']) {
   await cp(path.join(faceApi, 'model', f), path.join(OUT, 'vendor', 'face-api', 'model', f));
 }
+const gsapDist = path.join(path.dirname(require.resolve('gsap/package.json')), 'dist');
+await mkdir(path.join(OUT, 'vendor', 'gsap'), { recursive: true });
+for (const f of ['gsap.min.js', 'ScrollTrigger.min.js']) await cp(path.join(gsapDist, f), path.join(OUT, 'vendor', 'gsap', f));
 // Absolute paths inside the site's scripts.
 for (const f of ['exam.js', 'exam-checkin.js', 'lesson.js', 'proctor.js', 'exam-proctor.js', 'admin-media.js', 'site.js']) {
   const file = path.join(OUT, 'js', f);

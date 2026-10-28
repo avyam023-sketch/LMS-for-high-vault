@@ -98,6 +98,11 @@ export function createApp() {
   const faceApi = path.dirname(require.resolve('@vladmandic/face-api/package.json'));
   app.get('/vendor/face-api/face-api.esm.js', (req, res) => res.sendFile(path.join(faceApi, 'dist', 'face-api.esm.js'), { maxAge: staticOpts.maxAge }));
   app.use('/vendor/face-api/model', express.static(path.join(faceApi, 'model'), staticOpts));
+  // Self-hosted GSAP for the homepage scroll animations (only the two files the site uses).
+  const gsapDist = path.join(path.dirname(require.resolve('gsap/package.json')), 'dist');
+  for (const file of ['gsap.min.js', 'ScrollTrigger.min.js']) {
+    app.get(`/vendor/gsap/${file}`, (req, res) => res.sendFile(path.join(gsapDist, file), { maxAge: staticOpts.maxAge }));
+  }
   app.get('/healthz', async (req, res) => {
     await pool.query('SELECT 1');
     res.json({ ok: true });

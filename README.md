@@ -59,6 +59,13 @@ Notes for the preview:
 - **Self-registration** with email verification, password reset and optional two-step verification (authenticator app).
 - **Course structure**: Module 1 → Chapter 1 → Module 1 quiz → Module 2 → … → Module 10 quiz → final exam. Everything unlocks strictly in order.
 - **Chapters**: a video plus a written lesson, with a minimum study time tracked on the server. Videos are hosted on **Bunny Stream**. Each playback link is signed and expires after 6 hours, so it can't be shared. The learner must watch to the end (skipping ahead doesn't count) before continuing. A direct MP4/WebM link is tracked the same way. YouTube and Vimeo links play but can't be tracked.
+- **Homepage motion**: built with GSAP and ScrollTrigger, self-hosted so the strict security policy stays intact.
+  - The hero settles in on load and headlines rise into place.
+  - A rail fills down the curriculum as you read.
+  - *How it works* holds in place while its four steps play out.
+  - The sample certificate tilts up to face the reader.
+  - Visitors who ask their device for reduced motion get the same page without movement, and everything is visible without JavaScript.
+- **Sign-up as cards**: one question per card (name, email, password, confirm). Each card is checked before moving on, with a password-strength meter and a review card before submitting. The next cards peek out from behind. Without JavaScript it falls back to a single form, and the server checks everything again.
 - **Reference codes on everything**: every account gets a learner ID (`HV-L-7K3M-Q9TX`), every exam attempt an exam reference (`HV-E-…`), every payment a payment reference (`HV-P-…`), and every certificate a certificate number (`HV-2026-…`). They appear on the learner's screens and in every email. Admins can paste any of them into the *Find* box to jump straight to the record. The alphabet leaves out look-alike characters (0/O, 1/I/L) so codes can be read over the phone.
 - **Automatic emails** (sent through Resend): email confirmation, welcome with learner ID, enrolment/payment confirmation, exam result (passed and in review, passed with certificate, or not passed with attempts left and the retake time), certificate issued, review rejected, attempt voided, certificate revoked, extra attempt granted, certificate expiring in 60 days, security alerts, and a *new exam to review* alert for staff. Each one has an idempotency key, so a retry never sends a duplicate.
 - **Module quizzes**: not timed or monitored. The learner must answer each question correctly to move on. A wrong answer is marked and they try again; a correct answer shows the explanation.

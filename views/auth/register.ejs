@@ -1,28 +1,70 @@
-<%- include('../partials/head') %>
+<%- include('../partials/head', { cards: true, scripts: ['/js/signup.js'] }) %>
+<%
+  // One question per card. After a failed submit, open the first card with an error.
+  const cards = [
+    { key: 'name', fields: ['first_name', 'last_name'] },
+    { key: 'email', fields: ['email'] },
+    { key: 'password', fields: ['password', 'confirm'] },
+    { key: 'confirm', fields: ['terms', 'form'] },
+  ];
+  const errorAt = cards.findIndex((c) => c.fields.some((f) => errors[f]));
+  const start = errorAt === -1 ? 0 : errorAt;
+  const state = (i) => (i === start ? 'is-active' : i < start ? 'is-done' : i === start + 1 ? 'is-next' : i === start + 2 ? 'is-next2' : 'is-later');
+%>
 <main id="main" class="auth-shell">
   <%- include('../partials/auth-aside') %>
   <div class="auth-main">
-    <div class="auth-form">
-      <p class="eyebrow">Step 1 of 4</p>
+    <div class="auth-form signup">
+      <p class="eyebrow" data-signup-step aria-live="polite">Step <%= start + 1 %> of 4</p>
       <h1>Create your account</h1>
-      <p class="muted">Use your legal name. It’s printed on your certificate.</p>
+      <p class="muted">It takes about a minute. Use your legal name. It’s printed on your certificate.</p>
       <%- include('../partials/flash') %>
-      <% if (errors.form) { %><div class="alert alert-error"><%= errors.form %></div><% } %>
-      <form method="post" action="/register" novalidate>
+      <form method="post" action="/register" novalidate data-signup>
         <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
         <div class="hp" aria-hidden="true"><label for="f-website">Website</label><input id="f-website" name="website" type="text" tabindex="-1" autocomplete="off"></div>
-        <div class="form-grid">
-          <%- include('../partials/field', { name: 'first_name', label: 'First name', type: 'text', value: values.first_name, error: errors.first_name, autocomplete: 'given-name', extra: 'maxlength="60"' }) %>
-          <%- include('../partials/field', { name: 'last_name', label: 'Last name', type: 'text', value: values.last_name, error: errors.last_name, autocomplete: 'family-name', extra: 'maxlength="60"' }) %>
+        <ol class="su-dots" aria-hidden="true"><% cards.forEach((c, i) => { %><li class="<%= i < start ? 'done' : i === start ? 'current' : '' %>"></li><% }) %></ol>
+
+        <div class="su-deck">
+          <fieldset class="su-card <%= state(0) %>" data-card="0">
+            <legend class="su-q"><span class="su-n">01</span>What’s your name?</legend>
+            <p class="su-help">Exactly as it appears on your ID. Your exam is checked against it.</p>
+            <div class="form-grid">
+              <%- include('../partials/field', { name: 'first_name', label: 'First name', type: 'text', value: values.first_name, error: errors.first_name, autocomplete: 'given-name', extra: 'maxlength="60"' }) %>
+              <%- include('../partials/field', { name: 'last_name', label: 'Last name', type: 'text', value: values.last_name, error: errors.last_name, autocomplete: 'family-name', extra: 'maxlength="60"' }) %>
+            </div>
+            <div class="su-nav"><span></span><button class="btn btn-primary" type="button" data-next>Continue <%- include('../partials/icon', { name: 'arrow', cls: 'icon arrow' }) %></button></div>
+          </fieldset>
+
+          <fieldset class="su-card <%= state(1) %>" data-card="1">
+            <legend class="su-q"><span class="su-n">02</span>Where should we reach you?</legend>
+            <p class="su-help">We’ll send a link to confirm it, then your exam result and certificate.</p>
+            <%- include('../partials/field', { name: 'email', label: 'Email', type: 'email', value: values.email, error: errors.email, autocomplete: 'email', extra: 'maxlength="254"' }) %>
+            <div class="su-nav"><button class="btn btn-ghost" type="button" data-back>Back</button><button class="btn btn-primary" type="button" data-next>Continue <%- include('../partials/icon', { name: 'arrow', cls: 'icon arrow' }) %></button></div>
+          </fieldset>
+
+          <fieldset class="su-card <%= state(2) %>" data-card="2">
+            <legend class="su-q"><span class="su-n">03</span>Choose a password</legend>
+            <p class="su-help">At least 12 characters. A short phrase is easy to remember and hard to guess.</p>
+            <%- include('../partials/field', { name: 'password', label: 'Password', type: 'password', value: '', error: errors.password, autocomplete: 'new-password', extra: 'minlength="12" maxlength="128"' }) %>
+            <div class="su-meter" data-meter hidden><span><i data-meter-bar></i></span><small data-meter-text></small></div>
+            <%- include('../partials/field', { name: 'confirm', label: 'Confirm password', type: 'password', value: '', error: errors.confirm, autocomplete: 'new-password' }) %>
+            <div class="su-nav"><button class="btn btn-ghost" type="button" data-back>Back</button><button class="btn btn-primary" type="button" data-next>Continue <%- include('../partials/icon', { name: 'arrow', cls: 'icon arrow' }) %></button></div>
+          </fieldset>
+
+          <fieldset class="su-card <%= state(3) %>" data-card="3">
+            <legend class="su-q"><span class="su-n">04</span>Check and confirm</legend>
+            <dl class="meta su-summary" data-summary hidden>
+              <dt>Name on certificate</dt><dd data-sum="name"></dd>
+              <dt>Email</dt><dd data-sum="email"></dd>
+            </dl>
+            <% if (errors.form) { %><div class="alert alert-error"><%= errors.form %></div><% } %>
+            <div class="field">
+              <label class="checkbox"><input type="checkbox" name="terms" required><span>I confirm this is my legal name, and I agree to the <a href="/terms" target="_blank" rel="noopener">terms of use</a> and <a href="/privacy" target="_blank" rel="noopener">privacy policy</a>.</span></label>
+              <% if (errors.terms) { %><div class="err"><%= errors.terms %></div><% } %>
+            </div>
+            <div class="su-nav"><button class="btn btn-ghost" type="button" data-back>Back</button><button class="btn btn-primary btn-lg" type="submit">Create account</button></div>
+          </fieldset>
         </div>
-        <%- include('../partials/field', { name: 'email', label: 'Email', type: 'email', value: values.email, error: errors.email, autocomplete: 'email' }) %>
-        <%- include('../partials/field', { name: 'password', label: 'Password', type: 'password', value: '', error: errors.password, autocomplete: 'new-password', hint: 'At least 12 characters. A short phrase is easy to remember and hard to guess.', extra: 'minlength="12" maxlength="128"' }) %>
-        <%- include('../partials/field', { name: 'confirm', label: 'Confirm password', type: 'password', value: '', error: errors.confirm, autocomplete: 'new-password' }) %>
-        <div class="field">
-          <label class="checkbox"><input type="checkbox" name="terms" required><span>I confirm this is my legal name, and I agree to the <a href="/terms" target="_blank" rel="noopener">terms of use</a> and <a href="/privacy" target="_blank" rel="noopener">privacy policy</a>.</span></label>
-          <% if (errors.terms) { %><div class="err"><%= errors.terms %></div><% } %>
-        </div>
-        <button class="btn btn-primary btn-lg btn-block" type="submit">Create account</button>
       </form>
       <p class="divider">Already have an account? <a href="/login">Sign in</a></p>
     </div>
