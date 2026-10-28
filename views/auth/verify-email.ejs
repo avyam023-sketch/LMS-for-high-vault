@@ -4,10 +4,18 @@
     <p class="kicker plain">Step 2 of 4</p>
     <h1>Confirm your email</h1>
     <%- include('../partials/flash') %>
-    <p class="muted">We sent a confirmation link to <strong><%= user.email %></strong>. Open it to start your course. Check your spam folder if you don't see it within a few minutes.</p>
-    <form method="post" action="/verify-email/resend" class="mt-32">
+    <p class="muted">We sent a 6-digit code to <strong><%= user.email %></strong>. Enter it below, or use the button in the email. Check your spam folder if it hasn’t arrived within a few minutes.</p>
+    <form method="post" action="/verify-email/code" class="mt-24">
       <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
-      <button class="btn btn-ghost" type="submit">Send a new link</button>
+      <div class="field">
+        <label for="code">Confirmation code</label>
+        <input id="code" name="code" class="code-input" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{6,7}" maxlength="7" required autofocus placeholder="123 456">
+      </div>
+      <button class="btn btn-primary btn-block" type="submit">Confirm email</button>
+    </form>
+    <form method="post" action="/verify-email/resend" class="mt-24">
+      <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+      <button class="btn btn-ghost btn-sm" type="submit">Send a new code</button>
     </form>
   </div>
 </main>

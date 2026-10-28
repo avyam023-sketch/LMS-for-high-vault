@@ -170,6 +170,44 @@ test('email must be verified before learning', async () => {
   await agent.get('/verify-email/not-a-real-token').expect(400);
 });
 
+test('email confirmation by 6-digit code: wrong tries are capped, the right code confirms', async () => {
+  const agent = request.agent(app);
+  await register(agent, { email: 'code@example.com' });
+  let mail = lastMailTo('code@example.com');
+  assert.match(mail.subject, /^\d{6} is your confirmation code/);
+  const code = mail.subject.slice(0, 6);
+  assert.ok(mail.text.includes(`${code.slice(0, 3)} ${code.slice(3)}`), 'the code is in the email');
+  const send = async (value) => {
+    const token = await csrf(agent, '/verify-email');
+    await agent.post('/verify-email/code').type('form').send({ _csrf: token, code: value }).expect(302);
+    return await agent.get('/verify-email');
+  };
+  const wrong = code === '000000' ? '111111' : '000000';
+  let page = await send(wrong);
+  assert.match(page.text, /isn’t right\. 4 tries left/);
+  assert.equal((await one(`SELECT email_verified_at FROM users WHERE email = 'code@example.com'`)).email_verified_at, null);
+
+  for (let i = 0; i < 4; i++) page = await send(wrong);
+  assert.match(page.text, /Too many wrong codes/);
+  page = await send(code);
+  assert.match(page.text, /expired/, 'the right code no longer works after five wrong ones');
+
+  // A fresh code, typed with a space as shown in the email, confirms the account.
+  const token = await csrf(agent, '/verify-email');
+  await agent.post('/verify-email/resend').type('form').send({ _csrf: token }).expect(302);
+  mail = lastMailTo('code@example.com');
+  const fresh = mail.subject.slice(0, 6);
+  const again = await csrf(agent, '/verify-email');
+  const res = await agent.post('/verify-email/code').type('form')
+    .send({ _csrf: again, code: `${fresh.slice(0, 3)} ${fresh.slice(3)}` }).expect(302);
+  assert.equal(res.headers.location, '/dashboard');
+  assert.ok((await one(`SELECT email_verified_at FROM users WHERE email = 'code@example.com'`)).email_verified_at);
+  assert.match(lastMailTo('code@example.com').subject, /Welcome/);
+  // The link from the same email is now spent too.
+  const link = mail.text.match(/\/verify-email\/([\w-]+)/)[1];
+  await request(app).get(`/verify-email/${link}`).expect(400);
+});
+
 test('CSRF token is required for state-changing requests', async () => {
   const agent = await verifiedLearner('csrf@example.com');
   await agent.post(`/enroll/${SLUG}`).type('form').send({}).expect(403);

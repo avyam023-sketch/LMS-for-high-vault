@@ -12,8 +12,10 @@ const schema = z.object({
   APP_URL: z.url().default(process.env.RENDER_EXTERNAL_URL || 'http://localhost:3000'),
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   DATABASE_SSL: bool,
-  // Path to the CA bundle that signed the database's certificate (AWS RDS/Lightsail: global-bundle.pem).
+  // The certificate authority that signed the database's TLS certificate, so the connection can be verified:
+  // a file path (AWS RDS/Lightsail: global-bundle.pem) or the PEM text itself (Supabase: its root certificate).
   DATABASE_CA_FILE: z.string().optional(),
+  DATABASE_CA_CERT: z.string().optional(),
   SESSION_SECRET: z.string().min(32, 'SESSION_SECRET must be at least 32 characters'),
   // 32-byte key, base64 encoded. Encrypts MFA secrets at rest.
   ENCRYPTION_KEY: z
@@ -66,6 +68,11 @@ const env = parsed.data;
 // The local preview (docker-compose.preview.yml) uses public placeholder keys. Never in production.
 if (env.NODE_ENV === 'production' && (env.SESSION_SECRET.startsWith('local-preview-only') || env.ENCRYPTION_KEY === 'bG9jYWwtcHJldmlldy1vbmx5LW5vdC1zZWNyZXQhIQA=')) {
   console.error('Refusing to start: the local-preview keys must not be used in production. Generate new SESSION_SECRET and ENCRYPTION_KEY values.');
+  process.exit(1);
+}
+// A Supabase database is reached over the internet, so never connect to it without a verified TLS connection.
+if (env.NODE_ENV === 'production' && /@[^/]*\.supabase\.(co|com)[:/]/.test(env.DATABASE_URL) && !env.DATABASE_CA_CERT && !env.DATABASE_CA_FILE) {
+  console.error('Refusing to start: set DATABASE_CA_CERT to Supabase\'s certificate (Project Settings → Database → SSL Configuration).');
   process.exit(1);
 }
 export const config = {

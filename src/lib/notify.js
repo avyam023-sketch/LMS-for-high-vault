@@ -14,13 +14,14 @@ const url = (path) => `${config.appUrl}${path}`;
 
 // ---------- Account ----------
 
-export function verificationEmail(user, link) {
+export function verificationEmail(user, link, code) {
   return sendMail({
     to: user.email,
-    subject: subject('Confirm your email'),
+    subject: subject(`${code} is your confirmation code`),
     heading: `Welcome, ${user.first_name}`,
-    body: ['Confirm your email address to start your course. This link expires in 48 hours.'],
-    action: { label: 'Confirm email', url: link },
+    body: ['Enter this code on the confirmation page to start your course. It expires in 1 hour.'],
+    code: `${code.slice(0, 3)} ${code.slice(3)}`,
+    action: { label: 'Or confirm with one click', url: link },
     footer: 'If you didn’t create an account, ignore this email and nothing will happen.',
     category: 'verify-email',
   });

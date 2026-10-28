@@ -1,20 +1,26 @@
 import { readFileSync } from 'node:fs';
+import tls from 'node:tls';
 import pg from 'pg';
 import { config } from '../config.js';
 
-// Always verify the database's certificate. Managed databases signed by their own CA (AWS) need its bundle.
-const ssl = config.DATABASE_SSL || config.DATABASE_CA_FILE
-  ? { rejectUnauthorized: true, ...(config.DATABASE_CA_FILE ? { ca: readFileSync(config.DATABASE_CA_FILE, 'utf8') } : {}) }
+// Always verify the database's certificate. Managed databases signed by their own CA (AWS, Supabase) add
+// it here; the public roots stay trusted too, for hosts whose poolers use a public certificate.
+const customCa = [
+  config.DATABASE_CA_FILE ? readFileSync(config.DATABASE_CA_FILE, 'utf8') : null,
+  config.DATABASE_CA_CERT ? config.DATABASE_CA_CERT.replace(/\\n/g, '\n') : null,
+].filter(Boolean);
+const ssl = config.DATABASE_SSL || customCa.length
+  ? { rejectUnauthorized: true, ...(customCa.length ? { ca: [...tls.rootCertificates, ...customCa] } : {}) }
   : undefined;
 
 export const pool = new pg.Pool({
   connectionString: config.DATABASE_URL,
   ssl,
   max: 10,
-  // Fail fast instead of piling up connections behind a stuck query.
-  statement_timeout: 15_000,
-  idle_in_transaction_session_timeout: 30_000,
   connectionTimeoutMillis: 10_000,
+  // Fail fast instead of piling up connections behind a stuck query. Set per session rather than as
+  // startup options, which connection poolers (Supabase, PgBouncer) can refuse.
+  onConnect: (client) => client.query('SET statement_timeout = 15000; SET idle_in_transaction_session_timeout = 30000'),
 });
 
 export const query = (text, params) => pool.query(text, params);

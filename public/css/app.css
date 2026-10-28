@@ -333,6 +333,7 @@ code, kbd { font-family: var(--mono); font-size: .9em; }
    ========================================================================== */
 .field { margin-bottom: 20px; }
 .field label, .label { display: block; font-size: .875rem; font-weight: 500; color: var(--ink); margin-bottom: 8px; }
+.code-input { font-family: var(--mono); font-size: 1.6rem; letter-spacing: .3em; text-align: center; }
 .field .hint { font-size: .825rem; color: var(--muted); margin-top: 8px; }
 .field .err { font-size: .85rem; color: var(--bad); margin-top: 8px; }
 input:not([type]), input[type=text], input[type=email], input[type=password], input[type=number], input[type=url], input[type=search], select, textarea {

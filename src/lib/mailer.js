@@ -11,7 +11,7 @@ export const outbox = [];
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
 /** Branded, table-based HTML that renders the same in Gmail, Outlook and Apple Mail. */
-function layout({ heading, body, action, details, footer }) {
+function layout({ heading, body, code, action, details, footer }) {
   const rows = (details ?? [])
     .map(([label, value]) => `<tr><td style="padding:8px 0;color:#6d5f62;font-size:13px;width:150px;vertical-align:top">${esc(label)}</td>
       <td style="padding:8px 0;font-size:14px;font-family:'IBM Plex Mono',Menlo,Consolas,monospace;color:#241517">${esc(value)}</td></tr>`)
@@ -33,6 +33,7 @@ function layout({ heading, body, action, details, footer }) {
     <tr><td style="padding:32px 28px 28px">
       <h1 style="font-size:22px;line-height:1.3;font-weight:600;margin:0 0 16px">${esc(heading)}</h1>
       ${body.map((p) => `<p style="font-size:15px;line-height:1.6;margin:0 0 14px">${esc(p)}</p>`).join('')}
+      ${code ? `<p style="margin:22px 0 6px;font-family:'IBM Plex Mono',Menlo,Consolas,monospace;font-size:34px;letter-spacing:.3em;font-weight:600;color:#241517">${esc(code)}</p>` : ''}
       ${rows ? `<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin:20px 0 4px;border-top:1px solid #eee3e4;border-bottom:1px solid #eee3e4">${rows}</table>` : ''}
       ${button}
     </td></tr>
@@ -44,10 +45,11 @@ function layout({ heading, body, action, details, footer }) {
 </td></tr></table></body></html>`;
 }
 
-function plainText({ heading, body, action, details, footer }) {
+function plainText({ heading, body, code, action, details, footer }) {
   return [
     heading, '',
     ...body,
+    ...(code ? ['', code] : []),
     ...(details?.length ? ['', ...details.map(([l, v]) => `${l}: ${v}`)] : []),
     ...(action ? ['', `${action.label}: ${action.url}`] : []),
     '', footer ?? `Questions? Email ${config.SUPPORT_EMAIL} and quote the reference above.`,
@@ -117,8 +119,8 @@ export async function withoutEmail(fn) {
   }
 }
 
-export async function sendMail({ to, subject, heading, body, action, details, footer, idempotencyKey, category }) {
-  const parts = { heading, body, action, details, footer };
+export async function sendMail({ to, subject, heading, body, code, action, details, footer, idempotencyKey, category }) {
+  const parts = { heading, body, code, action, details, footer };
   const message = { from: config.MAIL_FROM, to, subject, text: plainText(parts), html: layout(parts), category };
   try {
     if (muted) return true;

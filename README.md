@@ -27,37 +27,11 @@ The preview turns off email confirmation and admin two-step verification and use
 
 ---
 
-## See it live: a working demo on Render (about 15 minutes)
+## See it live: a working demo
 
-A real, working copy of the site at a public address: sign up, pay with a Stripe test card, study, take the proctored exam, approve it as admin and download the certificate. The [`render.yaml`](render.yaml) blueprint creates the app and its database and generates the secrets.
+**[DEMO.md](DEMO.md)** sets up a real, working copy of the site at a public address in about 30 minutes, for free: Render (site), Supabase in Canada (database), Resend (email) and Stripe test mode (payments). It walks through every click, then gives a 15-minute script for showing the client the whole flow, from registration with a 6-digit email code, through checkout, the proctored exam and admin review, to the certificate.
 
-**Before you start (5 minutes, optional but recommended):** create a free [Stripe](https://dashboard.stripe.com/register) account, stay in **Test mode**, and copy the **Secret key** (`sk_test_…`) from Developers → API keys. With it, checkout works with the test card `4242 4242 4242 4242` and no real money moves. Without it, paid enrolment is politely refused.
-
-1. Sign in at [render.com](https://render.com) with GitHub and allow access to this repository (it's private).
-2. **New → Blueprint**, pick `avyam023-sketch/LMS-for-high-vault`, then **Apply**. Or use the button: [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/avyam023-sketch/LMS-for-high-vault)
-3. Render asks for a few values:
-   - `ADMIN_EMAIL` and `ADMIN_PASSWORD`: your admin sign-in. Use a long passphrase that doesn't contain the email.
-   - `STRIPE_SECRET_KEY`: the `sk_test_…` key. Optional.
-   - `RESEND_API_KEY`, `STRIPE_WEBHOOK_SECRET`, `BUNNY_STREAM_TOKEN_KEY`: leave blank for the demo.
-4. Wait for the first deploy (about 5 minutes). Render shows the address, e.g. `https://high-vault-lms.onrender.com`.
-5. Sign in as the admin. You'll set up two-step verification with an authenticator app (Google Authenticator, 1Password…). Then **delete `ADMIN_PASSWORD`** in Render → the service → Environment.
-
-The demo starts with fictional sample learners, exams waiting for review and issued certificates, so every admin screen has something in it. They use `@example.com` addresses, can't sign in and are never emailed. Admin → Overview has a **Remove sample data** button, and a *Before going live* list showing what is still in demo mode.
-
-### A demo walkthrough
-
-1. **Website:** open the address in a private window. Click **Register**, create a learner account, then **Register now** on the pricing card.
-2. **Payment:** pay with `4242 4242 4242 4242`, any future date, any CVC. You return to Module 1, enrolled, with a payment reference (`HV-P-…`).
-3. **Learning:** chapters unlock in order and each quiz must be answered correctly to move on. To skip ahead for a demo, open Admin → Learners → the learner → **Mark course complete (demo)**. The button only exists while `SEED_SAMPLE_DATA` is on.
-4. **Exam:** on a laptop with a camera, start the final exam: ID photo, face photo, room scan, then the timed exam.
-5. **Review:** as admin, open Exam attempts → *Waiting for review*, look at the evidence and approve.
-6. **Certificate:** the learner downloads the PDF. Anyone can check its number at `/verify`.
-7. **Refund (optional):** refund the payment in the Stripe dashboard. This only reaches the app if a webhook is set up (see AWS step 5); otherwise skip it in the demo.
-
-Notes:
-- **Email** isn't sent until `RESEND_API_KEY` is set and your domain is verified in Resend. Until then, emails appear in Render → Logs, and email confirmation is off (`REQUIRE_EMAIL_VERIFICATION=false`) so sign-up still works. Turn it back on with email.
-- **Free tier:** the app sleeps when idle (the first visit takes about 30 seconds) and Render's free database expires after 30 days. Fine for a demo; not for real learners.
-- **Custom domain:** Render → Settings → Custom Domains, then set `APP_URL=https://that-domain`.
+The demo starts with fictional sample learners so every admin screen has something in it. They use `@example.com` addresses, can't sign in and are never emailed. **Admin → Overview → Remove sample data** clears them.
 
 ## Production: AWS Lightsail in Montreal
 
@@ -231,7 +205,7 @@ Any host that runs a container and managed Postgres works (Render, Railway, Fly.
 5. Serve over HTTPS only. The app sends HSTS in production.
 6. Schedule daily database backups. Proctoring files live in the database, so allow roughly 2 MB per exam (deleted after the retention period).
 7. To charge for the course, set `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`, and point a Stripe webhook at `https://your-domain/webhooks/stripe` with events `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired` and `charge.refunded`. Learners are enrolled as soon as they return from checkout; the webhook covers slow payment methods and records refunds (a full refund ends access). Set `STRIPE_AUTOMATIC_TAX=true` after turning on Stripe Tax. The price is set in Admin → Courses.
-8. Managed databases with their own certificate authority (AWS RDS and Lightsail): set `DATABASE_CA_FILE` to the CA bundle. `deploy/aws/setup.sh` downloads it.
+8. Managed databases with their own certificate authority: set `DATABASE_CA_FILE` to the CA file (AWS RDS and Lightsail; `deploy/aws/setup.sh` downloads it) or paste the certificate into `DATABASE_CA_CERT` (Supabase). The connection is always verified. On Supabase, the app also locks every table away from Supabase's public Data API roles.
 
 Rate-limit counters are kept in memory, which suits one app instance. If you run several instances, switch to a shared store (`rate-limit-postgresql` or Redis).
 

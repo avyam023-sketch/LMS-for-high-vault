@@ -5,8 +5,9 @@ import { one, query } from '../db/pool.js';
 import { config } from '../config.js';
 import { audit } from '../lib/audit.js';
 import { activateSession, signIn, signOut } from '../lib/auth.js';
-import { decrypt, randomToken, sha256 } from '../lib/crypto.js';
-import { emailLimiter, loginLimiter, registerLimiter } from '../lib/limits.js';
+import crypto from 'node:crypto';
+import { decrypt, randomToken, safeEqual, sha256 } from '../lib/crypto.js';
+import { emailLimiter, loginLimiter, registerLimiter, sensitiveLimiter } from '../lib/limits.js';
 import { accountExistsEmail, passwordResetEmail, verificationEmail, welcomeEmail } from '../lib/notify.js';
 import { burnTime, checkPasswordPolicy, hashPassword, verifyPassword } from '../lib/passwords.js';
 import { email, parse, personName } from '../lib/validate.js';
@@ -36,9 +37,27 @@ async function consumeToken(token, purpose) {
   );
 }
 
+// The 6-digit code is tied to the account it was sent to and keyed with the server secret, so a copy of
+// the database can't be used to work codes out. Five wrong tries and it stops working.
+const CODE_TRIES = 5;
+const codeHash = (userId, code) => crypto.createHmac('sha256', config.SESSION_SECRET).update(`verify:${userId}:${code}`).digest('hex');
+
 export async function sendVerification(user) {
   const token = await issueToken(user.id, 'verify', 48);
-  await verificationEmail(user, `${config.appUrl}/verify-email/${token}`);
+  const code = String(crypto.randomInt(0, 1_000_000)).padStart(6, '0');
+  await query(`DELETE FROM email_tokens WHERE user_id = $1 AND purpose = 'verify_code'`, [user.id]);
+  await query(
+    `INSERT INTO email_tokens (user_id, purpose, token_hash, expires_at) VALUES ($1, 'verify_code', $2, now() + interval '1 hour')`,
+    [user.id, codeHash(user.id, code)],
+  );
+  await verificationEmail(user, `${config.appUrl}/verify-email/${token}`, code);
+}
+
+async function markVerified(req, userId) {
+  await query('UPDATE users SET email_verified_at = coalesce(email_verified_at, now()) WHERE id = $1', [userId]);
+  await query(`UPDATE email_tokens SET used_at = now() WHERE user_id = $1 AND purpose IN ('verify', 'verify_code') AND used_at IS NULL`, [userId]);
+  await audit(req, 'user.email_verified', { entity: 'user', entityId: userId, actorId: userId });
+  await welcomeEmail(userId);
 }
 
 function afterLogin(req, res) {
@@ -116,8 +135,37 @@ router.get('/verify-email', (req, res) => {
 router.post('/verify-email/resend', emailLimiter, async (req, res) => {
   if (!req.user) return res.redirect('/login');
   if (!req.user.email_verified_at) await sendVerification(req.user);
-  flash(req, 'success', `We sent a new link to ${req.user.email}.`);
+  flash(req, 'success', `We sent a new code to ${req.user.email}.`);
   res.redirect('/verify-email');
+});
+
+router.post('/verify-email/code', sensitiveLimiter, async (req, res) => {
+  if (!req.user) return res.redirect('/login');
+  if (req.user.email_verified_at) return res.redirect('/dashboard');
+  const code = String(req.body.code ?? '').replace(/\D/g, '');
+  const row = await one(
+    `SELECT id, token_hash, attempts FROM email_tokens
+      WHERE user_id = $1 AND purpose = 'verify_code' AND used_at IS NULL AND expires_at > now()`,
+    [req.user.id],
+  );
+  if (!row) {
+    flash(req, 'error', 'That code has expired. Send yourself a new one below.');
+    return res.redirect('/verify-email');
+  }
+  if (code.length !== 6 || !safeEqual(codeHash(req.user.id, code), row.token_hash)) {
+    const { rows } = await query(
+      `UPDATE email_tokens SET attempts = attempts + 1, used_at = CASE WHEN attempts + 1 >= $2 THEN now() END WHERE id = $1 RETURNING attempts`,
+      [row.id, CODE_TRIES],
+    );
+    const left = CODE_TRIES - rows[0].attempts;
+    flash(req, 'error', left > 0
+      ? `That code isn’t right. ${left} ${left === 1 ? 'try' : 'tries'} left.`
+      : 'Too many wrong codes. Send yourself a new one below.');
+    return res.redirect('/verify-email');
+  }
+  await markVerified(req, req.user.id);
+  flash(req, 'success', 'Email confirmed. You can start your course.');
+  res.redirect('/dashboard');
 });
 
 router.get('/verify-email/:token', async (req, res) => {
@@ -127,9 +175,7 @@ router.get('/verify-email/:token', async (req, res) => {
       title: 'Link expired', status: 400, message: 'This confirmation link is invalid or has expired. Sign in to request a new one.',
     });
   }
-  await query('UPDATE users SET email_verified_at = coalesce(email_verified_at, now()) WHERE id = $1', [row.user_id]);
-  await audit(req, 'user.email_verified', { entity: 'user', entityId: row.user_id, actorId: row.user_id });
-  await welcomeEmail(row.user_id);
+  await markVerified(req, row.user_id);
   flash(req, 'success', 'Email confirmed. You can start your course.');
   res.redirect(req.user ? '/dashboard' : '/login');
 });
