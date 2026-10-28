@@ -57,7 +57,7 @@ For the real site, use [`deploy/aws/`](deploy/aws/README.md): one Lightsail serv
 - **Public site**: a crimson red and white design. All colours are set once as tokens at the top of `public/css/app.css` (`--brand`, `--tint`, `--accent`, …), so a palette change is a one-place edit. Errors and warnings use orange and amber so they never blend into the brand red.
   - The homepage shows real course screens on laptop and phone mockups.
   - Ten illustrated module cards, each with a summary that can be edited in Admin → Courses.
-  - A *What you need* section and a pricing section (US$89, one-time).
+  - A *What you need* section and a pricing section ($89 CAD, one-time).
   - An About page, and a policies hub covering terms of use, terms of sale, refunds, exam and certificate rules, privacy (including cookies), accessibility, and copyright.
   - Exam rules and prices on the policy pages are read from the live course settings, so they always match.
 - **Image slots**: six photo spots across the site. There are three "Who it's for" photos, a "Studying from home" photo on the homepage, one on the About page, and one on the sign-up panel. Admins manage them in **Admin → Site images**, where each slot shows where it appears, the best size and an idea for the shot. They can upload, replace or remove a photo and add a screen-reader description. Files are checked from their content (JPEG, PNG or WebP only, at least 1200 px wide, under 4 MB). An empty slot shows a branded placeholder, and admins see a label saying what belongs there.
@@ -215,7 +215,7 @@ Rate-limit counters are kept in memory, which suits one app instance. If you run
 
 - [ ] **Review the course content and question bank** with whoever is accountable for food safety training. The starter content follows Health Canada guidance and Ontario's Food Premises Regulation (O. Reg. 493/17), but provincial and municipal requirements vary.
 - [ ] **Confirm recognition status.** If the course must be approved or recognised by a provincial program or local public health unit, get that confirmation first, then add it to the course page and FAQ. Until then, the FAQ deliberately tells learners to check with their employer or health unit.
-- [ ] **Connect Stripe** (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`). The course is priced at US$89. Until Stripe is connected, *Register* still works but enrolling is refused with a polite message, so nobody gets the paid course for free.
+- [ ] **Connect Stripe** (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`). The course is priced at $89 CAD. Until Stripe is connected, *Register* still works but enrolling is refused with a polite message, so nobody gets the paid course for free.
 - [ ] If the business is registered for GST/HST, turn on Stripe Tax and set `STRIPE_AUTOMATIC_TAX=true` so tax is added at checkout. The terms of sale say taxes are added where required.
 - [ ] **Remove the sample data** (Admin → Overview) and set `SEED_SAMPLE_DATA=false`.
 - [ ] Set the support email (`SUPPORT_EMAIL`) and sending address (`MAIL_FROM`). The price can be changed in Admin → Courses.

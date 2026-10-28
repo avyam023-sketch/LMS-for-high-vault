@@ -5,7 +5,7 @@
 </div>
 <div class="tiles">
   <div class="tile"><p class="label">Learners</p><div class="value"><%= stats.learners %></div><div class="sub">+<%= stats.learners_7d %> in the last 7 days</div></div>
-  <div class="tile"><p class="label">Enrolments</p><div class="value"><%= stats.enrollments %></div><div class="sub"><%= stats.revenue_30d ? `${money(stats.revenue_30d, stats.currency || 'usd')} paid in the last 30 days` : 'No payments in the last 30 days' %></div></div>
+  <div class="tile"><p class="label">Enrolments</p><div class="value"><%= stats.enrollments %></div><div class="sub"><%= stats.revenue_30d ? `${money(stats.revenue_30d, stats.currency || 'cad')} paid in the last 30 days` : 'No payments in the last 30 days' %></div></div>
   <div class="tile"><p class="label">Certificates issued</p><div class="value"><%= stats.certificates %></div><div class="sub">active (not revoked)</div></div>
   <div class="tile"><p class="label">Pass rate · 30 days</p><div class="value"><%= stats.pass_rate_30d == null ? '—' : stats.pass_rate_30d + '%' %></div><div class="sub"><%= stats.attempts_30d %> exam<%= stats.attempts_30d === 1 ? '' : 's' %> submitted</div></div>
 </div>

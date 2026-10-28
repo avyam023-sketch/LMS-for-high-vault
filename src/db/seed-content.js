@@ -8,7 +8,7 @@ export const course = {
   "title": "Food Handler Certification",
   "subtitle": "A 100% online course: learn to prevent foodborne illness in any food business, from hygiene and temperature control to allergens and sanitizing. Study, take the proctored exam and get your certificate without leaving home.",
   "price_cents": 8900,
-  "currency": "usd",
+  "currency": "cad",
   "duration_minutes": 300,
   "language": "English",
   "pass_mark": 70,
@@ -53,7 +53,7 @@ Ten modules build from the basics of foodborne illness to the systems a food bus
     },
     {
       "q": "How much does it cost?",
-      "a": "US$89, paid once. That includes all 10 modules, the module quizzes, up to three attempts at the proctored final exam, the identity review and your certificate. There are no subscriptions or extra fees from us."
+      "a": "$89 CAD, paid once. That includes all 10 modules, the module quizzes, up to three attempts at the proctored final exam, the identity review and your certificate. There are no subscriptions or extra fees from us."
     },
     {
       "q": "Can I get a refund?",

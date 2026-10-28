@@ -128,12 +128,14 @@ test('about and policy pages; a paid course never enrols for free without Stripe
   const sitemap = await request(app).get('/sitemap.xml').expect(200);
   assert.match(sitemap.text, /\/refunds<\/loc>/);
 
-  await query(`UPDATE courses SET price_cents = 8900, currency = 'usd' WHERE id = $1`, [course.id]);
+  await query(`UPDATE courses SET price_cents = 8900, currency = 'cad' WHERE id = $1`, [course.id]);
   try {
     let res = await request(app).get('/').expect(200);
-    assert.match(res.text, /US\$89(?![.\d])/, 'whole prices show without cents');
+    assert.match(res.text, /\$89(?![.\d])<small>one-time · CAD/, 'whole prices show without cents, in CAD');
+    assert.doesNotMatch(res.text, /US\$/);
     res = await request(app).get('/terms-of-sale').expect(200);
-    assert.match(res.text, /US\$89 per learner/);
+    assert.match(res.text, /\$89 per learner/);
+    assert.match(res.text, /Prices are in CAD/);
     const agent = await verifiedLearner('paid@example.com');
     const token = await csrf(agent, '/');
     res = await agent.post(`/enroll/${SLUG}`).type('form').send({ _csrf: token }).expect(302);

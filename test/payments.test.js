@@ -80,7 +80,7 @@ before(async () => {
   await pool.query('DROP SCHEMA public CASCADE; CREATE SCHEMA public;');
   await migrate({ log: () => {} });
   await seed({ log: () => {} });
-  await query(`UPDATE courses SET price_cents = 8900, currency = 'usd'`);
+  await query(`UPDATE courses SET price_cents = 8900, currency = 'cad'`);
   setStripeForTests(fakeStripe);
   config.STRIPE_WEBHOOK_SECRET = 'whsec_test';
   app = createApp();
