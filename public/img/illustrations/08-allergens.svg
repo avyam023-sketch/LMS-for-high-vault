@@ -1,7 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Wheat and a warning sign"><g fill="none" stroke="#262263" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Wheat and a warning sign"><g fill="none" stroke="#3A1E23" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
 <path d="M30 84V30"/>
-<path d="M30 40c-8-2-10-8-10-12 6 0 10 4 10 12zM30 40c8-2 10-8 10-12-6 0-10 4-10 12z" fill="#B0D7E4"/>
-<path d="M30 54c-8-2-10-8-10-12 6 0 10 4 10 12zM30 54c8-2 10-8 10-12-6 0-10 4-10 12z" fill="#B0D7E4"/>
-<path d="M30 26c-3-4-3-9 0-13 3 4 3 9 0 13z" fill="#B0D7E4"/>
+<path d="M30 40c-8-2-10-8-10-12 6 0 10 4 10 12zM30 40c8-2 10-8 10-12-6 0-10 4-10 12z" fill="#F5CDD4"/>
+<path d="M30 54c-8-2-10-8-10-12 6 0 10 4 10 12zM30 54c8-2 10-8 10-12-6 0-10 4-10 12z" fill="#F5CDD4"/>
+<path d="M30 26c-3-4-3-9 0-13 3 4 3 9 0 13z" fill="#F5CDD4"/>
 <path d="M62 34l20 36H42z" fill="#FFFFFF"/>
-<path d="M62 48v10"/><circle cx="62" cy="64" r="1.6" fill="#262263"/></g></svg>
+<path d="M62 48v10"/><circle cx="62" cy="64" r="1.6" fill="#3A1E23"/></g></svg>

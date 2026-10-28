@@ -59,7 +59,7 @@ Notes for the preview:
 - **Self-registration** with email verification, password reset and optional two-step verification (authenticator app).
 - **Course structure**: Module 1 → Chapter 1 → Module 1 quiz → Module 2 → … → Module 10 quiz → final exam. Everything unlocks strictly in order.
 - **Chapters**: a video plus a written lesson, with a minimum study time tracked on the server. Videos are hosted on **Bunny Stream**. Each playback link is signed and expires after 6 hours, so it can't be shared. The learner must watch to the end (skipping ahead doesn't count) before continuing. A direct MP4/WebM link is tracked the same way. YouTube and Vimeo links play but can't be tracked.
-- **Public site**: an ice-blue and indigo design taken from the logo.
+- **Public site**: a crimson red and white design. All colours are set once as tokens at the top of `public/css/app.css` (`--brand`, `--tint`, `--accent`, …), so a palette change is a one-place edit. Errors and warnings use orange and amber so they never blend into the brand red.
   - The homepage shows real course screens on laptop and phone mockups.
   - Ten illustrated module cards, each with a summary that can be edited in Admin → Courses.
   - A *What you need* section and a pricing section (US$89, one-time).

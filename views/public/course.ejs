@@ -15,7 +15,7 @@
 <main id="main">
   <% if (locals.deletedNotice) { %><div class="wrap"><div class="alert alert-success mt-24">Your account has been deleted.</div></div><% } %>
 
-  <section class="hero hero-ice" data-hero>
+  <section class="hero hero-light" data-hero>
     <div class="hero-glow" aria-hidden="true"></div>
     <div class="wrap">
       <div class="hero-grid">
@@ -261,11 +261,11 @@
   </section>
   <% } %>
 
-  <section class="closing hero-ice">
+  <section class="closing dark">
     <div class="wrap closing-grid">
       <h2 data-split>Start today. Ten modules, one exam, a certificate that holds up.</h2>
       <div class="closing-actions" data-reveal>
-        <%- include('../partials/enrol-cta', { cls: 'btn-primary btn-lg', label: course.price_cents ? `Register now · ${price}` : 'Register now' }) %>
+        <%- include('../partials/enrol-cta', { cls: 'btn-light btn-lg', label: course.price_cents ? `Register now · ${price}` : 'Register now' }) %>
       </div>
     </div>
   </section>

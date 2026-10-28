@@ -1,7 +1,7 @@
 <%- include('../partials/head', { motion: true }) %>
 <% const price = course ? money(course.price_cents, course.currency) : null; %>
 <main id="main">
-  <section class="hero hero-ice about-hero" data-hero>
+  <section class="hero hero-light about-hero" data-hero>
     <div class="hero-glow" aria-hidden="true"></div>
     <div class="wrap about-hero-grid">
       <div>
@@ -9,7 +9,7 @@
         <h1 data-split>Food safety training that <em>holds up.</em></h1>
         <p class="lead" data-intro>The High Vault Security helps people who handle food get certified properly. Study online at your own pace, take a supervised exam from home, and get a certificate an employer can trust and check in seconds.</p>
       </div>
-      <img class="about-mark" src="/img/logo-mark-indigo.svg" alt="" width="260" height="300" data-intro="card">
+      <img class="about-mark" src="/img/logo-mark-red.svg" alt="" width="260" height="300" data-intro="card">
     </div>
   </section>
 
@@ -62,7 +62,7 @@
     <div class="wrap closing-grid">
       <h2 data-split>Ready when you are.<%= price ? ` ${price}, everything included.` : '' %></h2>
       <div class="closing-actions" data-reveal>
-        <a class="btn btn-ice btn-lg" href="/register">Register now <%- include('../partials/icon', { name: 'arrow', cls: 'icon arrow' }) %></a>
+        <a class="btn btn-light btn-lg" href="/register">Register now <%- include('../partials/icon', { name: 'arrow', cls: 'icon arrow' }) %></a>
         <a class="btn btn-ghost btn-lg" href="mailto:<%= supportEmail %>">Contact us</a>
       </div>
     </div>
