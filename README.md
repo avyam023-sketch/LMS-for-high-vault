@@ -65,6 +65,7 @@ Notes for the preview:
   - A *What you need* section and a pricing section (US$89, one-time).
   - An About page, and a policies hub covering terms of use, terms of sale, refunds, exam and certificate rules, privacy (including cookies), accessibility, and copyright.
   - Exam rules and prices on the policy pages are read from the live course settings, so they always match.
+- **Image slots**: six photo spots across the site. There are three "Who it's for" photos, a "Studying from home" photo on the homepage, one on the About page, and one on the sign-up panel. Admins manage them in **Admin → Site images**, where each slot shows where it appears, the best size and an idea for the shot. They can upload, replace or remove a photo and add a screen-reader description. Files are checked from their content (JPEG, PNG or WebP only, at least 1200 px wide, under 4 MB). An empty slot shows a branded placeholder, and admins see a label saying what belongs there.
 - **Homepage motion**: built with GSAP and ScrollTrigger, self-hosted so the strict security policy stays intact.
   - The hero settles in on load and headlines rise into place.
   - A rail fills down the curriculum as you read.

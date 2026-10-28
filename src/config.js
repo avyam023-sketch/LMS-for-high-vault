@@ -31,6 +31,8 @@ const schema = z.object({
   RESEND_API_KEY: z.string().optional(),
   SMTP_URL: z.string().optional(),
   MAIL_FROM: z.string().default('The High Vault Security Academy <no-reply@thehighvaultsecurity.ca>'),
+  // Label empty image slots on public pages for every visitor (used by the click-through preview).
+  SHOW_IMAGE_SLOTS: bool,
   // First-run bootstrap for one-click deploys: load the course and create the first admin.
   SEED_ON_START: bool,
   ADMIN_EMAIL: z.string().email().optional().or(z.literal('')),

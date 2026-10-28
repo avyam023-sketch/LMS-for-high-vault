@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import express, { Router } from 'express';
 import { z } from 'zod';
 import { many, one, query, tx } from '../db/pool.js';
 import { requireStaff } from '../lib/auth.js';
@@ -9,6 +9,7 @@ import { parseCsv } from '../lib/csv.js';
 import { decryptBuffer } from '../lib/crypto.js';
 import { reviewAttempt } from '../lib/exam.js';
 import { parseBunny } from '../lib/video.js';
+import { forgetSiteImages, MAX_BYTES, saveSiteImage, siteImages, SLOT_KEYS, SLOTS } from '../lib/site-images.js';
 import { config } from '../config.js';
 import {
   attemptVoidedEmail, certificateIssuedEmail, certificateRevokedEmail, enrolmentEmail, extraAttemptEmail, reviewRejectedEmail,
@@ -807,6 +808,48 @@ router.post('/certificates/:id', async (req, res) => {
   }
   const back = req.get('referer');
   res.redirect(back && new URL(back, 'http://x').pathname.startsWith('/admin/') ? new URL(back, 'http://x').pathname : '/admin/certificates');
+});
+
+// ---------- Site images ----------
+const slotOr404 = (req) => {
+  if (!SLOT_KEYS.has(req.params.slot)) throw notFound();
+  return req.params.slot;
+};
+
+router.get('/site-images', async (req, res) => {
+  forgetSiteImages(); // always show the current state here
+  res.render('admin/site-images', { title: 'Site images', scripts: ['/js/admin-images.js'], slots: SLOTS, images: await siteImages(), maxMb: MAX_BYTES / 1024 / 1024 });
+});
+
+/** Upload or replace a slot's photo. The browser sends the file as the raw request body. */
+router.post(
+  '/site-images/:slot',
+  express.raw({ type: ['image/jpeg', 'image/png', 'image/webp'], limit: MAX_BYTES + 1024 }),
+  async (req, res) => {
+    const slot = slotOr404(req);
+    const alt = String(req.query.alt ?? '').trim().slice(0, 200);
+    const result = await saveSiteImage(slot, Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0), { alt, userId: req.user.id });
+    if (result.error) return res.status(400).json({ error: result.error });
+    await audit(req, 'admin.site_image.upload', { entity: 'site_image', entityId: slot, meta: { width: result.info.width, height: result.info.height } });
+    res.json({ saved: true });
+  },
+);
+
+router.post('/site-images/:slot/alt', async (req, res) => {
+  const slot = slotOr404(req);
+  await query('UPDATE site_images SET alt = $2 WHERE slot = $1', [slot, String(req.body.alt ?? '').trim().slice(0, 200)]);
+  forgetSiteImages();
+  flash(req, 'success', 'Description saved.');
+  res.redirect(`/admin/site-images#${slot}`);
+});
+
+router.post('/site-images/:slot/delete', async (req, res) => {
+  const slot = slotOr404(req);
+  await query('DELETE FROM site_images WHERE slot = $1', [slot]);
+  forgetSiteImages();
+  await audit(req, 'admin.site_image.remove', { entity: 'site_image', entityId: slot });
+  flash(req, 'success', 'Photo removed. The slot shows its placeholder again.');
+  res.redirect(`/admin/site-images#${slot}`);
 });
 
 // ---------- Audit log ----------

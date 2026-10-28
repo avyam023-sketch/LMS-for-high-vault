@@ -69,6 +69,23 @@
     </div>
   </section>
 
+  <section class="section section-white" id="audience">
+    <div class="wrap">
+      <div class="split mb-48">
+        <div class="split-head" data-reveal>
+          <p class="kicker">Who it’s for</p>
+          <h2>Built for everyone who handles food.</h2>
+        </div>
+        <p class="lead mb-0" data-reveal>From the line to the front counter, if you prepare, serve or store food at work, this course covers the rules you need and the certificate employers ask for.</p>
+      </div>
+      <ul class="audience" data-reveal-stagger>
+        <li><%- include('../partials/photo-slot', { slot: 'home-audience-1' }) %><h3>Cooks and kitchen staff</h3><p>Line cooks, prep cooks, dishwashers and kitchen managers.</p></li>
+        <li><%- include('../partials/photo-slot', { slot: 'home-audience-2' }) %><h3>Servers and baristas</h3><p>Front-of-house staff who handle, plate or serve food and drinks.</p></li>
+        <li><%- include('../partials/photo-slot', { slot: 'home-audience-3' }) %><h3>Prep, catering and owners</h3><p>Deli and grocery staff, caterers, food trucks, daycare and care-home kitchens.</p></li>
+      </ul>
+    </div>
+  </section>
+
   <% if (course.outcomes.length) { %>
   <section class="section" id="outcomes">
     <div class="wrap split">
@@ -163,6 +180,7 @@
         <p class="kicker">05 — What you need</p>
         <h2>Everything happens on your own computer.</h2>
         <p>Lessons and quizzes work on any device. For the final exam, have these ready.</p>
+        <%- include('../partials/photo-slot', { slot: 'home-study', cls: 'mt-32' }) %>
       </div>
       <ul class="needs" data-reveal-stagger>
         <li><%- include('../partials/icon', { name: 'monitor' }) %><div><h3>A laptop or desktop</h3><p>With one screen. Disconnect any extra monitors before the exam.</p></div></li>

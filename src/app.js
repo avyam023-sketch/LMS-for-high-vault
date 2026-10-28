@@ -12,6 +12,7 @@ import { pool } from './db/pool.js';
 import { loadUser } from './lib/auth.js';
 import { csrf } from './lib/csrf.js';
 import { viewHelpers } from './lib/view-helpers.js';
+import { SLOT_KEYS, SLOTS, siteImageFile, siteImages } from './lib/site-images.js';
 import publicRoutes from './routes/public.js';
 import authRoutes from './routes/auth.js';
 import accountRoutes from './routes/account.js';
@@ -20,6 +21,7 @@ import examRoutes from './routes/exam.js';
 import adminRoutes from './routes/admin.js';
 import paymentRoutes, { stripeWebhook } from './routes/payments.js';
 
+const SLOT_INFO = new Map(SLOTS.map((s) => [s.key, s]));
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(import.meta.url);
 
@@ -103,6 +105,15 @@ export function createApp() {
   for (const file of ['gsap.min.js', 'ScrollTrigger.min.js']) {
     app.get(`/vendor/gsap/${file}`, (req, res) => res.sendFile(path.join(gsapDist, file), { maxAge: staticOpts.maxAge }));
   }
+  // Photos uploaded for the public site's image slots. Served before sessions so they stay cacheable;
+  // the URL carries a version, so a replaced photo gets a new URL.
+  app.get('/site-images/:slot', async (req, res, next) => {
+    if (!SLOT_KEYS.has(req.params.slot)) return next();
+    const file = await siteImageFile(req.params.slot);
+    if (!file) return res.status(404).end();
+    res.set({ 'Content-Type': file.mime, 'Cache-Control': req.query.v ? 'public, max-age=31536000, immutable' : 'public, max-age=300', 'X-Content-Type-Options': 'nosniff' });
+    res.send(file.data);
+  });
   app.get('/healthz', async (req, res) => {
     await pool.query('SELECT 1');
     res.json({ ok: true });
@@ -140,6 +151,17 @@ export function createApp() {
   });
   app.use(csrf);
   app.use(viewHelpers);
+  // Image slots: uploaded photos, and whether to label empty slots (admins, and the click-through preview).
+  app.use(async (req, res, next) => {
+    try {
+      if (req.method === 'GET') res.locals.siteImages = await siteImages();
+      res.locals.slotInfo = SLOT_INFO;
+      res.locals.showImageSlots = config.SHOW_IMAGE_SLOTS || req.user?.role === 'admin';
+      next();
+    } catch (err) {
+      next(err);
+    }
+  });
 
   app.use(publicRoutes);
   app.use(authRoutes);

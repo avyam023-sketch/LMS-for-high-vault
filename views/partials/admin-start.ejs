@@ -17,6 +17,7 @@
     <%- navItem('/admin/certificates', 'Certificates', 'award', adminNav.startsWith('certificates')) %>
     <h4>Content</h4>
     <%- navItem('/admin/courses', 'Courses &amp; exams', 'book', ['courses', 'lessons', 'questions', 'modules'].includes(adminNav)) %>
+    <%- navItem('/admin/site-images', 'Site images', 'grid', adminNav === 'site-images') %>
     <h4>Security</h4>
     <%- navItem('/admin/audit', 'Audit log', 'history', adminNav === 'audit') %>
     <% } %>

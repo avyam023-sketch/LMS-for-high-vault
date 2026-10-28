@@ -1,0 +1,11 @@
+<%# An image slot: the photo uploaded in Admin → Site images, or a branded placeholder of the same shape.
+    Params: slot (key from src/lib/site-images.js), cls (extra classes), eager (true for images near the top). %>
+<% const info = slotInfo.get(slot); const img = locals.siteImages?.get(slot); %>
+<% if (img) { %>
+  <img class="photo <%= locals.cls || '' %>" src="<%= img.url %>" alt="<%= img.alt %>" width="<%= img.width %>" height="<%= img.height %>" <%- locals.eager ? '' : 'loading="lazy"' %> decoding="async" data-ratio="<%= info.ratio %>">
+<% } else { %>
+  <div class="photo photo-empty ratio-<%= info.ratio.replace(':', 'x') %> <%= locals.cls || '' %>" aria-hidden="true">
+    <%- include('icon', { name: info.icon }) %>
+    <% if (showImageSlots) { %><span class="photo-label"><strong>Image slot: <%= info.label %></strong><%= info.size %> px · <%= info.suggestion %></span><% } %>
+  </div>
+<% } %>

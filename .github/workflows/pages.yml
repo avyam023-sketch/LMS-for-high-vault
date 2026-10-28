@@ -48,6 +48,7 @@ jobs:
           REQUIRE_ADMIN_MFA: "false"
           REQUIRE_EMAIL_VERIFICATION: "false"
           CHECK_BREACHED_PASSWORDS: "false"
+          SHOW_IMAGE_SLOTS: "true"
           APP_URL: ${{ steps.pages.outputs.base_url }}
           BASE: ${{ steps.pages.outputs.base_path }}
       - uses: actions/upload-pages-artifact@v3

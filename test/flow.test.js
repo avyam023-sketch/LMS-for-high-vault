@@ -682,6 +682,35 @@ test('admin area: hidden from learners, requires MFA, manages certificates', asy
   assert.ok(!res.text.includes('onerror'));
   assert.ok(!res.text.includes('javascript:alert'));
 
+  // Site image slots: admins upload photos; the type and size are checked from the file itself.
+  const jpeg = (w, h) => Buffer.concat([
+    Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]), Buffer.alloc(14),
+    Buffer.from([0xff, 0xc0, 0x00, 0x11, 0x08, h >> 8, h & 255, w >> 8, w & 255]), Buffer.alloc(40, 7),
+  ]);
+  res = await request(app).get('/').expect(200);
+  assert.ok(!res.text.includes('/site-images/home-study'), 'empty slot shows a placeholder');
+  assert.ok(!res.text.includes('Image slot:'), 'slot labels are for admins only');
+  res = await fresh.get('/').expect(200);
+  assert.match(res.text, /Image slot: Studying from home/, 'admins see what each empty slot is for');
+  await fresh.get('/admin/site-images').expect(200);
+  token = await csrf(fresh, '/admin/site-images');
+  res = await fresh.post('/admin/site-images/home-study?alt=Studying%20at%20home').set('x-csrf-token', token).set('Content-Type', 'image/jpeg').send(jpeg(1600, 1067)).expect(200);
+  res = await fresh.post('/admin/site-images/home-study').set('x-csrf-token', token).set('Content-Type', 'image/jpeg').send(jpeg(300, 200)).expect(400);
+  assert.match(res.body.error, /at least 1200 pixels/);
+  res = await fresh.post('/admin/site-images/home-study').set('x-csrf-token', token).set('Content-Type', 'image/png').send(Buffer.from('not really an image, just text pretending to be one')).expect(400);
+  await fresh.post('/admin/site-images/not-a-slot').set('x-csrf-token', token).set('Content-Type', 'image/jpeg').send(jpeg(1600, 1067)).expect(404);
+  res = await request(app).get('/').expect(200);
+  const src = res.text.match(/src="(\/site-images\/home-study\?v=[a-z0-9]+)" alt="Studying at home" width="1600" height="1067"/)?.[1];
+  assert.ok(src, 'uploaded photo replaces the placeholder');
+  const photo = await request(app).get(src).expect(200);
+  assert.equal(photo.headers['content-type'], 'image/jpeg');
+  assert.match(photo.headers['cache-control'], /immutable/);
+  const learnerToken = await csrf(learner, '/dashboard');
+  await learner.post('/admin/site-images/home-study').set('x-csrf-token', learnerToken).set('Content-Type', 'image/jpeg').send(jpeg(1600, 1067)).expect(404);
+  token = await csrf(fresh, '/admin/site-images');
+  await fresh.post('/admin/site-images/home-study/delete').type('form').send({ _csrf: token }).expect(302);
+  await request(app).get(src).expect(404);
+
   // A used MFA code can't be replayed (this sign-in also ends the session above: one device at a time).
   const replay = request.agent(app);
   token = await csrf(replay, '/login');

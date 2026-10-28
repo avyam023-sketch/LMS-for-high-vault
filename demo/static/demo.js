@@ -55,6 +55,7 @@
       }
     }
     if (/^\/learn\/lessons\/[\w-]+\/heartbeat$/.test(p)) return json({ seconds: 99999 });
+    if (/^\/admin\/site-images\//.test(p) && method === 'POST') return json({ error: 'Uploading is turned off in this preview. In the live site the photo would appear straight away.' }, 400);
     return realFetch(input, init);
   };
 

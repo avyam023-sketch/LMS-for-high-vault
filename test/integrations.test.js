@@ -5,6 +5,7 @@ import { config } from '../src/config.js';
 import { pool } from '../src/db/pool.js';
 import { sendMail } from '../src/lib/mailer.js';
 import { bunnyEmbedUrl, parseBunny, videoSource } from '../src/lib/video.js';
+import { imageInfo } from '../src/lib/site-images.js';
 
 after(() => pool.end());
 
@@ -64,4 +65,20 @@ test('Resend: sends through the API with an idempotency key, retries rate limits
     config.RESEND_API_KEY = undefined;
     globalThis.fetch = realFetch;
   }
+});
+
+test('image slots read the real type and size from PNG and WebP files', () => {
+  const png = Buffer.alloc(40);
+  Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(png, 0);
+  png.writeUInt32BE(1600, 16);
+  png.writeUInt32BE(1067, 20);
+  assert.deepEqual(imageInfo(png), { mime: 'image/png', width: 1600, height: 1067 });
+  const webp = Buffer.alloc(40);
+  webp.write('RIFF', 0, 'ascii');
+  webp.write('WEBP', 8, 'ascii');
+  webp.write('VP8X', 12, 'ascii');
+  webp.writeUIntLE(1199, 24, 3);
+  webp.writeUIntLE(1499, 27, 3);
+  assert.deepEqual(imageInfo(webp), { mime: 'image/webp', width: 1200, height: 1500 });
+  assert.equal(imageInfo(Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"></svg> padding padding')), null, 'SVG and other types are refused');
 });
