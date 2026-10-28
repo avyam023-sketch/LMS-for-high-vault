@@ -1,27 +1,30 @@
-// Fictional sample data for the click-through preview (demo/build.js). Never run against production.
+// Fictional sample learners, exams and certificates. Used by the click-through preview (demo/build.js) and,
+// when SEED_SAMPLE_DATA is on, to fill a fresh live demo (see bootstrap.js). Every account it makes is
+// marked is_sample so Admin → Overview can remove them all before real learners arrive.
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { many, one, query } from '../src/db/pool.js';
-import { hashPassword } from '../src/lib/passwords.js';
-import { encryptBuffer, shuffle } from '../src/lib/crypto.js';
-import { courseOutline, finalizeAttempt, reviewAttempt } from '../src/lib/exam.js';
+import { many, one, query } from './pool.js';
+import { hashPassword } from '../lib/passwords.js';
+import { encryptBuffer, shuffle } from '../lib/crypto.js';
+import { courseOutline, finalizeAttempt, reviewAttempt } from '../lib/exam.js';
 
-const assets = path.join(path.dirname(fileURLToPath(import.meta.url)), 'assets');
+const assets = path.join(path.dirname(fileURLToPath(import.meta.url)), 'sample-assets');
 export const DEMO_PASSWORD = 'sample learner passphrase';
 const daysAgo = (d, h = 10) => new Date(Date.now() - d * 86_400_000 - h * 3_600_000);
 
+let passwordHash;
 async function user({ email, first, last, role = 'student', daysOld }) {
   const u = await one(
-    `INSERT INTO users (email, password_hash, first_name, last_name, role, email_verified_at, created_at, last_login_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $6, $7) RETURNING id`,
-    [email, await hashPassword(DEMO_PASSWORD), first, last, role, daysAgo(daysOld), daysAgo(Math.max(0, daysOld - 2), 3)],
+    `INSERT INTO users (email, password_hash, first_name, last_name, role, email_verified_at, created_at, last_login_at, is_sample)
+     VALUES ($1, $2, $3, $4, $5, $6, $6, $7, true) RETURNING id`,
+    [email, passwordHash, first, last, role, daysAgo(daysOld), daysAgo(Math.max(0, daysOld - 2), 3)],
   );
   return { id: u.id, email, first, last };
 }
 
 /** Marks the first `upTo` outline items (chapters and quizzes) complete for a learner. */
-async function progress(u, course, upTo) {
+export async function progress(u, course, upTo = Infinity) {
   await query('INSERT INTO enrollments (user_id, course_id, enrolled_at) VALUES ($1, $2, now()) ON CONFLICT DO NOTHING', [u.id, course.id]);
   const outline = await courseOutline(course.id, u.id);
   for (const item of outline.items.slice(0, upTo)) {
@@ -98,8 +101,14 @@ async function attempt(u, course, { scorePct, daysOld, status = 'in_progress', e
   return a.id;
 }
 
-export async function seedDemo() {
-  const course = await one('SELECT * FROM courses LIMIT 1');
+/**
+ * Loads the sample people. `password` is shared by every sample account (the preview uses a known one;
+ * a live demo passes a random one nobody knows). With `reviewerId`, that existing staff account approves
+ * the sample exams and no sample admin or reviewer accounts are created.
+ */
+export async function seedDemo({ password = DEMO_PASSWORD, reviewerId = null } = {}) {
+  passwordHash = await hashPassword(password);
+  const course = await one('SELECT * FROM courses ORDER BY created_at LIMIT 1');
   const total = (await courseOutline(course.id, null)).items.length;
   const people = {};
 
@@ -115,7 +124,7 @@ export async function seedDemo() {
     await progress(people[key], course, steps);
   }
   // Certified learners (approved by a reviewer).
-  const admin = await user({ email: 'admin@example.com', first: 'Morgan', last: 'Reid', role: 'admin', daysOld: 25 });
+  const admin = reviewerId ? { id: reviewerId } : await user({ email: 'admin@example.com', first: 'Morgan', last: 'Reid', role: 'admin', daysOld: 25 });
   for (const [key, first, last, score, d] of [['jordan', 'Jordan', 'Tremblay', 93, 14], ['priya', 'Priya', 'Sharma', 87, 11], ['daniel', 'Daniel', 'Kim', 80, 5]]) {
     people[key] = await user({ email: `${first.toLowerCase()}.${last.toLowerCase()}@example.com`, first, last, daysOld: d + 4 });
     await progress(people[key], course, total);
@@ -145,7 +154,7 @@ export async function seedDemo() {
     scorePct: 40, daysOld: 2, evidence: true,
     events: [['tab_hidden', 5, true], ['window_blur', 9, true], ['multiple_faces', 12, false, '2 faces in view'], ['fullscreen_exit', 15, true], ['tab_hidden', 18, true], ['auto', 18, false]],
   });
-  await query(`DELETE FROM integrity_events WHERE kind = 'auto'`);
+  await query(`DELETE FROM integrity_events WHERE kind = 'auto' AND attempt_id = $1`, [people.ethan.attemptId]);
 
   // An exam in progress, so the live view isn't empty. (demo/build.js starts "your" check-in itself.)
   people.sam = await user({ email: 'sam.patel@example.com', first: 'Sam', last: 'Patel', daysOld: 5 });
@@ -155,8 +164,8 @@ export async function seedDemo() {
   await query('DELETE FROM attempt_answers WHERE attempt_id = $1', [people.sam.attemptId]);
 
   // A reviewer account, and some audit history so the log isn't empty.
-  await user({ email: 'reviewer@example.com', first: 'Casey', last: 'Fraser', role: 'reviewer', daysOld: 20 });
-  const learners = await many(`SELECT id, created_at FROM users WHERE role = 'student'`);
+  if (!reviewerId) await user({ email: 'reviewer@example.com', first: 'Casey', last: 'Fraser', role: 'reviewer', daysOld: 20 });
+  const learners = await many(`SELECT id, created_at FROM users WHERE role = 'student' AND is_sample`);
   for (const l of learners) {
     await query(`INSERT INTO audit_log (actor_id, action, entity, entity_id, ip, created_at) VALUES ($1, 'user.register', 'user', $2, '198.51.100.24', $3)`, [l.id, String(l.id), l.created_at]);
     await query(`INSERT INTO audit_log (actor_id, action, entity, entity_id, ip, created_at) VALUES ($1, 'auth.login', 'user', $2, '198.51.100.24', $3)`, [l.id, String(l.id), new Date(new Date(l.created_at).getTime() + 3_600_000)]);

@@ -42,7 +42,7 @@ test('Resend: sends through the API with an idempotency key, retries rate limits
   try {
     responses = [[429, { name: 'rate_limit_exceeded' }], [200, { id: 'email_1' }]];
     const ok = await sendMail({
-      to: 'learner@example.com', subject: 'Hello', heading: 'Hi', body: ['Body <b>text</b>'],
+      to: 'learner@thehighvaultsecurity.ca', subject: 'Hello', heading: 'Hi', body: ['Body <b>text</b>'],
       details: [['Exam reference', 'HV-E-ABCD-EFGH']], idempotencyKey: 'exam-result/1', category: 'exam-result',
     });
     assert.equal(ok, true);
@@ -52,15 +52,20 @@ test('Resend: sends through the API with an idempotency key, retries rate limits
     assert.equal(init.headers.Authorization, 'Bearer re_test_key');
     assert.equal(init.headers['Idempotency-Key'], 'exam-result/1');
     const payload = JSON.parse(init.body);
-    assert.deepEqual(payload.to, ['learner@example.com']);
+    assert.deepEqual(payload.to, ['learner@thehighvaultsecurity.ca']);
     assert.deepEqual(payload.tags, [{ name: 'category', value: 'exam-result' }]);
     assert.ok(payload.html.includes('Body &#60;b&#62;text&#60;/b&#62;'), 'content is escaped');
     assert.ok(payload.text.includes('Exam reference: HV-E-ABCD-EFGH'));
 
     calls.length = 0;
     responses = [[422, { message: 'invalid from' }]];
-    assert.equal(await sendMail({ to: 'x@example.com', subject: 'S', heading: 'H', body: [] }), false, 'errors are reported, not thrown');
+    assert.equal(await sendMail({ to: 'x@thehighvaultsecurity.ca', subject: 'S', heading: 'H', body: [] }), false, 'errors are reported, not thrown');
     assert.equal(calls.length, 1, 'validation errors are not retried');
+
+    // Reserved example addresses (the sample learners) are never handed to Resend.
+    calls.length = 0;
+    assert.equal(await sendMail({ to: 'alex.morgan@example.com', subject: 'S', heading: 'H', body: [] }), true);
+    assert.equal(calls.length, 0);
   } finally {
     config.RESEND_API_KEY = undefined;
     globalThis.fetch = realFetch;

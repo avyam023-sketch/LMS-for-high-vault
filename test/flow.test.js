@@ -138,6 +138,7 @@ test('about and policy pages; a paid course never enrols for free without Stripe
     const token = await csrf(agent, '/');
     res = await agent.post(`/enroll/${SLUG}`).type('form').send({ _csrf: token }).expect(302);
     assert.match(res.headers.location, /#pricing$/);
+    assert.match((await agent.get('/').expect(200)).text, /Online payment isn’t available right now/);
     const user = await one(`SELECT id FROM users WHERE email = 'paid@example.com'`);
     assert.equal(await one('SELECT id FROM enrollments WHERE user_id = $1', [user.id]), null, 'no free enrolment');
   } finally {

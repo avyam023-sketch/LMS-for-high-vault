@@ -210,6 +210,7 @@
           <ul class="enrol-list">
             <% for (const h of course.highlights) { %><li><%- include('../partials/icon', { name: 'check' }) %><span><%= h %></span></li><% } %>
           </ul>
+          <%- include('../partials/flash') %>
           <%- include('../partials/enrol-cta', { cls: 'btn-primary btn-lg btn-block', label: 'Register now' }) %>
           <% if (paymentsTestMode && course.price_cents && !enrollment) { %><%- include('../partials/test-card') %><% } %>
           <% if (!user) { %><p class="enrol-foot">Already registered? <a href="/login">Sign in</a> · <a href="/refunds">14-day refund policy</a></p>

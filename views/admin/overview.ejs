@@ -5,10 +5,19 @@
 </div>
 <div class="tiles">
   <div class="tile"><p class="label">Learners</p><div class="value"><%= stats.learners %></div><div class="sub">+<%= stats.learners_7d %> in the last 7 days</div></div>
-  <div class="tile"><p class="label">Enrolments</p><div class="value"><%= stats.enrollments %></div><div class="sub"><%= money(stats.revenue_30d, stats.currency || 'usd') %> paid in the last 30 days</div></div>
+  <div class="tile"><p class="label">Enrolments</p><div class="value"><%= stats.enrollments %></div><div class="sub"><%= stats.revenue_30d ? `${money(stats.revenue_30d, stats.currency || 'usd')} paid in the last 30 days` : 'No payments in the last 30 days' %></div></div>
   <div class="tile"><p class="label">Certificates issued</p><div class="value"><%= stats.certificates %></div><div class="sub">active (not revoked)</div></div>
   <div class="tile"><p class="label">Pass rate · 30 days</p><div class="value"><%= stats.pass_rate_30d == null ? '—' : stats.pass_rate_30d + '%' %></div><div class="sub"><%= stats.attempts_30d %> exam<%= stats.attempts_30d === 1 ? '' : 's' %> submitted</div></div>
 </div>
+<% if (stats.sample_people) { %>
+  <div class="alert alert-warn sample-alert">
+    <p class="mb-0"><strong>Sample data is loaded.</strong> <%= stats.sample_people %> fictional learners (emails ending in @example.com) fill these screens for the demo. Remove them before real learners sign up.</p>
+    <form method="post" action="/admin/sample-data/delete" data-confirm="Remove every sample learner, with their exams, evidence and certificates? This can’t be undone.">
+      <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
+      <button class="btn btn-ghost btn-sm" type="submit">Remove sample data</button>
+    </form>
+  </div>
+<% } %>
 <% if (stats.live_exams) { %>
   <div class="alert alert-info"><strong><%= stats.live_exams %></strong> exam<%= stats.live_exams === 1 ? ' is' : 's are' %> in progress right now. <a href="/admin/attempts?filter=live">See live attempts</a></div>
 <% } %>
@@ -17,6 +26,17 @@
 <% } %>
 <% if (stats.flagged_30d) { %>
   <div class="alert alert-warn"><strong><%= stats.flagged_30d %></strong> exam attempt<%= stats.flagged_30d === 1 ? '' : 's' %> in the last 30 days had integrity events. <a href="/admin/attempts?filter=flagged">Review flagged attempts</a></div>
+<% } %>
+
+<% if (setup.some((s) => !s.ok)) { %>
+<section class="setup mt-24" aria-labelledby="setup-h">
+  <h2 id="setup-h" class="mb-8">Before going live</h2>
+  <ul class="setup-list">
+    <% for (const s of setup) { %>
+    <li><span class="badge <%= s.ok ? 'badge-ok' : 'badge-warn' %>"><%= s.ok ? 'Ready' : 'To do' %></span><strong><%= s.label %></strong><span class="muted"><%= s.text %></span></li>
+    <% } %>
+  </ul>
+</section>
 <% } %>
 
 <div class="grid-2 mt-24">

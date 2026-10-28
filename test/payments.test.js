@@ -193,3 +193,18 @@ test('a Stripe test key shows the test card on the pricing card', async () => {
   const res = await request(app).get(`/course/${SLUG}`).expect(200);
   assert.doesNotMatch(res.text, /4242 4242/);
 });
+
+test('if Stripe is unreachable the learner gets a message, not an error page', async () => {
+  const { agent } = await learner('outage@example.com');
+  const create = fakeStripe.checkout.sessions.create;
+  fakeStripe.checkout.sessions.create = async () => { throw new Error('Invalid API Key provided'); };
+  try {
+    const token = await csrf(agent, `/course/${SLUG}`);
+    const res = await agent.post(`/enroll/${SLUG}`).type('form').send({ _csrf: token }).expect(302);
+    assert.match(res.headers.location, /#pricing$/);
+    const page = await agent.get(`/course/${SLUG}`);
+    assert.match(page.text, /couldn’t open the payment page/);
+  } finally {
+    fakeStripe.checkout.sessions.create = create;
+  }
+});

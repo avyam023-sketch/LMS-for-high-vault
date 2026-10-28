@@ -27,21 +27,28 @@ router.post('/enroll/:slug', requireAuth, async (req, res) => {
 
   // Paid course: send the learner to Stripe Checkout.
   if (course.price_cents > 0) {
-    const checkout = await stripe.checkout.sessions.create({
-      mode: 'payment',
-      customer_email: req.user.email,
-      client_reference_id: req.user.id,
-      line_items: [
-        {
-          quantity: 1,
-          price_data: { currency: course.currency, unit_amount: course.price_cents, product_data: { name: course.title } },
-        },
-      ],
-      ...(config.STRIPE_AUTOMATIC_TAX ? { automatic_tax: { enabled: true }, billing_address_collection: 'required' } : {}),
-      metadata: { user_id: req.user.id, course_id: course.id },
-      success_url: `${config.appUrl}/payments/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${config.appUrl}/course/${course.slug}#pricing`,
-    });
+    let checkout;
+    try {
+      checkout = await stripe.checkout.sessions.create({
+        mode: 'payment',
+        customer_email: req.user.email,
+        client_reference_id: req.user.id,
+        line_items: [
+          {
+            quantity: 1,
+            price_data: { currency: course.currency, unit_amount: course.price_cents, product_data: { name: course.title } },
+          },
+        ],
+        ...(config.STRIPE_AUTOMATIC_TAX ? { automatic_tax: { enabled: true }, billing_address_collection: 'required' } : {}),
+        metadata: { user_id: req.user.id, course_id: course.id },
+        success_url: `${config.appUrl}/payments/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${config.appUrl}/course/${course.slug}#pricing`,
+      });
+    } catch (err) {
+      console.error('[payments] could not start checkout:', err.message);
+      flash(req, 'warn', `We couldn’t open the payment page. Please try again, or email ${config.SUPPORT_EMAIL}.`);
+      return res.redirect(`/course/${course.slug}#pricing`);
+    }
     await query(
       'INSERT INTO payments (user_id, course_id, stripe_session_id, amount_cents, currency) VALUES ($1, $2, $3, $4, $5)',
       [req.user.id, course.id, checkout.id, course.price_cents, course.currency],

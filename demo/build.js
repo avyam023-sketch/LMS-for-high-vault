@@ -23,7 +23,7 @@ const { seed } = await import('../src/db/seed.js');
 const { createApp } = await import('../src/app.js');
 const { encryptBuffer } = await import('../src/lib/crypto.js');
 const { courseOutline, itemUrl } = await import('../src/lib/exam.js');
-const { seedDemo, DEMO_PASSWORD } = await import('./seed-demo.js');
+const { seedDemo, DEMO_PASSWORD } = await import('../src/db/sample-data.js');
 
 // ---------- Sample data ----------
 await pool.query('DROP SCHEMA public CASCADE; CREATE SCHEMA public;');
@@ -222,7 +222,7 @@ const started = await agents.you.post(`/learn/${course.slug}/exam/start`).type('
 const attemptId = started.headers.location?.match(/^\/exam\/([\w-]+)$/)?.[1];
 if (!attemptId) throw new Error(`Could not start the exam (${started.status} ${started.headers.location})`);
 save(`/exam/${attemptId}`, await get(agents.you, `/exam/${attemptId}`));
-const assets = path.join(root, 'demo', 'assets');
+const assets = path.join(root, 'src', 'db', 'sample-assets');
 for (const [kind, file, mime] of [['face', 'sample-face.jpg', 'image/jpeg'], ['id', 'sample-id.jpg', 'image/jpeg'], ['room_scan', 'sample-room.webm', 'video/webm']]) {
   const body = await readFile(path.join(assets, file));
   await query('INSERT INTO proctor_media (attempt_id, kind, mime, byte_size, data) VALUES ($1, $2, $3, $4, $5)', [

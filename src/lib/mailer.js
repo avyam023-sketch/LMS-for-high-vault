@@ -102,11 +102,28 @@ async function sendWithResend(message, { idempotencyKey, category }) {
  * Sends one email. Never throws: a failed email is logged and reported as false, so it can't break
  * the page that triggered it. `idempotencyKey` (e.g. "exam-result/<id>") makes retries safe.
  */
+// Reserved for examples (RFC 2606), so never deliverable. Sample learners use them; sending would only bounce
+// and hurt the sending domain's reputation.
+const UNDELIVERABLE = /@(?:(?:[^@]+\.)?example\.(?:com|net|org)|[^@]+\.(?:test|example|invalid|localhost))$/i;
+
+// While sample data loads (at boot, before the server listens) its exams would otherwise email the real admin.
+let muted = false;
+export async function withoutEmail(fn) {
+  muted = true;
+  try {
+    return await fn();
+  } finally {
+    muted = false;
+  }
+}
+
 export async function sendMail({ to, subject, heading, body, action, details, footer, idempotencyKey, category }) {
   const parts = { heading, body, action, details, footer };
   const message = { from: config.MAIL_FROM, to, subject, text: plainText(parts), html: layout(parts), category };
   try {
-    if (config.RESEND_API_KEY) await sendWithResend(message, { idempotencyKey, category });
+    if (muted) return true;
+    if ((config.RESEND_API_KEY || smtp) && UNDELIVERABLE.test(to)) console.log(`[mail] not sent to example address ${to}: "${subject}"`);
+    else if (config.RESEND_API_KEY) await sendWithResend(message, { idempotencyKey, category });
     else if (smtp) await smtp.sendMail(message);
     else {
       outbox.push(message);

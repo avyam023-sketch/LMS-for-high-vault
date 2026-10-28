@@ -12,6 +12,8 @@ const schema = z.object({
   APP_URL: z.url().default(process.env.RENDER_EXTERNAL_URL || 'http://localhost:3000'),
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   DATABASE_SSL: bool,
+  // Path to the CA bundle that signed the database's certificate (AWS RDS/Lightsail: global-bundle.pem).
+  DATABASE_CA_FILE: z.string().optional(),
   SESSION_SECRET: z.string().min(32, 'SESSION_SECRET must be at least 32 characters'),
   // 32-byte key, base64 encoded. Encrypts MFA secrets at rest.
   ENCRYPTION_KEY: z
@@ -35,6 +37,9 @@ const schema = z.object({
   SHOW_IMAGE_SLOTS: bool,
   // First-run bootstrap for one-click deploys: load the course and create the first admin.
   SEED_ON_START: bool,
+  // Fill a brand-new site with fictional sample learners, exams and certificates so the admin has
+  // something to show. Runs once, only while there are no learners; remove them from Admin → Overview.
+  SEED_SAMPLE_DATA: bool,
   ADMIN_EMAIL: z.string().email().optional().or(z.literal('')),
   ADMIN_PASSWORD: z.string().optional(),
   // Bunny Stream → Video library → Security → Token authentication key. Signs chapter video links.

@@ -1,9 +1,15 @@
+import { readFileSync } from 'node:fs';
 import pg from 'pg';
 import { config } from '../config.js';
 
+// Always verify the database's certificate. Managed databases signed by their own CA (AWS) need its bundle.
+const ssl = config.DATABASE_SSL || config.DATABASE_CA_FILE
+  ? { rejectUnauthorized: true, ...(config.DATABASE_CA_FILE ? { ca: readFileSync(config.DATABASE_CA_FILE, 'utf8') } : {}) }
+  : undefined;
+
 export const pool = new pg.Pool({
   connectionString: config.DATABASE_URL,
-  ssl: config.DATABASE_SSL ? { rejectUnauthorized: true } : undefined,
+  ssl,
   max: 10,
   // Fail fast instead of piling up connections behind a stuck query.
   statement_timeout: 15_000,

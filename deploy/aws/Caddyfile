@@ -1,0 +1,11 @@
+# Caddy gets and renews the HTTPS certificate for $DOMAIN automatically (Let's Encrypt).
+# The app sets its own security headers; Caddy only terminates TLS and forwards.
+{$DOMAIN} {
+	encode zstd gzip
+	reverse_proxy app:3000
+}
+
+# www → bare domain (remove if you don't use www).
+www.{$DOMAIN} {
+	redir https://{$DOMAIN}{uri} permanent
+}

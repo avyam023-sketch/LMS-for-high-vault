@@ -8,7 +8,7 @@ An online learning platform for The High Vault Security's food handler course. L
 
 These are the app's real pages, generated with fictional sample learners. There is no server behind them, so nothing you enter is saved. Use the bar at the bottom of the page to switch between the website, the learner area and the admin dashboard. The quizzes, the camera check-in and the timed exam all work.
 
-The [`Preview site`](.github/workflows/pages.yml) workflow rebuilds it on every push (`node demo/build.js`, sample data in [`demo/seed-demo.js`](demo/seed-demo.js)). The preview includes the question bank and answers, as the admin pages do. Turn the workflow off once real exam questions are in use.
+The [`Preview site`](.github/workflows/pages.yml) workflow rebuilds it on every push (`node demo/build.js`, sample data in [`src/db/sample-data.js`](src/db/sample-data.js)). The preview includes the question bank and answers, as the admin pages do. Turn the workflow off once real exam questions are in use.
 
 ## Try it on your computer (5 minutes)
 
@@ -27,20 +27,41 @@ The preview turns off email confirmation and admin two-step verification and use
 
 ---
 
-## See it live
+## See it live: a working demo on Render (about 15 minutes)
 
-The fastest way to get a public URL is **Render** (free tier is fine for a preview). The repo includes a [`render.yaml`](render.yaml) blueprint that creates the app and its database and generates the secrets for you.
+A real, working copy of the site at a public address: sign up, pay with a Stripe test card, study, take the proctored exam, approve it as admin and download the certificate. The [`render.yaml`](render.yaml) blueprint creates the app and its database and generates the secrets.
+
+**Before you start (5 minutes, optional but recommended):** create a free [Stripe](https://dashboard.stripe.com/register) account, stay in **Test mode**, and copy the **Secret key** (`sk_test_…`) from Developers → API keys. With it, checkout works with the test card `4242 4242 4242 4242` and no real money moves. Without it, paid enrolment is politely refused.
 
 1. Sign in at [render.com](https://render.com) with GitHub and allow access to this repository (it's private).
 2. **New → Blueprint**, pick `avyam023-sketch/LMS-for-high-vault`, then **Apply**. Or use the button: [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/avyam023-sketch/LMS-for-high-vault)
-3. When asked, enter `ADMIN_EMAIL` and a strong `ADMIN_PASSWORD` (12+ characters). Leave `RESEND_API_KEY` blank for now if you don't have one.
-4. Wait for the first deploy (about 5 minutes). Your site is at `https://high-vault-lms.onrender.com` (or similar — Render shows the URL).
-5. Sign in with the admin email. You'll set up two-step verification on first sign-in. Then **delete `ADMIN_PASSWORD`** in Render → Environment.
+3. Render asks for a few values:
+   - `ADMIN_EMAIL` and `ADMIN_PASSWORD`: your admin sign-in. Use a long passphrase that doesn't contain the email.
+   - `STRIPE_SECRET_KEY`: the `sk_test_…` key. Optional.
+   - `RESEND_API_KEY`, `STRIPE_WEBHOOK_SECRET`, `BUNNY_STREAM_TOKEN_KEY`: leave blank for the demo.
+4. Wait for the first deploy (about 5 minutes). Render shows the address, e.g. `https://high-vault-lms.onrender.com`.
+5. Sign in as the admin. You'll set up two-step verification with an authenticator app (Google Authenticator, 1Password…). Then **delete `ADMIN_PASSWORD`** in Render → the service → Environment.
 
-Notes for the preview:
-- **Email**: without `RESEND_API_KEY` (or `SMTP_URL`), sign-up confirmation emails aren't sent. As admin, open Learners → the person → *Mark email verified*, or add a Resend API key.
-- **Custom domain** (e.g. `learn.thehighvaultsecurity.ca`): add it in Render → Settings → Custom Domains, then set `APP_URL=https://learn.thehighvaultsecurity.ca`. Forms are refused from any other address, so this step matters.
-- **Free tier**: the app sleeps after inactivity (first visit takes ~30 seconds) and Render's free database is time-limited. Move both to paid plans before real learners use it.
+The demo starts with fictional sample learners, exams waiting for review and issued certificates, so every admin screen has something in it. They use `@example.com` addresses, can't sign in and are never emailed. Admin → Overview has a **Remove sample data** button, and a *Before going live* list showing what is still in demo mode.
+
+### A demo walkthrough
+
+1. **Website:** open the address in a private window. Click **Register**, create a learner account, then **Register now** on the pricing card.
+2. **Payment:** pay with `4242 4242 4242 4242`, any future date, any CVC. You return to Module 1, enrolled, with a payment reference (`HV-P-…`).
+3. **Learning:** chapters unlock in order and each quiz must be answered correctly to move on. To skip ahead for a demo, open Admin → Learners → the learner → **Mark course complete (demo)**. The button only exists while `SEED_SAMPLE_DATA` is on.
+4. **Exam:** on a laptop with a camera, start the final exam: ID photo, face photo, room scan, then the timed exam.
+5. **Review:** as admin, open Exam attempts → *Waiting for review*, look at the evidence and approve.
+6. **Certificate:** the learner downloads the PDF. Anyone can check its number at `/verify`.
+7. **Refund (optional):** refund the payment in the Stripe dashboard. This only reaches the app if a webhook is set up (see AWS step 5); otherwise skip it in the demo.
+
+Notes:
+- **Email** isn't sent until `RESEND_API_KEY` is set and your domain is verified in Resend. Until then, emails appear in Render → Logs, and email confirmation is off (`REQUIRE_EMAIL_VERIFICATION=false`) so sign-up still works. Turn it back on with email.
+- **Free tier:** the app sleeps when idle (the first visit takes about 30 seconds) and Render's free database expires after 30 days. Fine for a demo; not for real learners.
+- **Custom domain:** Render → Settings → Custom Domains, then set `APP_URL=https://that-domain`.
+
+## Production: AWS Lightsail in Montreal
+
+For the real site, use [`deploy/aws/`](deploy/aws/README.md): one Lightsail server plus a managed PostgreSQL database in Canada (Montreal), automatic HTTPS with Caddy, and a verified TLS connection to the database. The guide walks through every click.
 
 ---
 
@@ -209,7 +230,8 @@ Any host that runs a container and managed Postgres works (Render, Railway, Fly.
 4. Set `RESEND_API_KEY` (verify your sending domain in Resend first, and set `MAIL_FROM` to an address on it). Any SMTP provider also works via `SMTP_URL`. Set `BUNNY_STREAM_TOKEN_KEY` from your Bunny Stream library's security settings.
 5. Serve over HTTPS only. The app sends HSTS in production.
 6. Schedule daily database backups. Proctoring files live in the database, so allow roughly 2 MB per exam (deleted after the retention period).
-7. Optional: to charge for the course, set `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`, point a Stripe webhook at `https://your-domain/webhooks/stripe` (event `checkout.session.completed`), and set a price in Admin → Courses. Without Stripe, enrolment is free.
+7. To charge for the course, set `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`, and point a Stripe webhook at `https://your-domain/webhooks/stripe` with events `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired` and `charge.refunded`. Learners are enrolled as soon as they return from checkout; the webhook covers slow payment methods and records refunds (a full refund ends access). Set `STRIPE_AUTOMATIC_TAX=true` after turning on Stripe Tax. The price is set in Admin → Courses.
+8. Managed databases with their own certificate authority (AWS RDS and Lightsail): set `DATABASE_CA_FILE` to the CA bundle. `deploy/aws/setup.sh` downloads it.
 
 Rate-limit counters are kept in memory, which suits one app instance. If you run several instances, switch to a shared store (`rate-limit-postgresql` or Redis).
 
@@ -220,7 +242,8 @@ Rate-limit counters are kept in memory, which suits one app instance. If you run
 - [ ] **Review the course content and question bank** with whoever is accountable for food safety training. The starter content follows Health Canada guidance and Ontario's Food Premises Regulation (O. Reg. 493/17), but provincial and municipal requirements vary.
 - [ ] **Confirm recognition status.** If the course must be approved or recognised by a provincial program or local public health unit, get that confirmation first, then add it to the course page and FAQ. Until then, the FAQ deliberately tells learners to check with their employer or health unit.
 - [ ] **Connect Stripe** (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`). The course is priced at US$89. Until Stripe is connected, *Register* still works but enrolling is refused with a polite message, so nobody gets the paid course for free.
-- [ ] If the business is registered for GST/HST, turn on Stripe Tax so tax is added at checkout. The terms of sale say taxes are added where required.
+- [ ] If the business is registered for GST/HST, turn on Stripe Tax and set `STRIPE_AUTOMATIC_TAX=true` so tax is added at checkout. The terms of sale say taxes are added where required.
+- [ ] **Remove the sample data** (Admin → Overview) and set `SEED_SAMPLE_DATA=false`.
 - [ ] Set the support email (`SUPPORT_EMAIL`) and sending address (`MAIL_FROM`). The price can be changed in Admin → Courses.
 - [ ] **Add the 10 chapter videos.**
   1. Upload them to a Bunny Stream library.
