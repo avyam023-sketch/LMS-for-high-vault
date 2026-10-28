@@ -71,7 +71,7 @@ router.get('/account/mfa', requireAuth, async (req, res) => {
   const mfaCtx = { purpose: 'mfa-setup', context: req.user.id };
   req.session.mfaSetup ??= encrypt(new OTPAuth.Secret({ size: 20 }).base32, mfaCtx);
   const secret = decrypt(req.session.mfaSetup, mfaCtx);
-  const totp = new OTPAuth.TOTP({ issuer: 'High Vault Security', label: req.user.email, secret: OTPAuth.Secret.fromBase32(secret) });
+  const totp = new OTPAuth.TOTP({ issuer: 'THVFoodSafe', label: req.user.email, secret: OTPAuth.Secret.fromBase32(secret) });
   const qr = await QRCode.toDataURL(totp.toString(), { margin: 1, width: 220 });
   res.render('learn/mfa', {
     title: 'Two-step verification',

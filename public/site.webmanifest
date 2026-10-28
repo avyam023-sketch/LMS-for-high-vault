@@ -1,6 +1,6 @@
 {
-  "name": "The High Vault Security — Food Handler Certification",
-  "short_name": "High Vault",
+  "name": "THVFoodSafe — Food Handler Certification",
+  "short_name": "THVFoodSafe",
   "start_url": "/dashboard",
   "display": "standalone",
   "background_color": "#A3162C",

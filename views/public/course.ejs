@@ -8,7 +8,7 @@
   name: course.title,
   description: course.subtitle,
   inLanguage: 'en-CA',
-  provider: { '@type': 'Organization', name: 'The High Vault Security', url: 'https://thehighvaultsecurity.ca' },
+  provider: { '@type': 'Organization', name: 'THVFoodSafe', legalName: 'The High Vault Security', url: 'https://thehighvaultsecurity.ca' },
   hasCourseInstance: { '@type': 'CourseInstance', courseMode: 'online', courseWorkload: `PT${Math.round(course.duration_minutes / 60)}H` },
   offers: { '@type': 'Offer', category: course.price_cents ? 'Paid' : 'Free', price: (course.price_cents / 100).toFixed(2), priceCurrency: course.currency.toUpperCase() },
 }).replace(/</g, '<') %></script>
@@ -21,7 +21,7 @@
       <div class="hero-grid">
         <div class="hero-copy">
           <p class="kicker" data-intro>100% online certification</p>
-          <h1 data-split><%= course.title %>, <em>completed online.</em></h1>
+          <h1 data-split><%= course.title %>, <em>completed 100% online.</em></h1>
           <p class="lead" data-intro>One careless shortcut can make a customer sick and shut a kitchen down. Ten short modules teach the rules that prevent it. A proctored exam, taken from home, proves you know them.</p>
           <div class="hero-actions" data-intro>
             <%- include('../partials/enrol-cta', { cls: 'btn-primary btn-lg', label: course.price_cents ? `Register now · ${price}` : 'Register now' }) %>

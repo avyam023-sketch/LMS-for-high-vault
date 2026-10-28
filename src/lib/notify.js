@@ -6,7 +6,7 @@ import { many, one } from '../db/pool.js';
 import { sendMail } from './mailer.js';
 import { money } from './view-helpers.js';
 
-const subject = (s) => `${s} — The High Vault Security`;
+const subject = (s) => `${s} — THVFoodSafe`;
 const TZ = 'America/Toronto';
 const longDate = (d) => new Date(d).toLocaleDateString('en-CA', { dateStyle: 'long', timeZone: TZ });
 const dateTime = (d) => new Date(d).toLocaleString('en-CA', { dateStyle: 'long', timeStyle: 'short', timeZone: TZ });

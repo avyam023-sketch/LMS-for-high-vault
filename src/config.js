@@ -10,7 +10,8 @@ const schema = z.object({
   PORT: z.coerce.number().int().positive().default(3000),
   // Address to listen on. Behind a reverse proxy on the same server (AWS + Caddy), use 127.0.0.1.
   HOST: z.string().default('0.0.0.0'),
-  APP_URL: z.url().default('http://localhost:3000'),
+  // On Render, the public https:// address is provided automatically.
+  APP_URL: z.url().default(process.env.RENDER_EXTERNAL_URL || 'http://localhost:3000'),
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   DATABASE_SSL: bool,
   // The certificate authority that signed the database's TLS certificate, so the connection can be verified:
@@ -35,7 +36,8 @@ const schema = z.object({
   // Email: Resend's API (recommended) or any SMTP server. Without either, emails print to the console.
   RESEND_API_KEY: z.string().optional(),
   SMTP_URL: z.string().optional(),
-  MAIL_FROM: z.string().default('The High Vault Security Academy <no-reply@thehighvaultsecurity.ca>'),
+  // A blank value (e.g. a hosting form left empty) falls back to the default too.
+  MAIL_FROM: z.string().optional().transform((v) => v?.trim() || 'THVFoodSafe <no-reply@thehighvaultsecurity.ca>'),
   // First-run bootstrap: load the course and create the first admin.
   SEED_ON_START: bool,
   ADMIN_EMAIL: z.string().email().optional().or(z.literal('')),

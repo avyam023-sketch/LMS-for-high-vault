@@ -1,6 +1,10 @@
-# The High Vault Security — Food Handler Certification
+# THVFoodSafe — Food Handler Certification
 
 An online learning platform for The High Vault Security's food handler course. Learners create their own account and work through **10 modules, each a chapter (video and reading) followed by a quiz**. They then take a **proctored final exam** on camera with an ID check and a room scan, and receive a certificate employers can verify once the exam has been reviewed. Administrators manage everything from a built-in dashboard.
+
+## Client demo site
+
+**[DEMO.md](DEMO.md)** puts a working copy at a public address for free (Render, Supabase in Canada, Gmail or Resend for email, Stripe test mode), so the client can register, pay with a test card, take the exam and get a certificate. It runs the production code with the same checks, and starts empty: no sample learners.
 
 ## Production: AWS Lightsail in Montreal
 

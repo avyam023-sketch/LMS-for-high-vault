@@ -1,5 +1,5 @@
 /* ==========================================================================
-   The High Vault Security — Food Handler Certification
+   THVFoodSafe — Food Handler Certification
    Design system: crimson red + white, Jost display (matches the
    wordmark), IBM Plex Sans for reading, IBM Plex Mono for data and indices.
    ========================================================================== */
@@ -104,6 +104,10 @@ code, kbd { font-family: var(--mono); font-size: .9em; }
 .site-header .wrap { display: flex; align-items: center; justify-content: space-between; height: var(--header); gap: 24px; }
 .brand { display: flex; align-items: center; gap: 14px; text-decoration: none; color: var(--on-dark); flex: none; }
 .brand img { height: 44px; width: auto; }
+.brand-name { font-family: var(--display); font-size: 1.4rem; line-height: 1; letter-spacing: .01em; color: var(--on-dark); }
+.footer-brand { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+.footer-brand .brand-name { font-size: 1.7rem; }
+.footer-grid .footer-brand img { height: 56px; margin-bottom: 0; }
 .brand-tag { font-family: var(--mono); font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; color: var(--on-dark-2); padding-left: 14px; border-left: 1px solid var(--line-dark); line-height: 1.3; }
 .nav { display: flex; align-items: center; gap: 4px; }
 .nav a:not(.btn), .nav button.link { position: relative; color: var(--on-dark); text-decoration: none; padding: 8px 14px; font: inherit; font-size: .9rem; background: none; border: 0; cursor: pointer; }

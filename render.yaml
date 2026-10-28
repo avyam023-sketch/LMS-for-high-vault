@@ -1,0 +1,59 @@
+# Client demo on Render's free plan, with the database on Supabase's free plan (Canada region).
+# Step-by-step setup and the walkthrough: DEMO.md. The real site runs on AWS Montreal (deploy/aws/).
+# Nothing secret is stored in this file: Render generates the app's own secrets and asks you for the rest
+# ("sync: false") when you create the blueprint. It runs exactly the production code and checks.
+services:
+  - type: web
+    name: high-vault-lms
+    runtime: node
+    plan: free
+    buildCommand: npm ci --omit=dev
+    startCommand: node src/server.js
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: TRUST_PROXY
+        value: "1"
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: ENCRYPTION_KEY
+        generateValue: true
+
+      # Supabase → Connect → Session pooler connection string, with your database password filled in.
+      - key: DATABASE_URL
+        sync: false
+      # Supabase → Project Settings → Database → SSL Configuration → Download certificate. Paste the whole
+      # file, from -----BEGIN CERTIFICATE----- to -----END CERTIFICATE-----.
+      - key: DATABASE_CA_CERT
+        sync: false
+
+      # First boot: load the course and create the first admin from these two values.
+      - key: SEED_ON_START
+        value: "true"
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+
+      # Email: fill in ONE of these, plus MAIL_FROM (see DEMO.md step 2).
+      #   Gmail: SMTP_URL = smtps://ADDRESS%40gmail.com:APP-PASSWORD@smtp.gmail.com:465, MAIL_FROM = that address.
+      #   Resend: RESEND_API_KEY = re_…, once your domain is verified in Resend.
+      - key: SMTP_URL
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      - key: SUPPORT_EMAIL
+        value: info@thehighvaultsecurity.ca
+
+      # Payments: Stripe in test mode (sk_test_…). The webhook secret is added after the first deploy.
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+
+      # Optional: chapter videos on Bunny Stream.
+      - key: BUNNY_STREAM_TOKEN_KEY
+        sync: false

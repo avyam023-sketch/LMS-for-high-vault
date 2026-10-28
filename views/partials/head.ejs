@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title><%= title ? `${title} — The High Vault Security` : 'Food Handler Certification — The High Vault Security' %></title>
-  <meta name="description" content="<%= locals.description || 'Online food handler certification from The High Vault Security. Study at your own pace, pass the final exam, and download a certificate employers can verify.' %>">
+  <% const pageTitle = title ? `${title} — THVFoodSafe` : 'Food Handler Certification — THVFoodSafe'; const pageDesc = locals.description || 'Online food handler certification from THVFoodSafe. Study at your own pace, pass the final exam, and download a certificate employers can verify.'; %>
+  <title><%= pageTitle %></title>
+  <meta name="description" content="<%= pageDesc %>">
   <meta name="theme-color" content="#A3162C">
-  <% const pageTitle = title ? `${title} — The High Vault Security` : 'Food Handler Certification — The High Vault Security'; const pageDesc = locals.description || 'Online food handler certification from The High Vault Security. Study at your own pace, pass the final exam, and download a certificate employers can verify.'; %>
   <% if (!user && !path.startsWith('/admin')) { %>
   <link rel="canonical" href="<%= appUrl %><%= path %>">
   <meta property="og:type" content="website">
-  <meta property="og:site_name" content="The High Vault Security">
+  <meta property="og:site_name" content="THVFoodSafe">
   <meta property="og:title" content="<%= pageTitle %>">
   <meta property="og:description" content="<%= pageDesc %>">
   <meta property="og:url" content="<%= appUrl %><%= path %>">
@@ -43,8 +43,9 @@
 <a class="skip" href="#main">Skip to content</a>
 <header class="site-header">
   <div class="wrap">
-    <a class="brand" href="/" aria-label="The High Vault Security — home">
-      <img src="/img/logo-lockup.svg" alt="The High Vault Security" width="121" height="44">
+    <a class="brand" href="/" aria-label="THVFoodSafe — home">
+      <img src="/img/logo-mark.svg" alt="" width="37" height="44">
+      <span class="brand-name">THVFoodSafe</span>
       <span class="brand-tag">Food Handler<br>Certification</span>
     </a>
     <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav"><span></span>Menu</button>

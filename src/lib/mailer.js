@@ -27,7 +27,7 @@ function layout({ heading, body, code, action, details, footer }) {
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#faf7f6;padding:32px 12px"><tr><td align="center">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #eee3e4;border-radius:6px;font-family:Arial,Helvetica,sans-serif;color:#241517">
     <tr><td style="background:#a3162c;padding:20px 28px;border-radius:6px 6px 0 0">
-      <span style="color:#ffffff;font-size:13px;letter-spacing:.14em">THE HIGH VAULT SECURITY</span>
+      <span style="color:#ffffff;font-size:16px;letter-spacing:.02em">THVFoodSafe</span>
       <span style="color:#f6d6dc;font-size:11px;letter-spacing:.1em;padding-left:10px">FOOD HANDLER CERTIFICATION</span>
     </td></tr>
     <tr><td style="padding:32px 28px 28px">
@@ -39,7 +39,7 @@ function layout({ heading, body, code, action, details, footer }) {
     </td></tr>
     <tr><td style="padding:18px 28px;border-top:1px solid #eee3e4;font-size:12px;line-height:1.6;color:#6d5f62">
       ${esc(footer ?? `Questions? Email ${config.SUPPORT_EMAIL} and quote the reference above.`)}<br>
-      The High Vault Security · <a href="${esc(config.appUrl)}" style="color:#a3162c">${esc(config.appUrl.replace(/^https?:\/\//, ''))}</a>
+      THVFoodSafe · <a href="${esc(config.appUrl)}" style="color:#a3162c">${esc(config.appUrl.replace(/^https?:\/\//, ''))}</a>
     </td></tr>
   </table>
 </td></tr></table></body></html>`;
