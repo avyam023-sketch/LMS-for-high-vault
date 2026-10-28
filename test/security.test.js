@@ -111,7 +111,7 @@ test('sign-up bot trap: honeypot submissions create no account', async () => {
   const agent = request.agent(app);
   const token = await csrf(agent, '/register');
   const res = await agent.post('/register').type('form').send({
-    _csrf: token, first_name: 'Bot', last_name: 'Bot', email: 'bot@example.com', password: PASSWORD, confirm: PASSWORD, terms: 'on', website: 'http://spam',
+    _csrf: token, first_name: 'Bot', last_name: 'Bot', email: 'bot@example.com', password: PASSWORD, confirm: PASSWORD, terms: 'on', hv_trap: 'http://spam',
   });
   assert.equal(res.status, 200);
   assert.match(res.text, /Check your email/);

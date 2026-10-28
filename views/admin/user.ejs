@@ -74,12 +74,6 @@
             <input type="hidden" name="_csrf" value="<%= csrfToken() %>"><input type="hidden" name="action" value="extra_attempt"><input type="hidden" name="course_id" value="<%= e.course_id %>">
             <button class="btn btn-ghost btn-sm" type="submit">+1 attempt</button>
           </form>
-          <% if (demoTools && !e.completed_at && e.lessons_done < e.lessons_total) { %>
-          <form method="post" action="/admin/users/<%= member.id %>/action" class="inline-form" data-confirm="Demo only: mark every chapter and quiz complete so this learner can go straight to the final exam?">
-            <input type="hidden" name="_csrf" value="<%= csrfToken() %>"><input type="hidden" name="action" value="demo_complete"><input type="hidden" name="course_id" value="<%= e.course_id %>">
-            <button class="btn btn-ghost btn-sm" type="submit">Mark course complete (demo)</button>
-          </form>
-          <% } %>
         </td>
       </tr>
       <% } %>

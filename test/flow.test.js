@@ -479,6 +479,11 @@ test('proctored check-in: nothing is served until ID, face and room scan are in'
   await upload(agent, attemptId, token, 'room_scan', 'image/jpeg', JPEG).expect(400);
   await upload(agent, attemptId, token, 'snapshot', 'image/jpeg', JPEG).expect(409);
   await upload(agent, attemptId, token, 'face', 'image/jpeg', JPEG).set('x-csrf-token', 'wrong').expect(403);
+  // Oversized files are refused without being stored; malformed exam links are a plain "not found".
+  await upload(agent, attemptId, token, 'face', 'image/jpeg', Buffer.concat([JPEG, Buffer.alloc(3 * 1024 * 1024)])).expect(400);
+  assert.equal((await one(`SELECT count(*)::int AS n FROM proctor_media WHERE attempt_id = $1`, [attemptId])).n, 0);
+  await agent.get('/exam/------------------------------------').expect(404);
+  await agent.get('/exam/not-an-id/paper').expect(404);
 
   // Begin is refused until all three check-in items exist.
   await upload(agent, attemptId, token, 'face', 'image/jpeg', JPEG).expect(200);

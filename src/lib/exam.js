@@ -203,7 +203,7 @@ export async function beginAttempt(attempt) {
 }
 
 export async function loadAttempt(attemptId, userId) {
-  if (!/^[0-9a-f-]{36}$/i.test(attemptId)) return null;
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(attemptId)) return null;
   return one(
     `SELECT a.*, c.title AS course_title, c.slug AS course_slug, c.pass_mark, c.max_focus_violations,
             c.require_fullscreen, c.exam_time_limit_minutes, c.proctoring_required

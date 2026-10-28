@@ -21,7 +21,8 @@
       <%- include('../partials/flash') %>
       <form method="post" action="/register" novalidate data-signup>
         <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
-        <div class="hp" aria-hidden="true"><label for="f-website">Website</label><input id="f-website" name="website" type="text" tabindex="-1" autocomplete="off"></div>
+        <%# Bot trap. The name and label mean nothing to browser autofill or password managers, so they never fill it in for a person. %>
+        <div class="hp" aria-hidden="true"><label for="f-hv-trap">Leave this empty</label><input id="f-hv-trap" name="hv_trap" type="text" tabindex="-1" autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other"></div>
         <ol class="su-dots" aria-hidden="true"><% cards.forEach((c, i) => { %><li class="<%= i < start ? 'done' : i === start ? 'current' : '' %>"></li><% }) %></ol>
 
         <div class="su-deck">

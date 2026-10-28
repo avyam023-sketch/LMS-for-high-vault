@@ -2,42 +2,6 @@
 
 An online learning platform for The High Vault Security's food handler course. Learners create their own account and work through **10 modules, each a chapter (video and reading) followed by a quiz**. They then take a **proctored final exam** on camera with an ID check and a room scan, and receive a certificate employers can verify once the exam has been reviewed. Administrators manage everything from a built-in dashboard.
 
-## Click-through preview
-
-**https://avyam023-sketch.github.io/LMS-for-high-vault/**
-
-These are the app's real pages, generated with fictional sample learners. There is no server behind them, so nothing you enter is saved. Use the bar at the bottom of the page to switch between the website, the learner area and the admin dashboard. The quizzes, the camera check-in and the timed exam all work.
-
-The [`Preview site`](.github/workflows/pages.yml) workflow rebuilds it on every push (`node demo/build.js`, sample data in [`src/db/sample-data.js`](src/db/sample-data.js)). The preview includes the question bank and answers, as the admin pages do. Turn the workflow off once real exam questions are in use.
-
-## Try it on your computer (10 minutes)
-
-The quickest way to show the site to someone is the [working demo](DEMO.md). To run it on your own computer instead:
-
-1. Install [Node.js 22](https://nodejs.org/) (the LTS download) and [PostgreSQL 16](https://www.postgresql.org/download/). On a Mac, [Postgres.app](https://postgresapp.com/) is the easiest. During the PostgreSQL install, note the password you set for the `postgres` user.
-2. Create an empty database called `highvault_preview` (in pgAdmin: Databases → Create; or run `createdb highvault_preview`).
-3. Download this repo (**Code → Download ZIP**, then unzip it) and open a terminal in the folder. On Windows: open the folder, click the address bar, type `cmd`, press Enter.
-4. If your PostgreSQL password isn't `postgres`, open `preview.env` and change it in `DATABASE_URL`.
-5. Run:
-   ```
-   npm install
-   npm run preview
-   ```
-6. When you see `listening`, open **http://localhost:3000**.
-   - Admin: `admin@example.com` / `vault-preview-2026`
-   - Or register as a learner (no email confirmation in the preview). Paying needs a Stripe test key in `preview.env`.
-7. Stop with `Ctrl+C`. To start over, delete and re-create the `highvault_preview` database.
-
-The preview turns off email confirmation and admin two-step verification and uses public placeholder keys, so it's only for your own computer. The app refuses to start in production with those keys.
-
----
-
-## See it live: a working demo
-
-**[DEMO.md](DEMO.md)** sets up a real, working copy of the site at a public address in about 30 minutes, for free: Render (site), Supabase in Canada (database), Resend (email) and Stripe test mode (payments). It walks through every click, then gives a 15-minute script for showing the client the whole flow, from registration with a 6-digit email code, through checkout, the proctored exam and admin review, to the certificate.
-
-The demo starts with fictional sample learners so every admin screen has something in it. They use `@example.com` addresses, can't sign in and are never emailed. **Admin → Overview → Remove sample data** clears them.
-
 ## Production: AWS Lightsail in Montreal
 
 For the real site, use [`deploy/aws/`](deploy/aws/README.md): one Lightsail server plus a managed PostgreSQL database in Canada (Montreal), automatic HTTPS with Caddy, and a verified TLS connection to the database. The guide walks through every click.
@@ -202,7 +166,7 @@ npm run seed         # load the course content (or set SEED_ON_START=true)
 npm run create-admin -- you@yourdomain.ca "First" "Last"
 ```
 
-Any host that runs Node.js 22 with a managed PostgreSQL works (Render, Railway, Fly.io, DigitalOcean App Platform, AWS, Azure). Checklist:
+Any host that runs Node.js 22 with a managed PostgreSQL works (AWS, Azure, DigitalOcean, Fly.io, Railway). In production the app refuses to start if a secret is a placeholder, `APP_URL` isn't `https://`, no email provider is set, or email confirmation or admin two-step verification is turned off. Checklist:
 
 1. `NODE_ENV=production` and `APP_URL=https://your-domain`.
 2. Generate fresh `SESSION_SECRET` and `ENCRYPTION_KEY` values. **Back up `ENCRYPTION_KEY`**: losing it means admins must re-enrol their two-step verification.
@@ -213,7 +177,7 @@ Any host that runs Node.js 22 with a managed PostgreSQL works (Render, Railway, 
 7. To charge for the course, set `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`, and point a Stripe webhook at `https://your-domain/webhooks/stripe` with events `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired` and `charge.refunded`. Learners are enrolled as soon as they return from checkout; the webhook covers slow payment methods and records refunds (a full refund ends access). Set `STRIPE_AUTOMATIC_TAX=true` after turning on Stripe Tax. The price is set in Admin → Courses.
 8. Managed databases with their own certificate authority: set `DATABASE_CA_FILE` to the CA file (AWS RDS and Lightsail; `deploy/aws/install.sh` downloads it) or paste the certificate into `DATABASE_CA_CERT` (Supabase). The connection is always verified. On Supabase, the app also locks every table away from Supabase's public Data API roles.
 
-Rate-limit counters are kept in memory, which suits one app instance. If you run several instances, switch to a shared store (`rate-limit-postgresql` or Redis).
+Rate-limit counters live in Postgres, so they hold across restarts and across several app instances.
 
 ---
 
@@ -223,7 +187,6 @@ Rate-limit counters are kept in memory, which suits one app instance. If you run
 - [ ] **Confirm recognition status.** If the course must be approved or recognised by a provincial program or local public health unit, get that confirmation first, then add it to the course page and FAQ. Until then, the FAQ deliberately tells learners to check with their employer or health unit.
 - [ ] **Connect Stripe** (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`). The course is priced at $89 CAD. Until Stripe is connected, *Register* still works but enrolling is refused with a polite message, so nobody gets the paid course for free.
 - [ ] If the business is registered for GST/HST, turn on Stripe Tax and set `STRIPE_AUTOMATIC_TAX=true` so tax is added at checkout. The terms of sale say taxes are added where required.
-- [ ] **Remove the sample data** (Admin → Overview) and set `SEED_SAMPLE_DATA=false`.
 - [ ] Set the support email (`SUPPORT_EMAIL`) and sending address (`MAIL_FROM`). The price can be changed in Admin → Courses.
 - [ ] **Add the 10 chapter videos.**
   1. Upload them to a Bunny Stream library.

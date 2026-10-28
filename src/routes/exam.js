@@ -127,14 +127,20 @@ router.post(
   '/exam/:attemptId/media',
   requireAuth,
   apiLimiter,
-  express.raw({ type: ['image/jpeg', 'video/webm', 'video/mp4'], limit: '60mb' }),
-  async (req, res) => {
+  // Check the upload is wanted before reading it, and read no more than this kind of file may be,
+  // so a stray or hostile request can't make the server buffer tens of megabytes for nothing.
+  async (req, res, next) => {
     const kind = String(req.query.kind ?? '');
     const rule = MEDIA_RULES[kind];
     if (!rule) return res.status(400).json({ error: 'Unknown media type.' });
     const attempt = await attemptFor(req);
     if (!attempt || attempt.lapsed) return res.status(404).json({ error: 'Not found' });
     if (attempt.status !== rule.phase) return res.status(409).json({ error: 'This upload is not allowed at this stage.' });
+    Object.assign(res.locals, { kind, rule, attempt });
+    express.raw({ type: rule.types, limit: rule.max })(req, res, (err) => (err ? res.status(400).json({ error: 'That file could not be accepted.' }) : next()));
+  },
+  async (req, res) => {
+    const { kind, rule, attempt } = res.locals;
     const mime = req.get('content-type')?.split(';')[0].trim();
     const body = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
     if (!rule.types.includes(mime) || body.length === 0 || body.length > rule.max || !looksLike(mime, body)) {

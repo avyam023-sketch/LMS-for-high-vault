@@ -88,8 +88,8 @@ router.get('/register', (req, res) => {
 router.post('/register', registerLimiter, async (req, res) => {
   // Bot traps: a hidden field people never fill in, and a form submitted faster than a person can type.
   const shownAt = req.session.registerShownAt;
-  if (req.body.website || !shownAt || Date.now() - shownAt < (config.isTest ? 0 : 2500)) {
-    await audit(req, 'auth.register_blocked_bot', { meta: { honeypot: Boolean(req.body.website) } });
+  if (req.body.hv_trap || !shownAt || Date.now() - shownAt < (config.isTest ? 0 : 2500)) {
+    await audit(req, 'auth.register_blocked_bot', { meta: { honeypot: Boolean(req.body.hv_trap) } });
     return res.render('auth/check-email', { title: 'Check your email', email: String(req.body.email ?? '').slice(0, 254) });
   }
   const values = { first_name: req.body.first_name, last_name: req.body.last_name, email: req.body.email };

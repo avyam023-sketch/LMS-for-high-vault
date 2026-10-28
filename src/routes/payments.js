@@ -43,6 +43,10 @@ router.post('/enroll/:slug', requireAuth, async (req, res) => {
         metadata: { user_id: req.user.id, course_id: course.id },
         success_url: `${config.appUrl}/payments/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${config.appUrl}/course/${course.slug}#pricing`,
+      }, {
+        // A double-click or a second tab within a few minutes gets the same checkout page back, not a
+        // second one the learner could also pay.
+        idempotencyKey: `enroll:${req.user.id}:${course.id}:${course.price_cents}:${Math.floor(Date.now() / (10 * 60_000))}`,
       });
     } catch (err) {
       console.error('[payments] could not start checkout:', err.message);
@@ -50,7 +54,8 @@ router.post('/enroll/:slug', requireAuth, async (req, res) => {
       return res.redirect(`/course/${course.slug}#pricing`);
     }
     await query(
-      'INSERT INTO payments (user_id, course_id, stripe_session_id, amount_cents, currency) VALUES ($1, $2, $3, $4, $5)',
+      `INSERT INTO payments (user_id, course_id, stripe_session_id, amount_cents, currency) VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (stripe_session_id) DO NOTHING`,
       [req.user.id, course.id, checkout.id, course.price_cents, course.currency],
     );
     return res.redirect(303, checkout.url);

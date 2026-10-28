@@ -552,7 +552,6 @@ table.data .num, table.data th.num { text-align: right; font-variant-numeric: ta
 .setup-list li:first-child { border-top: 0; }
 .setup-list .badge { justify-self: start; }
 @media (max-width: 720px) { .setup-list li { grid-template-columns: 72px 1fr; } .setup-list li .muted { grid-column: 2; } }
-.sample-alert { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 32px; background: var(--white); border: 1px solid var(--line); border-radius: var(--r-lg); }
 .tile { padding: 24px; }
 .tile + .tile { border-left: 1px solid var(--line); }

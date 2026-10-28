@@ -59,7 +59,6 @@ router.get('/', async (req, res) => {
       (SELECT count(*)::int FROM exam_attempts WHERE (focus_violations > 0 OR auto_submitted = 'integrity') AND started_at > now() - interval '30 days') AS flagged_30d,
       (SELECT count(*)::int FROM exam_attempts WHERE status = 'in_progress') AS live_exams,
       (SELECT count(*)::int FROM exam_attempts WHERE review_status = 'pending') AS pending_reviews,
-      (SELECT count(*)::int FROM users WHERE is_sample) AS sample_people,
       (SELECT currency FROM courses WHERE is_published ORDER BY created_at LIMIT 1) AS currency,
       (SELECT coalesce(sum(coalesce(amount_paid_cents, amount_cents)), 0)::int FROM payments
         WHERE status = 'paid' AND paid_at > now() - interval '30 days'
@@ -82,14 +81,6 @@ router.get('/', async (req, res) => {
     ['Chapter videos', config.BUNNY_STREAM_TOKEN_KEY ? [true, 'Bunny Stream links are signed'] : [false, 'No BUNNY_STREAM_TOKEN_KEY: Bunny videos play only if the library allows unsigned links']],
   ].map(([label, [ok, text]]) => ({ label, ok, text }));
   res.render('admin/overview', { title: 'Admin overview', stats, recentAttempts, recentUsers, setup });
-});
-
-// Removes the fictional learners loaded by SEED_SAMPLE_DATA, with their exams, evidence and certificates.
-router.post('/sample-data/delete', async (req, res) => {
-  const { rowCount } = await query('DELETE FROM users WHERE is_sample AND id <> $1', [req.user.id]);
-  await audit(req, 'admin.sample_data.deleted', { entity: 'site', meta: { people: rowCount } });
-  flash(req, 'success', `Removed ${rowCount} sample account${rowCount === 1 ? '' : 's'}.`);
-  res.redirect('/admin');
 });
 
 // ---------- Find by reference ----------
@@ -162,7 +153,7 @@ router.get('/users/:id', async (req, res) => {
     `SELECT action, ip, created_at FROM audit_log WHERE actor_id = $1 OR entity_id = $2 ORDER BY created_at DESC LIMIT 20`,
     [member.id, String(member.id)],
   );
-  res.render('admin/user', { title: `${member.first_name} ${member.last_name}`, member, enrollments, attempts, certificates, payments, courses, activity, demoTools: config.SEED_SAMPLE_DATA });
+  res.render('admin/user', { title: `${member.first_name} ${member.last_name}`, member, enrollments, attempts, certificates, payments, courses, activity });
 });
 
 router.post('/users/:id/action', async (req, res) => {
@@ -226,15 +217,6 @@ router.post('/users/:id/action', async (req, res) => {
       if (!UUID.test(String(req.body.course_id))) return back();
       const { rowCount } = await query('UPDATE enrollments SET extra_attempts = extra_attempts + 1 WHERE user_id = $1 AND course_id = $2', [member.id, req.body.course_id]);
       if (rowCount) await extraAttemptEmail(member.id, req.body.course_id);
-      break;
-    }
-    case 'demo_complete': {
-      // Demo sites only: skip a learner to the final exam so the exam and review can be shown quickly.
-      if (!config.SEED_SAMPLE_DATA || !UUID.test(String(req.body.course_id))) return back();
-      const enrolled = await one('SELECT 1 FROM enrollments WHERE user_id = $1 AND course_id = $2', [member.id, req.body.course_id]);
-      if (!enrolled) return flash(req, 'error', 'Enrol the learner first.'), back();
-      const { progress } = await import('../db/sample-data.js');
-      await progress({ id: member.id }, { id: req.body.course_id });
       break;
     }
     default:

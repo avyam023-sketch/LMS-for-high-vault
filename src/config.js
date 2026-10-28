@@ -10,8 +10,7 @@ const schema = z.object({
   PORT: z.coerce.number().int().positive().default(3000),
   // Address to listen on. Behind a reverse proxy on the same server (AWS + Caddy), use 127.0.0.1.
   HOST: z.string().default('0.0.0.0'),
-  // On Render, the public URL is provided automatically.
-  APP_URL: z.url().default(process.env.RENDER_EXTERNAL_URL || 'http://localhost:3000'),
+  APP_URL: z.url().default('http://localhost:3000'),
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   DATABASE_SSL: bool,
   // The certificate authority that signed the database's TLS certificate, so the connection can be verified:
@@ -37,13 +36,8 @@ const schema = z.object({
   RESEND_API_KEY: z.string().optional(),
   SMTP_URL: z.string().optional(),
   MAIL_FROM: z.string().default('The High Vault Security Academy <no-reply@thehighvaultsecurity.ca>'),
-  // Label empty image slots on public pages for every visitor (used by the click-through preview).
-  SHOW_IMAGE_SLOTS: bool,
-  // First-run bootstrap for one-click deploys: load the course and create the first admin.
+  // First-run bootstrap: load the course and create the first admin.
   SEED_ON_START: bool,
-  // Fill a brand-new site with fictional sample learners, exams and certificates so the admin has
-  // something to show. Runs once, only while there are no learners; remove them from Admin → Overview.
-  SEED_SAMPLE_DATA: bool,
   ADMIN_EMAIL: z.string().email().optional().or(z.literal('')),
   ADMIN_PASSWORD: z.string().optional(),
   // Bunny Stream → Video library → Security → Token authentication key. Signs chapter video links.
@@ -67,15 +61,28 @@ if (!parsed.success) {
 }
 
 const env = parsed.data;
-// The local preview (preview.env) uses public placeholder keys. Never in production.
-if (env.NODE_ENV === 'production' && (env.SESSION_SECRET.startsWith('local-preview-only') || env.ENCRYPTION_KEY === 'bG9jYWwtcHJldmlldy1vbmx5LW5vdC1zZWNyZXQhIQA=')) {
-  console.error('Refusing to start: the local-preview keys must not be used in production. Generate new SESSION_SECRET and ENCRYPTION_KEY values.');
-  process.exit(1);
-}
-// A Supabase database is reached over the internet, so never connect to it without a verified TLS connection.
-if (env.NODE_ENV === 'production' && /@[^/]*\.supabase\.(co|com)[:/]/.test(env.DATABASE_URL) && !env.DATABASE_CA_CERT && !env.DATABASE_CA_FILE) {
-  console.error('Refusing to start: set DATABASE_CA_CERT to Supabase\'s certificate (Project Settings → Database → SSL Configuration).');
-  process.exit(1);
+// Production refuses to start with anything that would leave a real site half-protected or unable to reach learners.
+if (env.NODE_ENV === 'production') {
+  const problems = [];
+  // Keys that have been published (old local-preview and CI files) or are trivially guessable.
+  const knownSecret = /^(local-preview-only|ci-only|change-me|changeme|replace)/i.test(env.SESSION_SECRET) || new Set(env.SESSION_SECRET).size < 8;
+  const knownKey = ['bG9jYWwtcHJldmlldy1vbmx5LW5vdC1zZWNyZXQhIQA=', 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='].includes(env.ENCRYPTION_KEY)
+    || new Set(Buffer.from(env.ENCRYPTION_KEY, 'base64')).size < 8;
+  if (knownSecret) problems.push('SESSION_SECRET is a placeholder. Generate one with: openssl rand -base64 48');
+  if (knownKey) problems.push('ENCRYPTION_KEY is a placeholder. Generate one with: openssl rand -base64 32');
+  if (!env.APP_URL.startsWith('https://')) problems.push('APP_URL must be the site\'s https:// address.');
+  if (!env.RESEND_API_KEY && !env.SMTP_URL) problems.push('No email provider: set RESEND_API_KEY (or SMTP_URL) so confirmation codes and results reach learners.');
+  if (!env.REQUIRE_EMAIL_VERIFICATION) problems.push('REQUIRE_EMAIL_VERIFICATION must stay on in production.');
+  if (!env.REQUIRE_ADMIN_MFA) problems.push('REQUIRE_ADMIN_MFA must stay on in production.');
+  // A Supabase database is reached over the internet, so never connect to it without a verified TLS connection.
+  if (/@[^/]*\.supabase\.(co|com)[:/]/.test(env.DATABASE_URL) && !env.DATABASE_CA_CERT && !env.DATABASE_CA_FILE) {
+    problems.push('Set DATABASE_CA_CERT to Supabase\'s certificate (Project Settings → Database → SSL Configuration).');
+  }
+  if (problems.length) {
+    console.error('Refusing to start in production:');
+    for (const p of problems) console.error(`  ${p}`);
+    process.exit(1);
+  }
 }
 export const config = {
   ...env,

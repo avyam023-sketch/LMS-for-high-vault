@@ -28,7 +28,7 @@ const require = createRequire(import.meta.url);
 export function createApp() {
   const app = express();
   app.disable('x-powered-by');
-  // "1" means one proxy hop (Render, Railway, nginx); "true" trusts all; otherwise IPs/subnets.
+  // "1" means one proxy hop (Caddy, nginx); "true" trusts all; otherwise IPs/subnets.
   const trust = config.TRUST_PROXY;
   app.set('trust proxy', trust === 'true' ? true : /^\d+$/.test(trust) ? Number(trust) : trust);
   app.set('view engine', 'ejs');
@@ -151,12 +151,12 @@ export function createApp() {
   });
   app.use(csrf);
   app.use(viewHelpers);
-  // Image slots: uploaded photos, and whether to label empty slots (admins, and the click-through preview).
+  // Image slots: uploaded photos, and whether to label empty slots (admins only).
   app.use(async (req, res, next) => {
     try {
       if (req.method === 'GET') res.locals.siteImages = await siteImages();
       res.locals.slotInfo = SLOT_INFO;
-      res.locals.showImageSlots = config.SHOW_IMAGE_SLOTS || req.user?.role === 'admin';
+      res.locals.showImageSlots = req.user?.role === 'admin';
       next();
     } catch (err) {
       next(err);

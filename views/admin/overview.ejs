@@ -9,15 +9,6 @@
   <div class="tile"><p class="label">Certificates issued</p><div class="value"><%= stats.certificates %></div><div class="sub">active (not revoked)</div></div>
   <div class="tile"><p class="label">Pass rate · 30 days</p><div class="value"><%= stats.pass_rate_30d == null ? '—' : stats.pass_rate_30d + '%' %></div><div class="sub"><%= stats.attempts_30d %> exam<%= stats.attempts_30d === 1 ? '' : 's' %> submitted</div></div>
 </div>
-<% if (stats.sample_people) { %>
-  <div class="alert alert-warn sample-alert">
-    <p class="mb-0"><strong>Sample data is loaded.</strong> <%= stats.sample_people %> fictional learners (emails ending in @example.com) fill these screens for the demo. Remove them before real learners sign up.</p>
-    <form method="post" action="/admin/sample-data/delete" data-confirm="Remove every sample learner, with their exams, evidence and certificates? This can’t be undone.">
-      <input type="hidden" name="_csrf" value="<%= csrfToken() %>">
-      <button class="btn btn-ghost btn-sm" type="submit">Remove sample data</button>
-    </form>
-  </div>
-<% } %>
 <% if (stats.live_exams) { %>
   <div class="alert alert-info"><strong><%= stats.live_exams %></strong> exam<%= stats.live_exams === 1 ? ' is' : 's are' %> in progress right now. <a href="/admin/attempts?filter=live">See live attempts</a></div>
 <% } %>
